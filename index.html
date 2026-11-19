@@ -1,0 +1,2383 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SILARAS | Sistem Informasi Laboratorium Siliwangi - Fakultas Pertanian UNSIL</title>
+  <link rel="icon" type="image/png" href="https://drive.google.com/thumbnail?id=1LIq-IYBi0L6lXGEMDyrb3jmVjf9yAQRU&sz=w128" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <style>
+    [x-cloak] { display: none !important; }
+    .bg-silaras-dark { background-color: #064E3B; }
+    .text-silaras-dark { color: #064E3B; }
+    .border-silaras-dark { border-color: #064E3B; }
+    .bg-silaras-lime { background-color: #84CC16; }
+    .text-silaras-lime { color: #84CC16; }
+    canvas.sig-pad { touch-action: none; cursor: crosshair; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased" x-data="silarasApp()" x-init="initApp()">
+
+  <!-- GLOBAL TOAST / LOADING OVERLAY -->
+  <div x-show="loading" x-cloak class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center">
+    <div class="bg-white rounded-2xl px-6 py-5 shadow-xl flex items-center gap-4 border border-emerald-100">
+      <div class="w-8 h-8 border-4 border-emerald-800 border-t-lime-500 rounded-full animate-spin"></div>
+      <div>
+        <p class="font-semibold text-emerald-950" x-text="loadingText || 'Memproses data...'"></p>
+        <p class="text-xs text-slate-500">SILARAS Fakultas Pertanian UNSIL</p>
+      </div>
+    </div>
+  </div>
+
+  <div x-show="toast.show" x-cloak x-transition
+       class="fixed bottom-5 right-5 z-50 max-w-md rounded-xl shadow-lg px-4 py-3 text-white flex items-center gap-3"
+       :class="toast.type === 'error' ? 'bg-red-600' : 'bg-emerald-800'">
+    <i class="fa-solid" :class="toast.type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'"></i>
+    <span class="text-sm font-medium" x-text="toast.message"></span>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- HALAMAN HOME PUBLIK (REVISI V1: LOGO SILARAS & PEMBERSIHAN BADGE)      -->
+  <!-- ===================================================================== -->
+  <div x-show="!session" x-cloak class="min-h-screen flex flex-col">
+    <!-- Top Navbar Publik -->
+    <header class="bg-silaras-dark text-white sticky top-0 z-30 shadow-md">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <!-- Logo SILARAS (Google Drive ID: 1LIq-IYBi0L6lXGEMDyrb3jmVjf9yAQRU) -->
+          <div class="w-10 h-10 rounded-xl bg-white p-1 shadow-xs flex items-center justify-center overflow-hidden">
+            <img src="https://drive.google.com/thumbnail?id=1LIq-IYBi0L6lXGEMDyrb3jmVjf9yAQRU&sz=w200"
+                 alt="Logo SILARAS"
+                 class="w-full h-full object-contain"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+            <svg style="display:none" viewBox="0 0 100 100" class="w-full h-full">
+              <path d="M40 12h20v6h-4v18c13 4 22 16 22 30 0 17-13 30-28 30S22 83 22 66c0-14 9-26 22-30V18h-4v-6z" fill="none" stroke="#064E3B" stroke-width="6"/>
+              <path d="M44 45c-8 8-12 16-12 22 0 7 5 12 12 12 4 0 8-2 10-5" fill="none" stroke="#064E3B" stroke-width="5"/>
+              <path d="M68 48c-14 4-22 14-22 26 12 2 24-6 24-20 0-2-1-4-2-6z" fill="none" stroke="#84CC16" stroke-width="5"/>
+            </svg>
+          </div>
+          <div>
+            <!-- Badge FAPERTA UNSIL dihilangkan sesuai Perbaikan Silaras v1 -->
+            <div class="flex items-center">
+              <span class="font-bold text-lg tracking-wide">SILARAS</span>
+            </div>
+            <p class="text-[11px] text-emerald-200 hidden sm:block">Terintegrasi, Tertata, dan Terpercaya</p>
+          </div>
+        </div>
+
+        <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-emerald-100">
+          <a href="#info-lab" class="hover:text-lime-400 transition">Laboratorium</a>
+          <a href="#katalog-publik" class="hover:text-lime-400 transition">Katalog Peralatan</a>
+          <a href="#jadwal-publik" class="hover:text-lime-400 transition">Penggunaan & Kalender</a>
+        </nav>
+
+        <div class="flex items-center gap-2">
+          <button @click="openAuthModal('login')" class="px-4 py-2 rounded-lg text-sm font-semibold bg-white text-emerald-950 hover:bg-emerald-50 transition">
+            <i class="fa-solid fa-right-to-bracket mr-1"></i> Login
+          </button>
+          <button @click="openAuthModal('register')" class="px-4 py-2 rounded-lg text-sm font-semibold bg-silaras-lime text-emerald-950 hover:brightness-95 transition">
+            Daftar
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-800 text-white py-16 px-4">
+      <div class="max-w-7xl mx-auto">
+        <div class="max-w-3xl space-y-5">
+          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight">
+            Sistem Informasi Laboratorium Siliwangi (<span class="text-lime-400">SILARAS</span>)
+          </h1>
+          <p class="text-emerald-100 text-base sm:text-lg leading-relaxed">
+            Pusat informasi terpadu layanan praktikum, penelitian, katalog peralatan publik, dan jadwal penggunaan laboratorium Fakultas Pertanian Universitas Siliwangi.
+          </p>
+          <div class="flex flex-wrap gap-3 pt-2">
+            <a href="#katalog-publik" class="px-5 py-3 rounded-xl bg-silaras-lime text-emerald-950 font-bold text-sm hover:brightness-95 transition">
+              <i class="fa-solid fa-microscope mr-2"></i>Jelajahi Katalog Alat
+            </a>
+            <button @click="openAuthModal('login')" class="px-5 py-3 rounded-xl bg-white/10 border border-white/25 text-white font-semibold text-sm hover:bg-white/20 transition">
+              Ajukan Peminjaman / Ruangan
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 1. Informasi Umum Laboratorium -->
+    <section id="info-lab" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
+      <div class="mb-6">
+        <h2 class="text-2xl font-bold text-emerald-950">Informasi Umum Laboratorium</h2>
+        <p class="text-sm text-slate-600">Unit laboratorium di lingkungan Fakultas Pertanian Universitas Siliwangi.</p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-6">
+        <template x-for="lab in publicData.labs" :key="lab.lab_id">
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs hover:shadow-md transition">
+            <div class="flex items-center justify-between mb-3">
+              <span class="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 font-bold text-xs" x-text="lab.lab_code"></span>
+              <i class="fa-solid fa-seedling text-lime-600"></i>
+            </div>
+            <h3 class="font-bold text-lg text-slate-900 mb-2" x-text="lab.lab_name"></h3>
+            <p class="text-sm text-slate-600 mb-4" x-text="lab.description"></p>
+            <div class="pt-3 border-t border-slate-100 text-xs text-slate-500">
+              <span class="font-semibold text-slate-700">Koordinator:</span> <span x-text="lab.pic_name || '-'"></span>
+            </div>
+          </div>
+        </template>
+      </div>
+    </section>
+
+    <!-- 2. Katalog Peralatan Publik (Dengan View Switcher Grid / Tabel) -->
+    <section id="katalog-publik" class="bg-white border-y border-slate-200 py-12 px-4">
+      <div class="max-w-7xl mx-auto">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 class="text-2xl font-bold text-emerald-950">Katalog Peralatan Publik</h2>
+            <p class="text-sm text-slate-600">Daftar peralatan laboratorium yang tersedia untuk informasi publik (tidak menampilkan stok internal, bahan, maupun bahan kimia).</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="text" x-model="publicCatalogSearch" placeholder="Cari nama/spesifikasi alat..."
+                   class="px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-700" />
+            <div class="inline-flex rounded-xl border border-slate-300 p-1 bg-slate-50">
+              <button @click="publicCatalogView = 'grid'" :class="publicCatalogView === 'grid' ? 'bg-silaras-dark text-white' : 'text-slate-600'" class="px-3 py-1.5 rounded-lg text-xs font-semibold">
+                <i class="fa-solid fa-grip"></i> Grid
+              </button>
+              <button @click="publicCatalogView = 'table'" :class="publicCatalogView === 'table' ? 'bg-silaras-dark text-white' : 'text-slate-600'" class="px-3 py-1.5 rounded-lg text-xs font-semibold">
+                <i class="fa-solid fa-list"></i> Tabel
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mode Grid -->
+        <div x-show="publicCatalogView === 'grid'" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <template x-for="item in filteredPublicCatalog()" :key="item.item_id">
+            <div class="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50/50 flex flex-col">
+              <div class="h-44 bg-emerald-950/5 flex items-center justify-center overflow-hidden">
+                <template x-if="item.photo_url">
+                  <img :src="item.photo_url" :alt="item.item_name" class="w-full h-full object-cover" />
+                </template>
+                <template x-if="!item.photo_url">
+                  <i class="fa-solid fa-microscope text-4xl text-emerald-800/30"></i>
+                </template>
+              </div>
+              <div class="p-4 flex-1 flex flex-col justify-between">
+                <div>
+                  <span class="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded" x-text="item.laboratories"></span>
+                  <h4 class="font-bold text-slate-900 mt-2" x-text="item.item_name"></h4>
+                  <p class="text-xs text-slate-600 mt-1 line-clamp-2" x-text="item.maker_type_spec || 'Peralatan Laboratorium'"></p>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Mode Tabel -->
+        <div x-show="publicCatalogView === 'table'" class="overflow-x-auto border border-slate-200 rounded-2xl">
+          <table class="w-full text-sm text-left">
+            <thead class="bg-emerald-950 text-white text-xs uppercase">
+              <tr>
+                <th class="px-4 py-3">Foto</th>
+                <th class="px-4 py-3">Nama Alat</th>
+                <th class="px-4 py-3">Laboratorium</th>
+                <th class="px-4 py-3">Deskripsi / Spesifikasi Singkat</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+              <template x-for="item in filteredPublicCatalog()" :key="item.item_id">
+                <tr class="hover:bg-slate-50">
+                  <td class="px-4 py-3">
+                    <img x-show="item.photo_url" :src="item.photo_url" class="w-12 h-12 rounded-lg object-cover border" />
+                    <span x-show="!item.photo_url" class="text-xs text-slate-400">Tidak ada foto</span>
+                  </td>
+                  <td class="px-4 py-3 font-semibold text-slate-900" x-text="item.item_name"></td>
+                  <td class="px-4 py-3 text-emerald-800 font-medium" x-text="item.laboratories"></td>
+                  <td class="px-4 py-3 text-slate-600" x-text="item.maker_type_spec"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+
+        <div x-show="filteredPublicCatalog().length === 0" class="text-center py-10 text-slate-500 text-sm">
+          Belum ada peralatan publik yang ditampilkan.
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 & 4. Daftar Penggunaan Laboratorium & Kalender Publik -->
+    <section id="jadwal-publik" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full space-y-10">
+      <div>
+        <h2 class="text-2xl font-bold text-emerald-950">Penggunaan Laboratorium</h2>
+        <p class="text-sm text-slate-600">Daftar jadwal penggunaan laboratorium yang telah terkonfirmasi resmi.</p>
+
+        <!-- Filter Jadwal Publik -->
+        <div class="grid sm:grid-cols-4 gap-3 my-4 bg-white p-4 rounded-2xl border border-slate-200">
+          <select x-model="pubFilterLab" class="px-3 py-2 border border-slate-300 rounded-xl text-sm">
+            <option value="">Semua Laboratorium</option>
+            <template x-for="lab in publicData.labs" :key="lab.lab_id">
+              <option :value="lab.lab_id" x-text="lab.lab_name"></option>
+            </template>
+          </select>
+          <select x-model="pubFilterType" class="px-3 py-2 border border-slate-300 rounded-xl text-sm">
+            <option value="">Semua Jenis Kegiatan</option>
+            <option value="Praktikum">Praktikum</option>
+            <option value="Penelitian">Penelitian</option>
+            <option value="Lainnya">Lainnya</option>
+          </select>
+          <input type="date" x-model="pubFilterDate" class="px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+          <input type="text" x-model="pubFilterSearch" placeholder="Cari kegiatan..." class="px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+        </div>
+
+        <!-- Tabel Daftar Penggunaan Laboratorium -->
+        <div class="bg-white border border-slate-200 rounded-2xl overflow-x-auto shadow-xs">
+          <table class="w-full text-sm text-left">
+            <thead class="bg-emerald-950 text-white text-xs uppercase">
+              <tr>
+                <th class="px-4 py-3">Laboratorium</th>
+                <th class="px-4 py-3">Penanggung Jawab</th>
+                <th class="px-4 py-3">Jenis</th>
+                <th class="px-4 py-3">Nama Kegiatan</th>
+                <th class="px-4 py-3">Tanggal</th>
+                <th class="px-4 py-3">Waktu</th>
+                <th class="px-4 py-3">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+              <template x-for="sch in filteredPublicSchedules()" :key="sch.booking_id">
+                <tr class="hover:bg-slate-50">
+                  <td class="px-4 py-3 font-semibold text-emerald-900" x-text="sch.lab_name"></td>
+                  <td class="px-4 py-3" x-text="sch.pic_display"></td>
+                  <td class="px-4 py-3">
+                    <span class="px-2 py-0.5 rounded-full text-xs font-bold"
+                          :class="sch.activity_type === 'Praktikum' ? 'bg-emerald-100 text-emerald-800' : (sch.activity_type === 'Penelitian' ? 'bg-lime-100 text-lime-900' : 'bg-slate-100 text-slate-700')"
+                          x-text="sch.activity_type"></span>
+                  </td>
+                  <td class="px-4 py-3 font-medium" x-text="sch.activity_title"></td>
+                  <td class="px-4 py-3" x-text="sch.booking_date"></td>
+                  <td class="px-4 py-3 font-mono text-xs" x-text="sch.start_time + ' - ' + sch.end_time"></td>
+                  <td class="px-4 py-3">
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold"
+                          :class="sch.status === 'Terkonfirmasi' ? 'bg-emerald-700 text-white' : 'bg-amber-100 text-amber-800'"
+                          x-text="sch.status"></span>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="filteredPublicSchedules().length === 0">
+                <td colspan="7" class="px-4 py-8 text-center text-slate-500">Tidak ada jadwal terkonfirmasi pada filter yang dipilih.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 4. Kalender Penggunaan Laboratorium (Harian / Mingguan / Bulanan) -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+          <div>
+            <h3 class="text-xl font-bold text-emerald-950">Kalender Penggunaan Laboratorium</h3>
+            <p class="text-xs text-slate-500">Pilih tanggal dan mode tampilan untuk memantau slot terisi maupun slot kosong.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <input type="date" x-model="calendarAnchorDate" class="px-3 py-1.5 border border-slate-300 rounded-xl text-sm" />
+            <div class="inline-flex rounded-xl border border-slate-300 p-1 bg-slate-50">
+              <button @click="calendarMode = 'day'" :class="calendarMode === 'day' ? 'bg-silaras-dark text-white' : 'text-slate-600'" class="px-3 py-1 rounded-lg text-xs font-semibold">Harian</button>
+              <button @click="calendarMode = 'week'" :class="calendarMode === 'week' ? 'bg-silaras-dark text-white' : 'text-slate-600'" class="px-3 py-1 rounded-lg text-xs font-semibold">Mingguan</button>
+              <button @click="calendarMode = 'month'" :class="calendarMode === 'month' ? 'bg-silaras-dark text-white' : 'text-slate-600'" class="px-3 py-1 rounded-lg text-xs font-semibold">Bulanan</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <template x-for="dayObj in getCalendarDays()" :key="dayObj.dateStr">
+            <div class="border rounded-xl p-3 min-h-[120px]"
+                 :class="dayObj.events.length > 0 ? 'border-emerald-300 bg-emerald-50/40' : 'border-slate-200 bg-white'">
+              <div class="flex items-center justify-between border-b border-slate-100 pb-1.5 mb-2">
+                <span class="text-xs font-bold text-slate-800" x-text="dayObj.dateStr"></span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded"
+                      :class="dayObj.events.length > 0 ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-500'"
+                      x-text="dayObj.events.length > 0 ? dayObj.events.length + ' Jadwal' : 'Kosong'"></span>
+              </div>
+              <div class="space-y-1.5">
+                <template x-for="ev in dayObj.events" :key="ev.booking_id">
+                  <div class="p-2 rounded-lg text-xs border-l-4 bg-white shadow-2xs"
+                       :class="ev.activity_type === 'Praktikum' ? 'border-emerald-700' : 'border-lime-500'">
+                    <p class="font-bold text-slate-900 truncate" x-text="ev.activity_title"></p>
+                    <p class="text-[11px] text-emerald-800" x-text="ev.lab_name"></p>
+                    <p class="text-[10px] font-mono text-slate-500" x-text="ev.start_time + ' - ' + ev.end_time"></p>
+                  </div>
+                </template>
+                <p x-show="dayObj.events.length === 0" class="text-[11px] text-slate-400 italic pt-3 text-center">Belum terjadwal</p>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </section>
+
+    <footer class="bg-emerald-950 text-emerald-200 text-xs py-6 text-center mt-auto">
+      &copy; 2026 SILARAS – Fakultas Pertanian Universitas Siliwangi. Terintegrasi, Tertata, dan Terpercaya.
+    </footer>
+  </div>
+
+  <!-- MODAL LOGIN & PENDAFTARAN MANDIRI -->
+  <div x-show="authModal.open" x-cloak class="fixed inset-0 z-40 bg-slate-900/60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+      <button @click="authModal.open = false" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <div class="flex gap-2 mb-5 border-b border-slate-200 pb-3">
+        <button @click="authModal.mode = 'login'" :class="authModal.mode === 'login' ? 'text-emerald-900 border-b-2 border-emerald-800 font-bold' : 'text-slate-500'" class="pb-1 px-2 text-sm">Login</button>
+        <button @click="authModal.mode = 'register'" :class="authModal.mode === 'register' ? 'text-emerald-900 border-b-2 border-emerald-800 font-bold' : 'text-slate-500'" class="pb-1 px-2 text-sm">Pendaftaran Anggota Baru</button>
+      </div>
+
+      <!-- Form Login -->
+      <form x-show="authModal.mode === 'login'" @submit.prevent="submitLogin()" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Email</label>
+          <input type="email" x-model="loginForm.email" required placeholder="nama@unsil.ac.id" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi</label>
+          <input type="password" x-model="loginForm.password" required placeholder="••••••••" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+        </div>
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-silaras-dark text-white font-bold text-sm hover:bg-emerald-900 transition">
+          Masuk ke SILARAS
+        </button>
+        <div class="relative flex py-1 items-center">
+          <div class="flex-grow border-t border-slate-200"></div>
+          <span class="flex-shrink mx-3 text-xs text-slate-400">atau</span>
+          <div class="flex-grow border-t border-slate-200"></div>
+        </div>
+        <button type="button" @click="loginWithGoogle()" class="w-full py-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 font-semibold text-sm hover:bg-slate-50 flex items-center justify-center gap-2">
+          <i class="fa-brands fa-google text-red-500"></i> Masuk dengan Akun Google
+        </button>
+      </form>
+
+      <!-- Form Registrasi Mandiri -->
+      <form x-show="authModal.mode === 'register'" @submit.prevent="submitRegister()" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap *</label>
+          <input type="text" x-model="regForm.full_name" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">NIM / NIP *</label>
+            <input type="text" x-model="regForm.nim_nip" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">No. WhatsApp *</label>
+            <input type="text" x-model="regForm.phone" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Program Studi / Unit Kerja *</label>
+          <input type="text" x-model="regForm.unit_prodi" required placeholder="Agroteknologi / Agribisnis / Dosen" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Email *</label>
+          <input type="email" x-model="regForm.email" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi *</label>
+          <input type="password" x-model="regForm.password" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+        </div>
+        <p class="text-[11px] text-slate-500 bg-slate-50 p-2 rounded-lg">
+          Akun pendaftaran mandiri otomatis diberikan peran dasar <strong>User (Pemohon)</strong>.
+        </p>
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-silaras-lime text-emerald-950 font-bold text-sm hover:brightness-95 transition">
+          Daftar Akun Baru
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- HALAMAN INTERNAL DASHBOARD (PASCA LOGIN - SIDEBAR VERTIKAL RESPONSIF) -->
+  <!-- ===================================================================== -->
+  <div x-show="session" x-cloak class="min-h-screen flex bg-slate-100">
+
+    <!-- Sidebar Vertikal Kiri -->
+    <aside :class="mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+           class="fixed lg:static inset-y-0 left-0 z-30 w-68 bg-silaras-dark text-white flex flex-col transition-transform duration-200 shadow-xl">
+      <!-- Header / Logo Sidebar Internal -->
+      <div class="p-4 border-b border-emerald-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center overflow-hidden shadow-xs">
+            <img src="https://drive.google.com/thumbnail?id=1LIq-IYBi0L6lXGEMDyrb3jmVjf9yAQRU&sz=w200"
+                 alt="Logo SILARAS"
+                 class="w-full h-full object-contain" />
+          </div>
+          <div>
+            <h1 class="font-bold text-base leading-none">SILARAS</h1>
+            <p class="text-[10px] text-emerald-300 mt-1">Terintegrasi, Tertata, Terpercaya</p>
+          </div>
+        </div>
+        <button @click="mobileSidebarOpen = false" class="lg:hidden text-emerald-200">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Pemilih Peran & Laboratorium Aktif -->
+      <div class="p-3 bg-emerald-950/60 border-b border-emerald-800 space-y-2 text-xs">
+        <div>
+          <p class="font-bold text-white truncate" x-text="session?.full_name"></p>
+          <p class="text-[11px] text-emerald-300 truncate" x-text="session?.email"></p>
+        </div>
+        <div class="grid grid-cols-1 gap-1.5">
+          <select x-model="session.active_role" @change="switchContext()" class="w-full bg-emerald-900 border border-emerald-700 rounded-lg px-2 py-1 text-white text-xs">
+            <template x-for="r in session?.roles || []" :key="r">
+              <option :value="r" x-text="'Peran: ' + r"></option>
+            </template>
+          </select>
+          <select x-show="(session?.accessible_labs || []).length > 0" x-model="session.active_lab_id" @change="switchContext()" class="w-full bg-emerald-900 border border-emerald-700 rounded-lg px-2 py-1 text-lime-300 text-xs">
+            <template x-for="l in session?.accessible_labs || []" :key="l.lab_id">
+              <option :value="l.lab_id" x-text="'Lokasi: ' + l.lab_name"></option>
+            </template>
+          </select>
+        </div>
+      </div>
+
+      <!-- Daftar Menu Utama Dikelompokkan -->
+      <nav class="flex-1 overflow-y-auto p-3 space-y-4 text-sm">
+        <div>
+          <p class="px-3 text-[10px] font-bold uppercase tracking-wider text-emerald-400 mb-1">Workspace</p>
+          <button @click="navigate('dashboard')" :class="activeMenu === 'dashboard' ? 'bg-lime-400 text-emerald-950 font-bold' : 'text-emerald-100 hover:bg-emerald-800/60'" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition">
+            <i class="fa-solid fa-gauge-high w-4"></i> Dashboard
+          </button>
+        </div>
+
+        <div x-show="canView('master_data') || canView('inv_alat') || canView('inv_bahan') || canView('inv_kimia') || canView('gudang')">
+          <p class="px-3 text-[10px] font-bold uppercase tracking-wider text-emerald-400 mb-1">Inventaris & Gudang</p>
+          <button x-show="canView('master_data')" @click="navigate('master_data')" :class="activeMenu === 'master_data' ? 'bg-lime-400 text-emerald-950 font-bold' : 'text-emerald-100 hover:bg-emerald-800/60'" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition">
+            <i class="fa-solid fa-database w-4"></i> Master Data Barang
+          </button>
+          <button x-show="canView('inv_alat')" @click="navigate('inv_alat')" :class="activeMenu === 'inv_alat' ? 'bg-lime-400 text-emerald-950 font-bold' : 'text-emerald-100 hover:bg-emerald-800/60'" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition">
+            <i class="fa-solid fa-microscope w-4"></i> Inventaris Peralatan
+          </button>
+          <button x-show="canView('inv_bahan')" @click="navigate('inv_bahan')" :class="activeMenu === 'inv_bahan' ? 'bg-lime-400 text-emerald-950 font-bold' : 'text-emerald-100 hover:bg-emerald-800/60'" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition">
+            <i class="fa-solid fa-seedling w-4"></i> Inventaris Bahan
+          </button>
+          <button x-show="canView('inv_kimia')" @click="navigate('inv_kimia')" :class="activeMenu === 'inv_kimia' ? 'bg-lime-400 text-emerald-950 font-bold' : 'text-emerald-100 hover:bg-emerald-800/60'" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition">
+            <i class="fa-solid fa-skull-crossbones w-4"></i> Inventaris Bahan Kimia
+          </button>
+          <button x-show="canView('gudang')" @click="navigate('gudang')" :class="activeMenu === 'gudang' ? 'bg-lime-400 text-emerald-950 font-bold' : 'text-emerald-100 hover:bg-emerald-800/60'" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition">
+            <i class="fa-solid fa-warehouse w-4"></i> Gudang & Stok Pusat
+          </button>
+        </div>
+
+        <div>
+          <p class="px-3 text-[10px] font-bold uppercase tracking-wider text-emerald-400 mb-1">Layanan & Transaksi</p>
+          <button x-show="canView('pinjam_alat')" @click="navigate('pinjam_alat')" :class="activeMenu === 'pinjam_alat' ? 'bg-lime-400 text-emerald-950 font-bold' : 'text-emerald-100 hover:bg-emerald-800/60'" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition">
+            <i class="fa-solid fa-hand-holding-medical w-4"></i> Peminjaman Alat
+          </button>
+          <button x-show="canView('guna_bahan')" @click="navigate('guna_bahan')" :class="activeMenu === 'guna_bahan' ? 'bg-lime-400 text-emerald-950 font-bold' : 'text-emerald-100 hover:bg-emerald-800/60'" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition">
+            <i class="fa-solid fa-vial w-4"></i> Penggunaan Bahan/Kimia
+          </button>
+          <button x-show="canView('booking_ruang')" @click="navigate('booking_ruang')" :class="activeMenu === 'booking_ruang' ? 'bg-lime-400 text-emerald-950 font-bold' : 'text-emerald-100 hover:bg-emerald-800/60'" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition">
+            <i class="fa-solid fa-calendar-check w-4"></i> Penggunaan Ruangan
+          </button>
+          <button x-show="canView('verifikasi')" @click="navigate('verifikasi')" :class="activeMenu === 'verifikasi' ? 'bg-lime-400 text-emerald-950 font-bold' : 'text-emerald-100 hover:bg-emerald-800/60'" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition">
+            <i class="fa-solid fa-clipboard-check w-4"></i> Verifikasi & Persetujuan
+          </button>
+        </div>
+
+        <div x-show="canView('laporan') || canView('audit') || canView('settings')">
+          <p class="px-3 text-[10px] font-bold uppercase tracking-wider text-emerald-400 mb-1">Laporan & Administrasi</p>
+          <button x-show="canView('laporan')" @click="navigate('laporan')" :class="activeMenu === 'laporan' ? 'bg-lime-400 text-emerald-950 font-bold' : 'text-emerald-100 hover:bg-emerald-800/60'" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition">
+            <i class="fa-solid fa-file-excel w-4"></i> Laporan & Ekspor
+          </button>
+          <button x-show="canView('audit')" @click="navigate('audit')" :class="activeMenu === 'audit' ? 'bg-lime-400 text-emerald-950 font-bold' : 'text-emerald-100 hover:bg-emerald-800/60'" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition">
+            <i class="fa-solid fa-shield-halved w-4"></i> Audit Trail
+          </button>
+          <button x-show="canView('settings')" @click="navigate('settings')" :class="activeMenu === 'settings' ? 'bg-lime-400 text-emerald-950 font-bold' : 'text-emerald-100 hover:bg-emerald-800/60'" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition">
+            <i class="fa-solid fa-users-gear w-4"></i> Pengguna, Lab & Hak Akses
+          </button>
+        </div>
+      </nav>
+
+      <div class="p-3 border-t border-emerald-800">
+        <button @click="logout()" class="w-full py-2 px-3 rounded-xl bg-red-600/90 hover:bg-red-600 text-white text-xs font-bold flex items-center justify-center gap-2">
+          <i class="fa-solid fa-right-from-bracket"></i> Keluar (Logout)
+        </button>
+      </div>
+    </aside>
+
+    <!-- Konten Utama Dashboard -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <!-- Top Bar Internal -->
+      <header class="bg-white border-b border-slate-200 h-14 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20">
+        <div class="flex items-center gap-3">
+          <button @click="mobileSidebarOpen = true" class="lg:hidden text-slate-600 p-1.5 rounded-lg hover:bg-slate-100">
+            <i class="fa-solid fa-bars text-lg"></i>
+          </button>
+          <h2 class="font-bold text-emerald-950 text-base capitalize" x-text="menuTitle()"></h2>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-semibold">
+            <i class="fa-solid fa-user-shield"></i> <span x-text="session?.active_role"></span>
+          </span>
+          <button @click="refreshActiveView()" class="p-2 rounded-lg text-slate-500 hover:bg-slate-100" title="Muat Ulang Data">
+            <i class="fa-solid fa-rotate"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Workspace Area -->
+      <main class="p-4 sm:p-6 space-y-6 flex-1">
+
+        <!-- 1. DASHBOARD VIEW -->
+        <div x-show="activeMenu === 'dashboard'" class="space-y-6">
+          <!-- Kotak Menu Akses Cepat (Quick Action Cards) untuk Gudang Masuk / Keluar -->
+          <div x-show="canView('gudang') && canEdit('gudang')" class="grid sm:grid-cols-2 gap-4">
+            <button @click="navigate('gudang'); warehouseTab = 'in'" class="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-r from-emerald-900 to-emerald-800 text-white shadow-md hover:brightness-105 transition text-left">
+              <div class="w-12 h-12 rounded-xl bg-lime-400 text-emerald-950 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-box-open"></i>
+              </div>
+              <div>
+                <p class="font-bold text-base">Barang Masuk (ke Gudang)</p>
+                <p class="text-xs text-emerald-200">Catat stok masuk Alat, Bahan, atau Bahan Kimia ke Gudang Pusat</p>
+              </div>
+            </button>
+            <button @click="navigate('gudang'); warehouseTab = 'out'" class="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-r from-lime-500 to-lime-400 text-emerald-950 shadow-md hover:brightness-95 transition text-left">
+              <div class="w-12 h-12 rounded-xl bg-emerald-950 text-lime-400 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-truck-ramp-box"></i>
+              </div>
+              <div>
+                <p class="font-bold text-base">Barang Keluar (dari Gudang)</p>
+                <p class="text-xs text-emerald-900">Distribusi stok ke Laboratorium + Tanda Tangan Digital</p>
+              </div>
+            </button>
+          </div>
+
+          <!-- Kartu Statistik -->
+          <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200">
+              <p class="text-xs text-slate-500 font-semibold">Laboratorium Aktif</p>
+              <p class="text-2xl font-extrabold text-emerald-950 mt-1" x-text="dashData.stats?.total_labs || 0"></p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200">
+              <p class="text-xs text-slate-500 font-semibold">Menunggu Verifikasi Laboran</p>
+              <p class="text-2xl font-extrabold text-amber-600 mt-1" x-text="dashData.stats?.pending_verification || 0"></p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200">
+              <p class="text-xs text-slate-500 font-semibold">Menunggu Persetujuan Ka. Lab</p>
+              <p class="text-2xl font-extrabold text-blue-600 mt-1" x-text="dashData.stats?.pending_approval || 0"></p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200">
+              <p class="text-xs text-slate-500 font-semibold">Peminjaman Alat Aktif</p>
+              <p class="text-2xl font-extrabold text-emerald-700 mt-1" x-text="dashData.stats?.active_loans || 0"></p>
+            </div>
+          </div>
+
+          <!-- Notifikasi Terbaru -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-5">
+            <h3 class="font-bold text-emerald-950 mb-3"><i class="fa-solid fa-bell text-lime-600 mr-2"></i>Notifikasi & Peringatan Sistem</h3>
+            <div class="space-y-2 max-h-64 overflow-y-auto">
+              <template x-for="n in dashData.notifications || []" :key="n.notif_id">
+                <div class="p-3 rounded-xl border border-slate-100 bg-slate-50 flex items-start justify-between gap-3">
+                  <div>
+                    <p class="text-xs font-bold text-slate-900" x-text="n.title"></p>
+                    <p class="text-xs text-slate-600 mt-0.5" x-text="n.message"></p>
+                  </div>
+                  <span class="text-[10px] text-slate-400 whitespace-nowrap" x-text="String(n.created_at).slice(0,10)"></span>
+                </div>
+              </template>
+              <p x-show="(dashData.notifications || []).length === 0" class="text-xs text-slate-400">Belum ada notifikasi baru.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. INVENTARIS (ALAT / BAHAN / BAHAN KIMIA) -->
+        <div x-show="['inv_alat','inv_bahan','inv_kimia'].includes(activeMenu)" class="space-y-4">
+          <div class="bg-white p-4 rounded-2xl border border-slate-200 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <select x-model="invLocationFilter" @change="loadInventory()" class="px-3 py-2 border border-slate-300 rounded-xl text-sm">
+                <option value="ALL">Semua Lokasi Akses</option>
+                <template x-for="l in session?.accessible_labs || []" :key="l.lab_id">
+                  <option :value="l.lab_id" x-text="l.lab_name"></option>
+                </template>
+              </select>
+              <input type="text" x-model="invSearch" placeholder="Cari nama / ID barang..." class="px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+              <div class="inline-flex rounded-xl border border-slate-300 p-1 bg-slate-50">
+                <button @click="invViewMode = 'grid'" :class="invViewMode === 'grid' ? 'bg-silaras-dark text-white' : 'text-slate-600'" class="px-3 py-1 rounded-lg text-xs font-semibold">Grid</button>
+                <button @click="invViewMode = 'table'" :class="invViewMode === 'table' ? 'bg-silaras-dark text-white' : 'text-slate-600'" class="px-3 py-1 rounded-lg text-xs font-semibold">Tabel</button>
+              </div>
+            </div>
+            <button x-show="canEdit(activeMenu)" @click="openInvFormModal(null)" class="px-4 py-2 rounded-xl bg-silaras-dark text-white text-sm font-bold hover:bg-emerald-900">
+              <i class="fa-solid fa-plus mr-1"></i> Tambah <span x-text="currentInvCategory()"></span>
+            </button>
+          </div>
+
+          <!-- Grid View Inventaris -->
+          <div x-show="invViewMode === 'grid'" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <template x-for="row in filteredInventory()" :key="row.eq_inv_id || row.mat_inv_id || row.chem_inv_id">
+              <div @click="openInvDetailModal(row)" class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition cursor-pointer flex flex-col">
+                <div class="h-40 bg-slate-100 flex items-center justify-center overflow-hidden relative">
+                  <img x-show="row.photo_url" :src="row.photo_url" class="w-full h-full object-cover" />
+                  <i x-show="!row.photo_url" class="fa-solid fa-box text-3xl text-slate-300"></i>
+                  <span class="absolute top-2 left-2 px-2 py-0.5 rounded bg-emerald-950/80 text-white text-[10px] font-mono" x-text="row.item_id"></span>
+                </div>
+                <div class="p-4 flex-1 flex flex-col justify-between space-y-2">
+                  <div>
+                    <p class="text-[11px] font-semibold text-emerald-800" x-text="row.location_name"></p>
+                    <h4 class="font-bold text-slate-900 text-sm mt-0.5" x-text="row.item_name"></h4>
+                    <p class="text-xs text-slate-500 truncate" x-text="row.maker_type_spec"></p>
+                  </div>
+                  <div class="pt-2 border-t border-slate-100 text-xs">
+                    <template x-if="currentInvCategory() === 'Alat'">
+                      <div class="flex justify-between font-semibold">
+                        <span class="text-emerald-700">Tersedia: <b x-text="row.qty_available"></b></span>
+                        <span class="text-amber-600">Dipinjam: <b x-text="row.qty_borrowed"></b></span>
+                        <span class="text-slate-600">Total: <b x-text="row.qty_total"></b></span>
+                      </div>
+                    </template>
+                    <template x-if="currentInvCategory() !== 'Alat'">
+                      <div class="flex items-center justify-between">
+                        <span class="font-bold text-emerald-800">Stok: <span x-text="row.qty_available + ' ' + row.unit"></span></span>
+                        <span x-show="row.expiry_status?.code !== 'NONE'" class="px-1.5 py-0.5 rounded text-[10px] font-bold"
+                              :class="row.expiry_status?.code === 'EXPIRED' ? 'bg-red-100 text-red-700' : (row.expiry_status?.code === 'WARNING_H30' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-50 text-emerald-700')"
+                              x-text="row.expiry_date"></span>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- Table View Inventaris -->
+          <div x-show="invViewMode === 'table'" class="bg-white border border-slate-200 rounded-2xl overflow-x-auto">
+            <table class="w-full text-sm text-left">
+              <thead class="bg-emerald-950 text-white text-xs uppercase">
+                <tr>
+                  <th class="px-4 py-3">ID</th>
+                  <th class="px-4 py-3">Nama Barang</th>
+                  <th class="px-4 py-3">Lokasi</th>
+                  <th class="px-4 py-3">Rincian Stok</th>
+                  <th class="px-4 py-3">Keterangan / Batch</th>
+                  <th class="px-4 py-3">Aksi</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200">
+                <template x-for="row in filteredInventory()" :key="row.eq_inv_id || row.mat_inv_id || row.chem_inv_id">
+                  <tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3 font-mono text-xs font-bold text-emerald-900" x-text="row.item_id"></td>
+                    <td class="px-4 py-3">
+                      <button @click="openInvDetailModal(row)" class="font-bold text-slate-900 hover:text-emerald-800 text-left" x-text="row.item_name"></button>
+                      <p class="text-xs text-slate-500" x-text="row.maker_type_spec"></p>
+                    </td>
+                    <td class="px-4 py-3 text-xs font-medium" x-text="row.location_name"></td>
+                    <td class="px-4 py-3 text-xs">
+                      <template x-if="currentInvCategory() === 'Alat'">
+                        <span>Tersedia: <b class="text-emerald-700" x-text="row.qty_available"></b> | Dipinjam: <b class="text-amber-600" x-text="row.qty_borrowed"></b> | Total: <b x-text="row.qty_total"></b></span>
+                      </template>
+                      <template x-if="currentInvCategory() !== 'Alat'">
+                        <span class="font-bold text-emerald-800" x-text="row.qty_available + ' ' + row.unit"></span>
+                      </template>
+                    </td>
+                    <td class="px-4 py-3 text-xs">
+                      <span x-show="currentInvCategory() === 'Alat'" x-text="row.bmn_category + ' (' + row.acquisition_year + ')'"></span>
+                      <span x-show="currentInvCategory() !== 'Alat'" x-text="'Batch: ' + (row.batch_lot || '-') + ' | Exp: ' + (row.expiry_date || '-')"></span>
+                    </td>
+                    <td class="px-4 py-3">
+                      <button @click="openInvDetailModal(row)" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-bold hover:bg-emerald-100">Detail</button>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 3. GUDANG & MANAJEMEN STOK -->
+        <div x-show="activeMenu === 'gudang'" class="space-y-5">
+          <div class="flex flex-wrap gap-2">
+            <button @click="warehouseTab = 'stock'" :class="warehouseTab === 'stock' ? 'bg-silaras-dark text-white' : 'bg-white text-slate-700'" class="px-4 py-2 rounded-xl text-sm font-bold border">Daftar Stok Gudang</button>
+            <button x-show="canEdit('gudang')" @click="warehouseTab = 'in'" :class="warehouseTab === 'in' ? 'bg-silaras-dark text-white' : 'bg-white text-slate-700'" class="px-4 py-2 rounded-xl text-sm font-bold border">+ Barang Masuk Gudang</button>
+            <button x-show="canEdit('gudang')" @click="warehouseTab = 'out'; $nextTick(() => initSignaturePad())" :class="warehouseTab === 'out' ? 'bg-silaras-dark text-white' : 'bg-white text-slate-700'" class="px-4 py-2 rounded-xl text-sm font-bold border">- Barang Keluar Gudang</button>
+          </div>
+
+          <!-- Tab Stok Gudang -->
+          <div x-show="warehouseTab === 'stock'" class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-emerald-950">Stok Gudang Pusat</h3>
+              <div class="inline-flex rounded-xl border border-slate-300 p-1 bg-slate-50">
+                <button @click="whViewMode = 'grid'" :class="whViewMode === 'grid' ? 'bg-silaras-dark text-white' : 'text-slate-600'" class="px-3 py-1 rounded-lg text-xs font-semibold">Grid</button>
+                <button @click="whViewMode = 'table'" :class="whViewMode === 'table' ? 'bg-silaras-dark text-white' : 'text-slate-600'" class="px-3 py-1 rounded-lg text-xs font-semibold">Tabel</button>
+              </div>
+            </div>
+            <div x-show="whViewMode === 'grid'" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <template x-for="st in warehouseData.stock || []" :key="st.inv_id">
+                <div class="border border-slate-200 rounded-xl p-3 space-y-2">
+                  <div class="h-32 bg-slate-100 rounded-lg overflow-hidden flex items-center justify-center">
+                    <img x-show="st.photo_url" :src="st.photo_url" class="w-full h-full object-cover" />
+                    <i x-show="!st.photo_url" class="fa-solid fa-box text-2xl text-slate-300"></i>
+                  </div>
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800" x-text="st.category + ' • ' + st.item_id"></span>
+                  <h4 class="font-bold text-sm text-slate-900" x-text="st.item_name"></h4>
+                  <p class="text-xs font-bold text-emerald-700">Sisa Gudang: <span x-text="st.qty_available + ' ' + st.unit"></span></p>
+                </div>
+              </template>
+            </div>
+            <div x-show="whViewMode === 'table'" class="overflow-x-auto">
+              <table class="w-full text-sm text-left">
+                <thead class="bg-emerald-950 text-white text-xs uppercase">
+                  <tr>
+                    <th class="px-3 py-2">ID</th>
+                    <th class="px-3 py-2">Kategori</th>
+                    <th class="px-3 py-2">Nama Barang</th>
+                    <th class="px-3 py-2">Batch / Info</th>
+                    <th class="px-3 py-2">Sisa Stok</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y">
+                  <template x-for="st in warehouseData.stock || []" :key="st.inv_id">
+                    <tr>
+                      <td class="px-3 py-2 font-mono text-xs" x-text="st.item_id"></td>
+                      <td class="px-3 py-2 text-xs" x-text="st.category"></td>
+                      <td class="px-3 py-2 font-semibold" x-text="st.item_name"></td>
+                      <td class="px-3 py-2 text-xs" x-text="st.category === 'Alat' ? st.bmn_category : ('Batch: ' + st.batch_lot + ' | Exp: ' + (st.expiry_date || '-'))"></td>
+                      <td class="px-3 py-2 font-bold text-emerald-800" x-text="st.qty_available + ' ' + st.unit"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tab Barang Masuk Gudang -->
+          <div x-show="warehouseTab === 'in'" class="bg-white rounded-2xl border border-slate-200 p-6 max-w-3xl">
+            <h3 class="font-bold text-lg text-emerald-950 mb-4">Input Barang Masuk ke Gudang</h3>
+            <form @submit.prevent="submitWarehouseIn()" class="space-y-4">
+              <div class="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Kategori Barang *</label>
+                  <select x-model="whInForm.category" @change="whInSuggestions = []" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm">
+                    <option value="Alat">Alat</option>
+                    <option value="Bahan">Bahan</option>
+                    <option value="Bahan Kimia">Bahan Kimia</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Tanggal Masuk *</label>
+                  <input type="date" x-model="whInForm.trx_date" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+                </div>
+              </div>
+
+              <!-- Live Autocomplete Nama Barang -->
+              <div class="relative">
+                <label class="block text-xs font-bold text-slate-700 mb-1">Nama Barang (Live Autocomplete Master Data) *</label>
+                <input type="text" x-model="whInForm.item_name" @input.debounce.300ms="searchMasterForWhIn()" required placeholder="Ketik nama barang..." class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+                <div x-show="whInSuggestions.length > 0" class="absolute z-20 w-full bg-white border border-slate-300 rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto">
+                  <template x-for="s in whInSuggestions" :key="s.item_id">
+                    <button type="button" @click="selectWhInSuggestion(s)" class="w-full text-left px-3 py-2 hover:bg-emerald-50 text-xs border-b">
+                      <span class="font-mono font-bold text-emerald-800" x-text="s.item_id"></span> - <span class="font-semibold" x-text="s.item_name"></span> (<span x-text="s.maker_type_spec"></span>)
+                    </button>
+                  </template>
+                </div>
+                <p x-show="whInForm.item_name && !whInForm.item_id" class="text-[11px] text-amber-700 mt-1">
+                  Data belum ada di Master Data — akan otomatis ditambahkan sebagai item baru.
+                </p>
+              </div>
+
+              <div class="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Maker / Type / Spek</label>
+                  <input type="text" x-model="whInForm.maker_type_spec" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Satuan *</label>
+                  <input type="text" x-model="whInForm.unit" required placeholder="Unit / Gram / mL / Botol" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+                </div>
+              </div>
+
+              <!-- Atribut Khusus Alat -->
+              <div x-show="whInForm.category === 'Alat'" class="grid sm:grid-cols-2 gap-4 p-3 bg-slate-50 rounded-xl">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Tahun Perolehan</label>
+                  <input type="number" x-model="whInForm.acquisition_year" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Kategori BMN</label>
+                  <select x-model="whInForm.bmn_category" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm">
+                    <option value="BM">BM (Barang Milik Negara)</option>
+                    <option value="Non BM">Non BM</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Atribut Khusus Bahan & Bahan Kimia -->
+              <div x-show="whInForm.category !== 'Alat'" class="grid sm:grid-cols-2 gap-4 p-3 bg-slate-50 rounded-xl">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Nomor Batch / Lot</label>
+                  <input type="text" x-model="whInForm.batch_lot" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Tanggal Kedaluwarsa</label>
+                  <input type="date" x-model="whInForm.expiry_date" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+                </div>
+              </div>
+
+              <!-- Atribut Tambahan Bahan Kimia -->
+              <div x-show="whInForm.category === 'Bahan Kimia'" class="grid sm:grid-cols-3 gap-3 p-3 bg-amber-50/60 rounded-xl">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Nomor CAS</label>
+                  <input type="text" x-model="whInForm.cas_number" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Grade / Model</label>
+                  <input type="text" x-model="whInForm.grade" placeholder="PA / Teknis" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Simbol GHS / Class</label>
+                  <input type="text" x-model="whInForm.ghs_symbol" placeholder="Flammable / Corrosive" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+                </div>
+              </div>
+
+              <div class="grid sm:grid-cols-2 gap-4 items-center">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Kuantitas Masuk *</label>
+                  <input type="number" step="any" min="0.01" x-model="whInForm.qty" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Foto Barang (Upload / Kamera)</label>
+                  <div class="flex gap-2">
+                    <label class="px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold cursor-pointer hover:bg-slate-50">
+                      <i class="fa-solid fa-upload mr-1"></i> File
+                      <input type="file" accept="image/*" @change="handleImageFile($event, 'whIn')" class="hidden" />
+                    </label>
+                    <button type="button" @click="openCameraModal('whIn')" class="px-3 py-2 rounded-xl border border-emerald-700 text-emerald-800 text-xs font-semibold hover:bg-emerald-50">
+                      <i class="fa-solid fa-camera mr-1"></i> Kamera
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div x-show="whInForm.photo_base64 || whInForm.photo_url" class="flex items-center gap-3">
+                <img :src="whInForm.photo_base64 || whInForm.photo_url" class="w-20 h-20 object-cover rounded-xl border" />
+                <button type="button" @click="whInForm.photo_base64 = ''; whInForm.photo_url = ''" class="text-xs text-red-600 font-semibold">Hapus Foto</button>
+              </div>
+
+              <button type="submit" class="px-6 py-2.5 rounded-xl bg-silaras-dark text-white font-bold text-sm hover:bg-emerald-900">
+                Simpan Stok Masuk Gudang
+              </button>
+            </form>
+          </div>
+
+          <!-- Tab Barang Keluar Gudang (Distribusi ke Laboratorium + Digital Signature) -->
+          <div x-show="warehouseTab === 'out'" class="bg-white rounded-2xl border border-slate-200 p-6 space-y-5">
+            <h3 class="font-bold text-lg text-emerald-950">Barang Keluar Gudang ke Laboratorium</h3>
+            <div class="grid sm:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Nama Pengambil *</label>
+                <input type="text" list="takersList" x-model="whOutForm.taker_name" required placeholder="Ketik atau pilih nama..." class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+                <datalist id="takersList">
+                  <template x-for="t in warehouseData.takers || []" :key="t"><option :value="t"></option></template>
+                </datalist>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Mata Kuliah *</label>
+                <input type="text" list="coursesList" x-model="whOutForm.course_name" required placeholder="Ketik atau pilih mata kuliah..." class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+                <datalist id="coursesList">
+                  <template x-for="c in warehouseData.courses || []" :key="c"><option :value="c"></option></template>
+                </datalist>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Lokasi Laboratorium Tujuan *</label>
+                <select x-model="whOutForm.destination_lab_id" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm">
+                  <option value="">-- Pilih Laboratorium --</option>
+                  <template x-for="l in warehouseData.labs || []" :key="l.lab_id">
+                    <option :value="l.lab_id" x-text="l.lab_name"></option>
+                  </template>
+                </select>
+              </div>
+            </div>
+
+            <!-- Picker Visual Barang Gudang -->
+            <div>
+              <p class="text-xs font-bold text-slate-700 mb-2">Klik Barang Gudang untuk Ditambahkan ke Daftar Pengambilan:</p>
+              <div class="grid sm:grid-cols-3 lg:grid-cols-4 gap-3 max-h-60 overflow-y-auto p-2 bg-slate-50 rounded-xl border">
+                <template x-for="st in (warehouseData.stock || []).filter(x => x.qty_available > 0)" :key="st.inv_id">
+                  <div @click="addWhOutItem(st)" class="bg-white border border-slate-200 hover:border-emerald-700 rounded-xl p-2.5 cursor-pointer flex items-center gap-2.5 transition">
+                    <img x-show="st.photo_url" :src="st.photo_url" class="w-10 h-10 rounded-lg object-cover" />
+                    <div class="min-w-0">
+                      <p class="text-xs font-bold text-slate-900 truncate" x-text="st.item_name"></p>
+                      <p class="text-[11px] text-emerald-700">Stok: <b x-text="st.qty_available + ' ' + st.unit"></b></p>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- Keranjang Barang Keluar -->
+            <div x-show="whOutForm.items.length > 0" class="border border-slate-200 rounded-xl overflow-hidden">
+              <table class="w-full text-xs text-left">
+                <thead class="bg-slate-100 font-bold">
+                  <tr>
+                    <th class="px-3 py-2">Barang</th>
+                    <th class="px-3 py-2">Sisa Gudang</th>
+                    <th class="px-3 py-2">Jumlah Ambil</th>
+                    <th class="px-3 py-2">Hapus</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y">
+                  <template x-for="(it, idx) in whOutForm.items" :key="idx">
+                    <tr>
+                      <td class="px-3 py-2 font-semibold" x-text="it.item_name"></td>
+                      <td class="px-3 py-2" x-text="it.max_qty + ' ' + it.unit"></td>
+                      <td class="px-3 py-2">
+                        <input type="number" step="any" min="0.01" :max="it.max_qty" x-model="it.qty" class="w-24 px-2 py-1 border rounded" />
+                      </td>
+                      <td class="px-3 py-2">
+                        <button type="button" @click="whOutForm.items.splice(idx, 1)" class="text-red-600"><i class="fa-solid fa-trash"></i></button>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Kanvas Tanda Tangan Digital -->
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-xs font-bold text-slate-700">Tanda Tangan Digital Pengambil Barang *</label>
+                <button type="button" @click="clearSignaturePad()" class="text-xs text-red-600 font-semibold">Bersihkan Tanda Tangan</button>
+              </div>
+              <canvas id="whSignatureCanvas" width="460" height="150" class="sig-pad border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 w-full max-w-md"></canvas>
+            </div>
+
+            <button type="button" @click="submitWarehouseOut()" class="px-6 py-2.5 rounded-xl bg-silaras-dark text-white font-bold text-sm hover:bg-emerald-900">
+              Simpan & Pindahkan Stok ke Laboratorium
+            </button>
+          </div>
+        </div>
+
+        <!-- 4. PEMINJAMAN PERALATAN, PENGGUNAAN BAHAN/KIMIA, BOOKING RUANGAN & VERIFIKASI -->
+        <div x-show="['pinjam_alat','guna_bahan','booking_ruang','verifikasi'].includes(activeMenu)" class="space-y-5">
+          <!-- Form Pengajuan Sesuai Modul Aktif -->
+          <div x-show="activeMenu === 'pinjam_alat'" class="bg-white p-6 rounded-2xl border border-slate-200 space-y-4">
+            <h3 class="font-bold text-lg text-emerald-950">Formulir Peminjaman Peralatan</h3>
+            <div class="grid sm:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Laboratorium *</label>
+                <select x-model="loanForm.lab_id" @change="loanForm.items = []" class="w-full px-3 py-2 border rounded-xl text-sm">
+                  <option value="">-- Pilih Lab --</option>
+                  <template x-for="l in publicData.labs" :key="l.lab_id"><option :value="l.lab_id" x-text="l.lab_name"></option></template>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Tanggal Pinjam *</label>
+                <input type="date" x-model="loanForm.loan_date" class="w-full px-3 py-2 border rounded-xl text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Tanggal Kembali *</label>
+                <input type="date" x-model="loanForm.due_date" class="w-full px-3 py-2 border rounded-xl text-sm" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Tujuan Peminjaman *</label>
+              <input type="text" x-model="loanForm.purpose" placeholder="Praktikum / Penelitian Skripsi..." class="w-full px-3 py-2 border rounded-xl text-sm" />
+            </div>
+            <div>
+              <button type="button" @click="openCatalogPickerModal('Alat', loanForm.lab_id, 'loan')" class="px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-700 text-emerald-900 font-bold text-xs hover:bg-emerald-100">
+                <i class="fa-solid fa-plus mr-1"></i> Pilih / Tambah Alat dari Katalog Lab
+              </button>
+              <div class="mt-3 space-y-2">
+                <template x-for="(it, idx) in loanForm.items" :key="idx">
+                  <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border text-xs">
+                    <span class="font-bold" x-text="it.item_name + ' (' + it.qty + ' ' + it.unit + ')'"></span>
+                    <button type="button" @click="loanForm.items.splice(idx, 1)" class="text-red-600"><i class="fa-solid fa-trash"></i></button>
+                  </div>
+                </template>
+              </div>
+            </div>
+            <button type="button" @click="submitLoan()" class="px-6 py-2.5 rounded-xl bg-silaras-dark text-white font-bold text-sm">Kirim Permohonan Peminjaman</button>
+          </div>
+
+          <!-- Form Penggunaan Bahan & Bahan Kimia -->
+          <div x-show="activeMenu === 'guna_bahan'" class="bg-white p-6 rounded-2xl border border-slate-200 space-y-4">
+            <h3 class="font-bold text-lg text-emerald-950">Formulir Penggunaan Bahan & Bahan Kimia</h3>
+            <div class="grid sm:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Kategori *</label>
+                <select x-model="usageForm.category" @change="usageForm.items = []" class="w-full px-3 py-2 border rounded-xl text-sm">
+                  <option value="Bahan">Bahan</option>
+                  <option value="Bahan Kimia">Bahan Kimia</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Laboratorium *</label>
+                <select x-model="usageForm.lab_id" @change="usageForm.items = []" class="w-full px-3 py-2 border rounded-xl text-sm">
+                  <option value="">-- Pilih Lab --</option>
+                  <template x-for="l in publicData.labs" :key="l.lab_id"><option :value="l.lab_id" x-text="l.lab_name"></option></template>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Tanggal Penggunaan *</label>
+                <input type="date" x-model="usageForm.usage_date" class="w-full px-3 py-2 border rounded-xl text-sm" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Tujuan Penggunaan *</label>
+              <input type="text" x-model="usageForm.purpose" class="w-full px-3 py-2 border rounded-xl text-sm" />
+            </div>
+            <div>
+              <button type="button" @click="openCatalogPickerModal(usageForm.category, usageForm.lab_id, 'usage')" class="px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-700 text-emerald-900 font-bold text-xs hover:bg-emerald-100">
+                <i class="fa-solid fa-plus mr-1"></i> Pilih / Tambah <span x-text="usageForm.category"></span>
+              </button>
+              <div class="mt-3 space-y-2">
+                <template x-for="(it, idx) in usageForm.items" :key="idx">
+                  <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border text-xs">
+                    <span class="font-bold" x-text="it.item_name + ' (' + it.qty + ' ' + it.unit + ')'"></span>
+                    <button type="button" @click="usageForm.items.splice(idx, 1)" class="text-red-600"><i class="fa-solid fa-trash"></i></button>
+                  </div>
+                </template>
+              </div>
+            </div>
+            <button type="button" @click="submitUsage()" class="px-6 py-2.5 rounded-xl bg-silaras-dark text-white font-bold text-sm">Kirim Permohonan Bahan</button>
+          </div>
+
+          <!-- Form Booking Ruangan Laboratorium (Dinamis Praktikum vs Penelitian) -->
+          <div x-show="activeMenu === 'booking_ruang'" class="bg-white p-6 rounded-2xl border border-slate-200 space-y-4">
+            <h3 class="font-bold text-lg text-emerald-950">Formulir Penggunaan Ruangan Laboratorium</h3>
+            <div class="grid sm:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Lokasi Laboratorium *</label>
+                <select x-model="bookingForm.lab_id" class="w-full px-3 py-2 border rounded-xl text-sm">
+                  <option value="">-- Pilih Lab --</option>
+                  <template x-for="l in publicData.labs" :key="l.lab_id"><option :value="l.lab_id" x-text="l.lab_name"></option></template>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Penanggung Jawab Kegiatan *</label>
+                <input type="text" x-model="bookingForm.pic_name" class="w-full px-3 py-2 border rounded-xl text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Unit / Program Studi *</label>
+                <input type="text" x-model="bookingForm.unit_prodi" class="w-full px-3 py-2 border rounded-xl text-sm" />
+              </div>
+            </div>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Jenis Kegiatan *</label>
+                <select x-model="bookingForm.activity_type" class="w-full px-3 py-2 border rounded-xl text-sm">
+                  <option value="Praktikum">Praktikum</option>
+                  <option value="Penelitian">Penelitian</option>
+                  <option value="Lainnya">Kegiatan Akademik Lainnya</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Judul / Tujuan Kegiatan *</label>
+                <input type="text" x-model="bookingForm.activity_title" class="w-full px-3 py-2 border rounded-xl text-sm" />
+              </div>
+            </div>
+            <div class="grid sm:grid-cols-4 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Tanggal *</label>
+                <input type="date" x-model="bookingForm.booking_date" class="w-full px-3 py-2 border rounded-xl text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Jam Mulai *</label>
+                <input type="time" x-model="bookingForm.start_time" class="w-full px-3 py-2 border rounded-xl text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Jam Selesai *</label>
+                <input type="time" x-model="bookingForm.end_time" class="w-full px-3 py-2 border rounded-xl text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Jumlah Peserta *</label>
+                <input type="number" min="1" x-model="bookingForm.participant_count" class="w-full px-3 py-2 border rounded-xl text-sm" />
+              </div>
+            </div>
+
+            <!-- Integrasi Kebutuhan Terkait (Praktikum = Alat + Bahan + Kimia; Penelitian = Alat saja) -->
+            <div class="p-4 bg-emerald-50/60 border border-emerald-200 rounded-2xl space-y-3">
+              <p class="text-xs font-bold text-emerald-950">Kebutuhan Terintegrasi (Opsional):</p>
+              <div class="flex flex-wrap gap-2">
+                <button type="button" @click="openCatalogPickerModal('Alat', bookingForm.lab_id, 'booking_eq')" class="px-3 py-1.5 rounded-xl bg-white border border-emerald-700 text-emerald-900 text-xs font-bold">
+                  + Tambah Alat (<span x-text="bookingForm.equipment_items.length"></span>)
+                </button>
+                <button x-show="bookingForm.activity_type === 'Praktikum'" type="button" @click="openCatalogPickerModal('Bahan', bookingForm.lab_id, 'booking_mat')" class="px-3 py-1.5 rounded-xl bg-white border border-emerald-700 text-emerald-900 text-xs font-bold">
+                  + Tambah Bahan (<span x-text="bookingForm.material_items.length"></span>)
+                </button>
+                <button x-show="bookingForm.activity_type === 'Praktikum'" type="button" @click="openCatalogPickerModal('Bahan Kimia', bookingForm.lab_id, 'booking_chem')" class="px-3 py-1.5 rounded-xl bg-white border border-emerald-700 text-emerald-900 text-xs font-bold">
+                  + Tambah Bahan Kimia (<span x-text="bookingForm.chemical_items.length"></span>)
+                </button>
+              </div>
+            </div>
+
+            <button type="button" @click="submitBooking()" class="px-6 py-2.5 rounded-xl bg-silaras-dark text-white font-bold text-sm">Ajukan Penggunaan Ruangan</button>
+          </div>
+
+          <!-- Daftar Transaksi & Panel Verifikasi Laboran / Persetujuan Kepala Lab -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-6">
+            <h3 class="font-bold text-emerald-950">Daftar Permohonan & Status Verifikasi / Persetujuan</h3>
+
+            <!-- Tabel Booking Ruangan -->
+            <div>
+              <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">Penggunaan Ruangan</h4>
+              <div class="overflow-x-auto border rounded-xl">
+                <table class="w-full text-xs text-left">
+                  <thead class="bg-slate-100">
+                    <tr>
+                      <th class="px-3 py-2">ID</th>
+                      <th class="px-3 py-2">Lab & Kegiatan</th>
+                      <th class="px-3 py-2">Jadwal</th>
+                      <th class="px-3 py-2">Status</th>
+                      <th class="px-3 py-2">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y">
+                    <template x-for="b in dashData.bookings || []" :key="b.booking_id">
+                      <tr>
+                        <td class="px-3 py-2 font-mono font-bold" x-text="b.booking_id"></td>
+                        <td class="px-3 py-2"><b x-text="b.lab_name"></b><br><span x-text="'[' + b.activity_type + '] ' + b.activity_title"></span></td>
+                        <td class="px-3 py-2" x-text="b.booking_date + ' (' + b.start_time + '-' + b.end_time + ')'"></td>
+                        <td class="px-3 py-2 font-bold" x-text="b.status"></td>
+                        <td class="px-3 py-2 space-x-1">
+                          <button x-show="b.status === 'pending_verification' && hasRole('Laboran')" @click="processStep('booking', b.booking_id, 'verify_laboran')" class="px-2 py-1 bg-amber-500 text-white rounded font-bold">Verifikasi Laboran</button>
+                          <button x-show="b.status === 'verified_laboran' && hasRole('Kepala Laboratorium')" @click="processStep('booking', b.booking_id, 'approve_kalab')" class="px-2 py-1 bg-emerald-700 text-white rounded font-bold">Setujui (Ka. Lab)</button>
+                          <button x-show="['pending_verification','verified_laboran'].includes(b.status) && (hasRole('Laboran') || hasRole('Kepala Laboratorium'))" @click="processStep('booking', b.booking_id, 'reject')" class="px-2 py-1 bg-red-600 text-white rounded">Tolak</button>
+                        </td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Tabel Peminjaman Alat & Pengembalian 2 Tahap -->
+            <div>
+              <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">Peminjaman Peralatan</h4>
+              <div class="overflow-x-auto border rounded-xl">
+                <table class="w-full text-xs text-left">
+                  <thead class="bg-slate-100">
+                    <tr>
+                      <th class="px-3 py-2">ID</th>
+                      <th class="px-3 py-2">Peminjam & Lab</th>
+                      <th class="px-3 py-2">Item Alat</th>
+                      <th class="px-3 py-2">Status</th>
+                      <th class="px-3 py-2">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y">
+                    <template x-for="l in dashData.loans || []" :key="l.loan_id">
+                      <tr>
+                        <td class="px-3 py-2 font-mono font-bold" x-text="l.loan_id"></td>
+                        <td class="px-3 py-2"><b x-text="l.borrower_name"></b><br><span x-text="l.lab_name"></span></td>
+                        <td class="px-3 py-2">
+                          <template x-for="it in l.items" :key="it.loan_item_id">
+                            <div x-text="it.item_name + ' (' + it.qty_requested + ') [' + it.return_status + ']'"></div>
+                          </template>
+                        </td>
+                        <td class="px-3 py-2 font-bold" x-text="l.status"></td>
+                        <td class="px-3 py-2 space-x-1">
+                          <button x-show="l.status === 'pending_verification' && hasRole('Laboran')" @click="processStep('loan', l.loan_id, 'verify_laboran')" class="px-2 py-1 bg-amber-500 text-white rounded font-bold">Verifikasi Laboran</button>
+                          <button x-show="l.status === 'verified_laboran' && hasRole('Kepala Laboratorium')" @click="processStep('loan', l.loan_id, 'approve_kalab')" class="px-2 py-1 bg-emerald-700 text-white rounded font-bold">Setujui (Ka. Lab)</button>
+                          <button x-show="l.status === 'approved' && hasRole('Laboran')" @click="processStep('loan', l.loan_id, 'handover')" class="px-2 py-1 bg-blue-600 text-white rounded font-bold">Serah Terima</button>
+                          <button x-show="['active_borrowed','returned_partial'].includes(l.status) && l.user_id === session.user_id" @click="userRequestReturn(l.loan_id)" class="px-2 py-1 bg-indigo-600 text-white rounded font-bold">Ajukan Kembali</button>
+                          <button x-show="['active_borrowed','returned_partial'].includes(l.status) && hasRole('Laboran')" @click="openReturnAssessmentModal(l)" class="px-2 py-1 bg-emerald-800 text-white rounded font-bold">Terima & Nilai Kondisi</button>
+                        </td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Tabel Penggunaan Bahan & Bahan Kimia -->
+            <div>
+              <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">Penggunaan Bahan & Bahan Kimia</h4>
+              <div class="overflow-x-auto border rounded-xl">
+                <table class="w-full text-xs text-left">
+                  <thead class="bg-slate-100">
+                    <tr>
+                      <th class="px-3 py-2">ID</th>
+                      <th class="px-3 py-2">Pemohon & Lab</th>
+                      <th class="px-3 py-2">Item</th>
+                      <th class="px-3 py-2">Status</th>
+                      <th class="px-3 py-2">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y">
+                    <template x-for="u in dashData.usages || []" :key="u.usage_id">
+                      <tr>
+                        <td class="px-3 py-2 font-mono font-bold" x-text="u.usage_id"></td>
+                        <td class="px-3 py-2"><b x-text="u.requester_name"></b><br><span x-text="u.lab_name + ' (' + u.category + ')'"></span></td>
+                        <td class="px-3 py-2">
+                          <template x-for="it in u.items" :key="it.usage_item_id">
+                            <div x-text="it.item_name + ' (' + it.qty_requested + ' ' + it.unit + ')'"></div>
+                          </template>
+                        </td>
+                        <td class="px-3 py-2 font-bold" x-text="u.status"></td>
+                        <td class="px-3 py-2 space-x-1">
+                          <button x-show="u.status === 'pending_verification' && hasRole('Laboran')" @click="processStep('usage', u.usage_id, 'verify_laboran')" class="px-2 py-1 bg-amber-500 text-white rounded font-bold">Verifikasi Laboran</button>
+                          <button x-show="u.status === 'verified_laboran' && hasRole('Kepala Laboratorium')" @click="processStep('usage', u.usage_id, 'approve_kalab')" class="px-2 py-1 bg-emerald-700 text-white rounded font-bold">Setujui (Ka. Lab)</button>
+                          <button x-show="u.status === 'approved' && hasRole('Laboran')" @click="processStep('usage', u.usage_id, 'dispense')" class="px-2 py-1 bg-emerald-800 text-white rounded font-bold">Serahkan (FEFO)</button>
+                        </td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. MASTER DATA BARANG -->
+        <div x-show="activeMenu === 'master_data'" class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-emerald-950">Master Data Barang Terpusat (ALT / BHN / KIM)</h3>
+            <button x-show="canEdit('master_data')" @click="openMasterFormModal(null)" class="px-4 py-2 rounded-xl bg-silaras-dark text-white text-xs font-bold">+ Tambah Master Barang</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left">
+              <thead class="bg-emerald-950 text-white uppercase">
+                <tr>
+                  <th class="px-3 py-2">ID Barang</th>
+                  <th class="px-3 py-2">Kategori</th>
+                  <th class="px-3 py-2">Nama Barang</th>
+                  <th class="px-3 py-2">Spek / CAS</th>
+                  <th class="px-3 py-2">Satuan</th>
+                  <th class="px-3 py-2">Publik</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                <template x-for="m in masterItemsList" :key="m.item_id">
+                  <tr>
+                    <td class="px-3 py-2 font-mono font-bold text-emerald-800" x-text="m.item_id"></td>
+                    <td class="px-3 py-2" x-text="m.category"></td>
+                    <td class="px-3 py-2 font-bold" x-text="m.item_name"></td>
+                    <td class="px-3 py-2" x-text="m.maker_type_spec + (m.cas_number ? ' | CAS: ' + m.cas_number : '')"></td>
+                    <td class="px-3 py-2" x-text="m.unit"></td>
+                    <td class="px-3 py-2" x-text="m.is_public_catalog ? 'Ya' : 'Tidak'"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 6. LAPORAN & EKSPOR WORD / EXCEL -->
+        <div x-show="activeMenu === 'laporan'" class="bg-white p-6 rounded-2xl border border-slate-200 space-y-4">
+          <h3 class="font-bold text-lg text-emerald-950">Ekspor Laporan Excel (.xlsx) & Dokumen Word (.docx)</h3>
+          <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <button @click="exportExcel('INV_ALAT')" class="p-4 border rounded-2xl hover:bg-emerald-50 text-left">
+              <i class="fa-solid fa-file-excel text-2xl text-emerald-700 mb-2"></i>
+              <p class="font-bold text-sm">Inventaris Peralatan (.xlsx)</p>
+            </button>
+            <button @click="exportExcel('INV_BAHAN')" class="p-4 border rounded-2xl hover:bg-emerald-50 text-left">
+              <i class="fa-solid fa-file-excel text-2xl text-emerald-700 mb-2"></i>
+              <p class="font-bold text-sm">Inventaris Bahan (.xlsx)</p>
+            </button>
+            <button @click="exportExcel('INV_KIMIA')" class="p-4 border rounded-2xl hover:bg-emerald-50 text-left">
+              <i class="fa-solid fa-file-excel text-2xl text-emerald-700 mb-2"></i>
+              <p class="font-bold text-sm">Inventaris Bahan Kimia (.xlsx)</p>
+            </button>
+            <button @click="exportExcel('GUDANG_TRX')" class="p-4 border rounded-2xl hover:bg-emerald-50 text-left">
+              <i class="fa-solid fa-file-excel text-2xl text-emerald-700 mb-2"></i>
+              <p class="font-bold text-sm">Laporan Gudang Masuk/Keluar (.xlsx)</p>
+            </button>
+          </div>
+        </div>
+
+        <!-- 7. AUDIT TRAIL -->
+        <div x-show="activeMenu === 'audit'" class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
+          <h3 class="font-bold text-emerald-950">Audit Trail Aktivitas Sistem</h3>
+          <div class="overflow-x-auto max-h-[500px]">
+            <table class="w-full text-xs text-left">
+              <thead class="bg-emerald-950 text-white uppercase sticky top-0">
+                <tr>
+                  <th class="px-3 py-2">Waktu</th>
+                  <th class="px-3 py-2">Pelaku & Peran</th>
+                  <th class="px-3 py-2">Lokasi</th>
+                  <th class="px-3 py-2">Aksi & Modul</th>
+                  <th class="px-3 py-2">Catatan</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                <template x-for="lg in auditLogsList" :key="lg.log_id">
+                  <tr>
+                    <td class="px-3 py-2 font-mono" x-text="lg.timestamp"></td>
+                    <td class="px-3 py-2"><b x-text="lg.actor_name"></b> (<span x-text="lg.active_role"></span>)</td>
+                    <td class="px-3 py-2" x-text="lg.active_lab_id"></td>
+                    <td class="px-3 py-2 font-bold text-emerald-800" x-text="lg.action_type + ' • ' + lg.module_name"></td>
+                    <td class="px-3 py-2" x-text="lg.reason"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 8. PENGATURAN PENGGUNA, MASTER LOKASI LAB & HAK AKSES GRANULAR -->
+        <div x-show="activeMenu === 'settings'" class="space-y-6">
+          <!-- Manajemen Master Lokasi Laboratorium (Revisi v3: Tanpa Kode, Kepala Laboratorium, Khusus Super Admin) -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="font-bold text-emerald-950">Manajemen Master Lokasi Laboratorium</h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">Pengelolaan nama, kepala laboratorium, dan status operasional unit laboratorium (Khusus Super Admin).</p>
+              </div>
+              <button x-show="isSuperAdmin()" @click="openLabModal(null)" class="px-3.5 py-2 rounded-xl bg-silaras-dark text-white text-xs font-bold hover:bg-emerald-900 transition">
+                + Tambah Laboratorium
+              </button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-xs text-left border border-slate-200 rounded-xl overflow-hidden">
+                <thead class="bg-slate-100 text-slate-700 font-bold">
+                  <tr>
+                    <th class="px-3 py-2.5">ID</th>
+                    <th class="px-3 py-2.5">Nama Laboratorium</th>
+                    <th class="px-3 py-2.5">Kepala Laboratorium</th>
+                    <th class="px-3 py-2.5">Status</th>
+                    <th class="px-3 py-2.5">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                  <template x-for="lb in adminData.labs || []" :key="lb.lab_id">
+                    <tr class="hover:bg-slate-50">
+                      <td class="px-3 py-2.5 font-mono font-semibold text-slate-700" x-text="lb.lab_id"></td>
+                      <td class="px-3 py-2.5 font-medium text-slate-900" x-text="lb.lab_name"></td>
+                      <td class="px-3 py-2.5 text-slate-700" x-text="lb.pic_name || '-'"></td>
+                      <td class="px-3 py-2.5">
+                        <span class="px-2 py-0.5 rounded-full text-[11px] font-bold"
+                              :class="lb.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'"
+                              x-text="lb.status"></span>
+                      </td>
+                      <td class="px-3 py-2.5 space-x-2">
+                        <template x-if="isSuperAdmin()">
+                          <div class="inline-flex items-center gap-3">
+                            <button @click="openLabModal(lb)" class="text-blue-600 hover:underline font-bold">Edit</button>
+                            <button @click="deleteLab(lb.lab_id)" class="text-red-600 hover:underline font-bold">Hapus</button>
+                          </div>
+                        </template>
+                        <span x-show="!isSuperAdmin()" class="text-slate-400 italic">Hanya Super Admin</span>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Manajemen Pengguna, Multi-Role & Penugasan Lab -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-emerald-950">Manajemen Pengguna, Multi-Role & Penugasan Lokasi</h3>
+              <button @click="openUserModal(null)" class="px-3 py-1.5 rounded-xl bg-silaras-dark text-white text-xs font-bold">+ Tambah Pengguna</button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-xs text-left border">
+                <thead class="bg-slate-100">
+                  <tr>
+                    <th class="px-3 py-2">Nama & Email</th>
+                    <th class="px-3 py-2">Peran (Multi-Role)</th>
+                    <th class="px-3 py-2">Penugasan Lab</th>
+                    <th class="px-3 py-2">Status</th>
+                    <th class="px-3 py-2">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y">
+                  <template x-for="u in adminData.users || []" :key="u.user_id">
+                    <tr>
+                      <td class="px-3 py-2"><b x-text="u.full_name"></b><br><span class="text-slate-500" x-text="u.email"></span></td>
+                      <td class="px-3 py-2" x-text="(u.roles || []).join(', ')"></td>
+                      <td class="px-3 py-2" x-text="(u.assigned_labs || []).join(', ') || '-'"></td>
+                      <td class="px-3 py-2 font-bold" x-text="u.status"></td>
+                      <td class="px-3 py-2">
+                        <button @click="openUserModal(u)" class="px-2.5 py-1 bg-emerald-50 text-emerald-800 rounded font-bold">Kelola Akses</button>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL DETAIL INVENTARIS & AKSI CEPAT (PINJAM / AMBIL / EDIT / HAPUS) -->
+  <div x-show="invDetailModal.open" x-cloak class="fixed inset-0 z-40 bg-slate-900/60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-start">
+        <div>
+          <span class="text-xs font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded" x-text="invDetailModal.item?.item_id"></span>
+          <h3 class="text-lg font-bold text-slate-900 mt-1" x-text="invDetailModal.item?.item_name"></h3>
+        </div>
+        <button @click="invDetailModal.open = false" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <img x-show="invDetailModal.item?.photo_url" :src="invDetailModal.item?.photo_url" class="w-full h-48 object-cover rounded-xl border" />
+      <div class="text-xs space-y-1.5 bg-slate-50 p-4 rounded-xl">
+        <p><b>Spesifikasi:</b> <span x-text="invDetailModal.item?.maker_type_spec || '-'"></span></p>
+        <p><b>Lokasi:</b> <span x-text="invDetailModal.item?.location_name"></span></p>
+        <p><b>Stok Tersedia:</b> <span class="font-bold text-emerald-700" x-text="invDetailModal.item?.qty_available + ' ' + (invDetailModal.item?.unit || '')"></span></p>
+        <template x-if="currentInvCategory() === 'Bahan Kimia'">
+          <div class="space-y-1 pt-1 border-t">
+            <p><b>CAS:</b> <span x-text="invDetailModal.item?.cas_number || '-'"></span> | <b>Grade:</b> <span x-text="invDetailModal.item?.grade || '-'"></span></p>
+            <p><b>GHS / Class:</b> <span x-text="(invDetailModal.item?.ghs_symbol || '-') + ' / ' + (invDetailModal.item?.hazard_class || '-')"></span></p>
+            <p><b>Posisi Rak:</b> <span x-text="invDetailModal.item?.storage_position || '-'"></span></p>
+          </div>
+        </template>
+      </div>
+      <div class="flex flex-wrap gap-2 justify-end pt-2">
+        <button x-show="invDetailModal.item?.qty_available > 0 && invDetailModal.item?.location_id !== 'GUDANG'"
+                @click="quickRequestFromDetail(invDetailModal.item)"
+                class="px-4 py-2 rounded-xl bg-silaras-lime text-emerald-950 font-bold text-xs">
+          <span x-text="currentInvCategory() === 'Alat' ? 'Pinjam Alat Ini' : 'Ajukan Pengambilan'"></span>
+        </button>
+        <button x-show="canEdit(activeMenu)" @click="invDetailModal.open = false; openInvFormModal(invDetailModal.item)"
+                class="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold text-xs">Edit Data</button>
+        <button x-show="canDelete(activeMenu)" @click="deleteInventoryItem(invDetailModal.item)"
+                class="px-4 py-2 rounded-xl bg-red-600 text-white font-bold text-xs">Hapus</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL FORM TAMBAH / EDIT INVENTARIS -->
+  <div x-show="invFormModal.open" x-cloak class="fixed inset-0 z-40 bg-slate-900/60 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 my-8">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-lg text-emerald-950" x-text="(invFormModal.is_edit ? 'Edit ' : 'Tambah ') + currentInvCategory()"></h3>
+        <button @click="invFormModal.open = false" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form @submit.prevent="submitInventoryForm()" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold mb-1">Lokasi Laboratorium *</label>
+          <select x-model="invFormModal.data.location_id" required class="w-full px-3 py-2 border rounded-xl">
+            <option value="">-- Pilih Lokasi --</option>
+            <template x-for="l in session?.accessible_labs || []" :key="l.lab_id">
+              <option :value="l.lab_id" x-text="l.lab_name"></option>
+            </template>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold mb-1">Nama Barang *</label>
+          <input type="text" x-model="invFormModal.data.item_name" required class="w-full px-3 py-2 border rounded-xl" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold mb-1">Maker / Type / Spek</label>
+            <input type="text" x-model="invFormModal.data.maker_type_spec" class="w-full px-3 py-2 border rounded-xl" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">Satuan *</label>
+            <input type="text" x-model="invFormModal.data.unit" required class="w-full px-3 py-2 border rounded-xl" />
+          </div>
+        </div>
+        <template x-if="currentInvCategory() === 'Alat'">
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="block font-bold mb-1">Tahun</label>
+              <input type="number" x-model="invFormModal.data.acquisition_year" class="w-full px-3 py-2 border rounded-xl" />
+            </div>
+            <div>
+              <label class="block font-bold mb-1">BMN</label>
+              <select x-model="invFormModal.data.bmn_category" class="w-full px-3 py-2 border rounded-xl">
+                <option value="BM">BM</option>
+                <option value="Non BM">Non BM</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-bold mb-1">Stok Tersedia *</label>
+              <input type="number" min="0" x-model="invFormModal.data.qty_available" required class="w-full px-3 py-2 border rounded-xl" />
+            </div>
+          </div>
+        </template>
+        <template x-if="currentInvCategory() !== 'Alat'">
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="block font-bold mb-1">Batch/Lot</label>
+              <input type="text" x-model="invFormModal.data.batch_lot" class="w-full px-3 py-2 border rounded-xl" />
+            </div>
+            <div>
+              <label class="block font-bold mb-1">Kedaluwarsa</label>
+              <input type="date" x-model="invFormModal.data.expiry_date" class="w-full px-3 py-2 border rounded-xl" />
+            </div>
+            <div>
+              <label class="block font-bold mb-1">Stok *</label>
+              <input type="number" step="any" min="0" x-model="invFormModal.data.qty_available" required class="w-full px-3 py-2 border rounded-xl" />
+            </div>
+          </div>
+        </template>
+        <template x-if="currentInvCategory() === 'Bahan Kimia'">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-bold mb-1">CAS Number</label>
+              <input type="text" x-model="invFormModal.data.cas_number" class="w-full px-3 py-2 border rounded-xl" />
+            </div>
+            <div>
+              <label class="block font-bold mb-1">Posisi Rak / Lemari</label>
+              <input type="text" x-model="invFormModal.data.storage_position" class="w-full px-3 py-2 border rounded-xl" />
+            </div>
+          </div>
+        </template>
+        <div>
+          <label class="block font-bold mb-1">Foto Barang (Upload / Kamera)</label>
+          <div class="flex gap-2">
+            <label class="px-3 py-1.5 rounded-xl border cursor-pointer">
+              Upload File <input type="file" accept="image/*" @change="handleImageFile($event, 'invForm')" class="hidden" />
+            </label>
+            <button type="button" @click="openCameraModal('invForm')" class="px-3 py-1.5 rounded-xl border border-emerald-700 text-emerald-800">Ambil Kamera</button>
+          </div>
+        </div>
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-silaras-dark text-white font-bold">Simpan Data</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL KATALOG BERGAMBAR (+ PILIH ITEM UNTUK PEMINJAMAN / BAHAN / BOOKING) -->
+  <div x-show="catalogPickerModal.open" x-cloak class="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-emerald-950">Pilih <span x-text="catalogPickerModal.category"></span> Tersedia di Laboratorium</h3>
+        <button @click="catalogPickerModal.open = false" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <input type="text" x-model="catalogPickerModal.search" placeholder="Cari nama atau ID..." class="w-full px-3 py-2 border rounded-xl text-sm" />
+      <div class="grid sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto">
+        <template x-for="c in filteredPickerCatalog()" :key="c.inv_id || c.item_id">
+          <div class="border rounded-xl p-3 flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <p class="font-bold text-xs text-slate-900 truncate" x-text="c.item_name"></p>
+              <p class="text-[11px] text-emerald-700">Tersedia: <b x-text="c.qty_available + ' ' + c.unit"></b></p>
+            </div>
+            <div class="flex items-center gap-1">
+              <input type="number" step="any" min="0.01" :max="c.qty_available" x-model="c.pickQty" class="w-16 px-2 py-1 border rounded text-xs" />
+              <button type="button" @click="confirmPickItem(c)" class="px-2.5 py-1 bg-silaras-dark text-white rounded text-xs font-bold">Tambahkan</button>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL KAMERA PERANGKAT (DIRECT CAMERA CAPTURE) -->
+  <div x-show="cameraModal.open" x-cloak class="fixed inset-0 z-50 bg-slate-900/80 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-sm text-emerald-950">Ambil Foto Barang dari Kamera</h3>
+        <button @click="closeCameraModal()" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <video id="silarasCameraVideo" autoplay playsinline class="w-full rounded-xl bg-black"></video>
+      <button type="button" @click="captureCameraFrame()" class="w-full py-2.5 rounded-xl bg-silaras-lime text-emerald-950 font-bold text-sm">
+        <i class="fa-solid fa-camera mr-1"></i> Jepret Foto
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL KELOLA PENGGUNA (MULTI-ROLE & PENUGASAN LAB) -->
+  <div x-show="userModal.open" x-cloak class="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-emerald-950">Pengaturan Peran & Lokasi Pengguna</h3>
+        <button @click="userModal.open = false" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form @submit.prevent="submitUserModal()" class="space-y-3 text-xs">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold mb-1">Nama Lengkap *</label>
+            <input type="text" x-model="userModal.data.full_name" required class="w-full px-3 py-2 border rounded-xl" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">Email *</label>
+            <input type="email" x-model="userModal.data.email" required class="w-full px-3 py-2 border rounded-xl" />
+          </div>
+        </div>
+        <div>
+          <label class="block font-bold mb-1">Peran Pengguna (Dapat Memilih Lebih dari Satu):</label>
+          <div class="grid grid-cols-2 gap-1.5 p-2.5 bg-slate-50 rounded-xl border">
+            <template x-for="r in ['Super Admin','Admin','Petugas Gudang','Laboran','Kepala Laboratorium','User']" :key="r">
+              <label class="flex items-center gap-2">
+                <input type="checkbox" :value="r" x-model="userModal.data.roles" />
+                <span x-text="r"></span>
+              </label>
+            </template>
+          </div>
+        </div>
+        <div>
+          <label class="block font-bold mb-1">Penugasan Lokasi Laboratorium:</label>
+          <div class="grid grid-cols-1 gap-1.5 p-2.5 bg-slate-50 rounded-xl border max-h-32 overflow-y-auto">
+            <label class="flex items-center gap-2">
+              <input type="checkbox" value="GUDANG" x-model="userModal.data.assigned_labs" />
+              <span>Gudang Pusat Fakultas Pertanian</span>
+            </label>
+            <template x-for="lb in adminData.labs || []" :key="lb.lab_id">
+              <label class="flex items-center gap-2">
+                <input type="checkbox" :value="lb.lab_id" x-model="userModal.data.assigned_labs" />
+                <span x-text="lb.lab_name"></span>
+              </label>
+            </template>
+          </div>
+        </div>
+        <div>
+          <label class="block font-bold mb-1">Status Akun</label>
+          <select x-model="userModal.data.status" class="w-full px-3 py-2 border rounded-xl">
+            <option value="active">Aktif</option>
+            <option value="pending_verification">Menunggu Verifikasi</option>
+            <option value="suspended">Nonaktif</option>
+          </select>
+        </div>
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-silaras-dark text-white font-bold">Simpan Pengguna</button>
+      </form>
+    </div>
+  </div>
+
+<!-- MODAL EDIT / TAMBAH MASTER LOKASI LABORATORIUM (KHUSUS SUPER ADMIN) -->
+  <div x-show="labModal.open" x-cloak class="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <div>
+          <h3 class="font-bold text-base text-emerald-950" x-text="labModal.is_edit ? 'Edit Master Lokasi Laboratorium' : 'Tambah Laboratorium Baru'"></h3>
+          <p x-show="labModal.is_edit" class="text-[11px] font-mono text-slate-500 mt-0.5" x-text="'ID Lokasi: ' + labModal.data.lab_id"></p>
+        </div>
+        <button @click="labModal.open = false" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form @submit.prevent="submitLabModal()" class="space-y-3.5 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Nama Laboratorium *</label>
+          <input type="text" x-model="labModal.data.lab_name" required placeholder="Contoh: Laboratorium Agronomi & Hortikultura" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-700" />
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Kepala Laboratorium *</label>
+          <input type="text" x-model="labModal.data.pic_name" required placeholder="Nama lengkap beserta gelar" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-700" />
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Status *</label>
+          <select x-model="labModal.data.status" required class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-700">
+            <option value="active">active (Aktif)</option>
+            <option value="inactive">inactive (Nonaktif)</option>
+          </select>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" @click="labModal.open = false" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 font-semibold hover:bg-slate-50">
+            Batal
+          </button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-silaras-dark text-white font-bold hover:bg-emerald-900">
+            Simpan Perubahan
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL LENGKAPI PROFIL DASAR (GOOGLE SSO PERTAMA KALI) -->
+  <div x-show="session && session.needs_profile_completion" x-cloak class="fixed inset-0 z-50 bg-slate-900/70 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <h3 class="font-bold text-lg text-emerald-950">Lengkapi Profil Dasar Anda</h3>
+      <p class="text-xs text-slate-600">Wajib dilengkapi sebelum mengajukan peminjaman atau penggunaan laboratorium.</p>
+      <form @submit.prevent="submitCompleteProfile()" class="space-y-3 text-xs">
+        <input type="text" x-model="profileForm.full_name" required placeholder="Nama Lengkap" class="w-full px-3 py-2 border rounded-xl" />
+        <input type="text" x-model="profileForm.nim_nip" required placeholder="NIM / NIP" class="w-full px-3 py-2 border rounded-xl" />
+        <input type="text" x-model="profileForm.unit_prodi" required placeholder="Program Studi / Unit Kerja" class="w-full px-3 py-2 border rounded-xl" />
+        <input type="text" x-model="profileForm.phone" required placeholder="Nomor Telepon / WhatsApp" class="w-full px-3 py-2 border rounded-xl" />
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-silaras-dark text-white font-bold">Simpan & Lanjutkan</button>
+      </form>
+    </div>
+  </div>
+
+<script>
+    function silarasApp() {
+      return {
+        loading: false,
+        syncing: false,
+        loadingText: '',
+        toast: { show: false, message: '', type: 'success' },
+        session: null,
+        activeMenu: 'dashboard',
+        mobileSidebarOpen: false,
+
+        // Data Publik
+        publicData: { labs: [], catalog: [], schedules: [] },
+        publicCatalogSearch: '',
+        publicCatalogView: 'grid',
+        pubFilterLab: '',
+        pubFilterType: '',
+        pubFilterDate: '',
+        pubFilterSearch: '',
+        calendarMode: 'week',
+        calendarAnchorDate: new Date().toISOString().slice(0, 10),
+
+        // Auth & Profile
+        authModal: { open: false, mode: 'login' },
+        loginForm: { email: '', password: '' },
+        regForm: { full_name: '', nim_nip: '', unit_prodi: '', phone: '', email: '', password: '' },
+        profileForm: { full_name: '', nim_nip: '', unit_prodi: '', phone: '' },
+
+        // Cache Memori Lokal untuk Perpindahan Menu Instan (0ms)
+        bundleLoaded: false,
+        invCache: { Alat: [], Bahan: [], 'Bahan Kimia': [] },
+        dashData: { stats: {}, bookings: [], loans: [], usages: [], notifications: [] },
+        inventoryList: [],
+        invLocationFilter: 'ALL',
+        invSearch: '',
+        invViewMode: 'grid',
+        invDetailModal: { open: false, item: null },
+        invFormModal: { open: false, is_edit: false, data: {} },
+
+        warehouseData: { stock: [], transactions: [], labs: [], takers: [], courses: [] },
+        warehouseTab: 'stock',
+        whViewMode: 'grid',
+        whInForm: { category: 'Alat', trx_date: new Date().toISOString().slice(0,10), item_id: '', item_name: '', maker_type_spec: '', unit: 'Unit', acquisition_year: 2026, bmn_category: 'Non BM', batch_lot: '', expiry_date: '', cas_number: '', grade: '', ghs_symbol: '', qty: 1, photo_base64: '', photo_url: '' },
+        whInSuggestions: [],
+        whOutForm: { taker_name: '', course_name: '', destination_lab_id: '', items: [] },
+
+        loanForm: { lab_id: '', loan_date: new Date().toISOString().slice(0,10), due_date: new Date().toISOString().slice(0,10), purpose: '', items: [] },
+        usageForm: { category: 'Bahan', lab_id: '', usage_date: new Date().toISOString().slice(0,10), purpose: '', items: [] },
+        bookingForm: { lab_id: '', pic_name: '', unit_prodi: '', activity_type: 'Praktikum', activity_title: '', booking_date: new Date().toISOString().slice(0,10), start_time: '08:00', end_time: '10:00', participant_count: 20, equipment_items: [], material_items: [], chemical_items: [] },
+
+        catalogPickerModal: { open: false, category: 'Alat', target: '', search: '', items: [] },
+        cameraModal: { open: false, target: '', stream: null },
+        masterItemsList: [],
+        auditLogsList: [],
+        adminData: { users: [], labs: [] },
+        userModal: { open: false, data: { roles: ['User'], assigned_labs: [], status: 'active' } },
+        labModal: { open: false, is_edit: false, data: { lab_id: '', lab_name: '', pic_name: '', status: 'active' } },
+
+        initApp() {
+          const saved = localStorage.getItem('SILARAS_SESSION');
+          if (saved) {
+            try {
+              this.session = JSON.parse(saved);
+              this.profileForm.full_name = this.session.full_name || '';
+              this.bookingForm.pic_name = this.session.full_name || '';
+              this.bookingForm.unit_prodi = this.session.unit_prodi || '';
+              this.loadWorkspaceBundle(false);
+            } catch (e) {
+              localStorage.removeItem('SILARAS_SESSION');
+            }
+          }
+          this.loadPublicHome();
+        },
+
+        showToast(msg, type = 'success') {
+          this.toast = { show: true, message: msg, type: type };
+          setTimeout(() => { this.toast.show = false; }, 4000);
+        },
+
+        async runGas(fnName, ...args) {
+          this.loading = true;
+          const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbw74bgmIMai5nhrcXpg0C6sskBd0hWtxfBjJcFO7FejhvabDl4GBDa7RRbpW_ht2z9Y/exec';
+
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            return new Promise((resolve, reject) => {
+              google.script.run
+                .withSuccessHandler(res => { this.loading = false; resolve(res); })
+                .withFailureHandler(err => {
+                  this.loading = false;
+                  this.showToast(err.message || 'Terjadi kesalahan server', 'error');
+                  reject(err);
+                })[fnName](...args);
+            });
+          }
+
+          try {
+            const response = await fetch(GAS_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ action: fnName, args: args })
+            });
+            const resJson = await response.json();
+            this.loading = false;
+            if (!resJson.ok) {
+              throw new Error(resJson.error || 'Terjadi kesalahan pada server API.');
+            }
+            return resJson.data;
+          } catch (err) {
+            this.loading = false;
+            this.showToast(err.message || 'Gagal terhubung ke server', 'error');
+            throw err;
+          }
+        },
+
+        async runGasSilent(fnName, ...args) {
+          this.syncing = true;
+          const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbw74bgmIMai5nhrcXpg0C6sskBd0hWtxfBjJcFO7FejhvabDl4GBDa7RRbpW_ht2z9Y/exec';
+
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            return new Promise((resolve) => {
+              google.script.run
+                .withSuccessHandler(res => { this.syncing = false; resolve(res); })
+                .withFailureHandler(() => { this.syncing = false; resolve(null); })[fnName](...args);
+            });
+          }
+
+          try {
+            const response = await fetch(GAS_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ action: fnName, args: args })
+            });
+            const resJson = await response.json();
+            this.syncing = false;
+            return resJson.ok ? resJson.data : null;
+          } catch (e) {
+            this.syncing = false;
+            return null;
+          }
+        },
+
+        async loadPublicHome() {
+          const res = await this.runGas('apiGetPublicHomeDataCached');
+          if (res && res.success) this.publicData = res;
+        },
+
+        // Muat seluruh paket data sekali saja agar pindah menu 100% instan
+        async loadWorkspaceBundle(silent = false) {
+          const runner = silent ? this.runGasSilent.bind(this) : this.runGas.bind(this);
+          const res = await runner('apiGetInitialWorkspaceBundle', this.session.token);
+          if (res && res.success) {
+            this.dashData = res.dashboard;
+            this.masterItemsList = res.masterItems || [];
+            this.invCache = {
+              'Alat': res.invAlat || [],
+              'Bahan': res.invBahan || [],
+              'Bahan Kimia': res.invKimia || []
+            };
+            this.warehouseData = res.warehouse || this.warehouseData;
+            this.adminData = res.admin || this.adminData;
+            this.bundleLoaded = true;
+            this.applyLocalInventoryFilter();
+          }
+        },
+
+        applyLocalInventoryFilter() {
+          if (!['inv_alat','inv_bahan','inv_kimia'].includes(this.activeMenu)) return;
+          const cat = this.currentInvCategory();
+          const raw = this.invCache[cat] || [];
+          this.inventoryList = (this.invLocationFilter === 'ALL')
+            ? raw
+            : raw.filter(r => r.location_id === this.invLocationFilter);
+        },
+
+        filteredPublicCatalog() {
+          const kw = this.publicCatalogSearch.toLowerCase();
+          return (this.publicData.catalog || []).filter(c =>
+            !kw || c.item_name.toLowerCase().includes(kw) || (c.maker_type_spec || '').toLowerCase().includes(kw) || c.laboratories.toLowerCase().includes(kw)
+          );
+        },
+
+        filteredPublicSchedules() {
+          return (this.publicData.schedules || []).filter(s => {
+            if (this.pubFilterLab && s.lab_id !== this.pubFilterLab) return false;
+            if (this.pubFilterType && s.activity_type !== this.pubFilterType) return false;
+            if (this.pubFilterDate && s.booking_date !== this.pubFilterDate) return false;
+            if (this.pubFilterSearch && !s.activity_title.toLowerCase().includes(this.pubFilterSearch.toLowerCase())) return false;
+            return true;
+          });
+        },
+
+        getCalendarDays() {
+          const anchor = new Date(this.calendarAnchorDate + 'T00:00:00');
+          const count = this.calendarMode === 'day' ? 1 : (this.calendarMode === 'week' ? 7 : 28);
+          const days = [];
+          for (let i = 0; i < count; i++) {
+            const d = new Date(anchor);
+            d.setDate(anchor.getDate() + i);
+            const dateStr = d.toISOString().slice(0, 10);
+            const events = this.filteredPublicSchedules().filter(s => s.booking_date === dateStr);
+            days.push({ dateStr, events });
+          }
+          return days;
+        },
+
+        openAuthModal(mode) {
+          this.authModal = { open: true, mode: mode };
+        },
+
+        async submitLogin() {
+          const res = await this.runGas('apiLoginStandard', this.loginForm.email, this.loginForm.password);
+          if (res.success) {
+            this.session = res.session;
+            localStorage.setItem('SILARAS_SESSION', JSON.stringify(res.session));
+            this.authModal.open = false;
+            this.bookingForm.pic_name = this.session.full_name;
+            this.bookingForm.unit_prodi = this.session.unit_prodi;
+            this.loadWorkspaceBundle(false);
+            this.showToast('Selamat datang, ' + this.session.full_name);
+          } else {
+            this.showToast(res.message, 'error');
+          }
+        },
+
+        async loginWithGoogle() {
+          const res = await this.runGas('apiLoginWithGoogle');
+          if (res.success) {
+            this.session = res.session;
+            localStorage.setItem('SILARAS_SESSION', JSON.stringify(res.session));
+            this.authModal.open = false;
+            this.loadWorkspaceBundle(false);
+          } else {
+            this.showToast(res.message, 'error');
+          }
+        },
+
+        async submitRegister() {
+          const res = await this.runGas('apiRegisterSelf', this.regForm);
+          if (res.success) {
+            this.showToast(res.message);
+            this.authModal.mode = 'login';
+          } else {
+            this.showToast(res.message, 'error');
+          }
+        },
+
+        async submitCompleteProfile() {
+          const res = await this.runGas('apiCompleteProfile', this.session.token, this.profileForm);
+          if (res.success) {
+            this.session = res.session;
+            localStorage.setItem('SILARAS_SESSION', JSON.stringify(res.session));
+            this.showToast('Profil berhasil dilengkapi.');
+          }
+        },
+
+        async switchContext() {
+          const res = await this.runGas('apiSwitchContext', this.session.token, this.session.active_lab_id, this.session.active_role);
+          if (res.success) {
+            this.session = res.session;
+            localStorage.setItem('SILARAS_SESSION', JSON.stringify(res.session));
+            this.loadWorkspaceBundle(false);
+          }
+        },
+
+        logout() {
+          if (this.session) this.runGasSilent('apiLogout', this.session.token);
+          this.session = null;
+          this.bundleLoaded = false;
+          localStorage.removeItem('SILARAS_SESSION');
+          this.loadPublicHome();
+        },
+
+        canView(mod) { return Boolean(this.session?.permissions?.[mod]?.view); },
+        canEdit(mod) { return Boolean(this.session?.permissions?.[mod]?.edit); },
+        canDelete(mod) { return Boolean(this.session?.permissions?.[mod]?.delete); },
+        hasRole(role) { return (this.session?.roles || []).includes(role) || (this.session?.roles || []).includes('Super Admin'); },
+        isSuperAdmin() { return (this.session?.roles || []).includes('Super Admin'); },
+
+        menuTitle() {
+          const titles = {
+            dashboard: 'Dashboard Operasional', master_data: 'Master Data Barang',
+            inv_alat: 'Inventaris Peralatan', inv_bahan: 'Inventaris Bahan', inv_kimia: 'Inventaris Bahan Kimia',
+            gudang: 'Gudang & Stok Pusat', pinjam_alat: 'Peminjaman Peralatan', guna_bahan: 'Penggunaan Bahan & Kimia',
+            booking_ruang: 'Penggunaan Ruangan Laboratorium', verifikasi: 'Verifikasi & Persetujuan',
+            laporan: 'Laporan & Ekspor Dokumen', audit: 'Audit Trail', settings: 'Pengaturan Pengguna, Lab & Hak Akses'
+          };
+          return titles[this.activeMenu] || 'SILARAS';
+        },
+
+        // PERPINDAHAN MENU INSTAN (TANPA LOADING SPINNER)
+        navigate(menu) {
+          this.activeMenu = menu;
+          this.mobileSidebarOpen = false;
+          if (['inv_alat','inv_bahan','inv_kimia'].includes(menu)) {
+            this.applyLocalInventoryFilter();
+          } else if (menu === 'audit' && this.auditLogsList.length === 0) {
+            this.loadAuditLogs();
+          }
+          // Jika bundle belum pernah dimuat, baru panggil server
+          if (!this.bundleLoaded) {
+            this.loadWorkspaceBundle(false);
+          }
+        },
+
+        // Tombol refresh manual di header
+        refreshActiveView() {
+          this.loadWorkspaceBundle(false);
+          if (this.activeMenu === 'audit') this.loadAuditLogs();
+        },
+
+        currentInvCategory() {
+          return this.activeMenu === 'inv_alat' ? 'Alat' : (this.activeMenu === 'inv_bahan' ? 'Bahan' : 'Bahan Kimia');
+        },
+
+        loadInventory() {
+          this.applyLocalInventoryFilter();
+        },
+
+        filteredInventory() {
+          const kw = this.invSearch.toLowerCase();
+          return (this.inventoryList || []).filter(r => !kw || r.item_name.toLowerCase().includes(kw) || r.item_id.toLowerCase().includes(kw));
+        },
+
+        openInvDetailModal(row) {
+          this.invDetailModal = { open: true, item: row };
+        },
+
+        quickRequestFromDetail(row) {
+          this.invDetailModal.open = false;
+          const cat = this.currentInvCategory();
+          if (cat === 'Alat') {
+            this.loanForm.lab_id = row.location_id;
+            this.loanForm.items = [{ eq_inv_id: row.eq_inv_id, item_id: row.item_id, item_name: row.item_name, unit: row.unit, qty: 1 }];
+            this.navigate('pinjam_alat');
+          } else {
+            this.usageForm.category = cat;
+            this.usageForm.lab_id = row.location_id;
+            this.usageForm.items = [{ item_id: row.item_id, item_name: row.item_name, unit: row.unit, qty: 1 }];
+            this.navigate('guna_bahan');
+          }
+        },
+
+        openInvFormModal(row) {
+          if (row) {
+            this.invFormModal = { open: true, is_edit: true, data: { ...row } };
+          } else {
+            this.invFormModal = {
+              open: true, is_edit: false,
+              data: { location_id: this.session.active_lab_id || '', item_name: '', maker_type_spec: '', unit: this.currentInvCategory() === 'Alat' ? 'Unit' : 'Gram', acquisition_year: 2026, bmn_category: 'Non BM', qty_available: 1 }
+            };
+          }
+        },
+
+        async submitInventoryForm() {
+          const payload = { ...this.invFormModal.data, is_edit: this.invFormModal.is_edit };
+          const res = await this.runGas('apiSaveInventoryRecord', this.session.token, this.currentInvCategory(), payload);
+          if (res.success) {
+            this.invFormModal.open = false;
+            this.showToast('Data inventaris berhasil disimpan.');
+            this.loadWorkspaceBundle(true);
+          }
+        },
+
+        async deleteInventoryItem(row) {
+          if (!confirm('Hapus data inventaris ini?')) return;
+          const id = row.eq_inv_id || row.mat_inv_id || row.chem_inv_id;
+          const res = await this.runGas('apiDeleteInventoryRecord', this.session.token, this.currentInvCategory(), id);
+          if (res.success) {
+            this.invDetailModal.open = false;
+            this.showToast('Data inventaris dihapus.');
+            this.loadWorkspaceBundle(true);
+          }
+        },
+
+        async searchMasterForWhIn() {
+          this.whInForm.item_id = '';
+          if (this.whInForm.item_name.length < 2) { this.whInSuggestions = []; return; }
+          const kw = this.whInForm.item_name.toLowerCase();
+          // Pencarian instan langsung dari masterItemsList di memori browser!
+          this.whInSuggestions = (this.masterItemsList || [])
+            .filter(m => m.category === this.whInForm.category && (m.item_name.toLowerCase().includes(kw) || m.item_id.toLowerCase().includes(kw)))
+            .slice(0, 10);
+        },
+
+        selectWhInSuggestion(s) {
+          this.whInForm.item_id = s.item_id;
+          this.whInForm.item_name = s.item_name;
+          this.whInForm.maker_type_spec = s.maker_type_spec;
+          this.whInForm.unit = s.unit;
+          this.whInForm.cas_number = s.cas_number;
+          this.whInForm.grade = s.grade;
+          this.whInForm.ghs_symbol = s.ghs_symbol;
+          this.whInForm.photo_url = s.photo_url;
+          this.whInSuggestions = [];
+        },
+
+        async submitWarehouseIn() {
+          const res = await this.runGas('apiWarehouseStockIn', this.session.token, this.whInForm);
+          if (res.success) {
+            this.showToast('Barang masuk Gudang berhasil dicatat (' + res.trx_id + ').');
+            this.warehouseTab = 'stock';
+            this.loadWorkspaceBundle(true);
+          }
+        },
+
+        addWhOutItem(st) {
+          if (this.whOutForm.items.some(x => x.inv_id === st.inv_id)) return;
+          this.whOutForm.items.push({
+            inv_id: st.inv_id, item_id: st.item_id, category: st.category,
+            item_name: st.item_name, unit: st.unit, max_qty: st.qty_available, qty: 1
+          });
+        },
+
+        initSignaturePad() {
+          const canvas = document.getElementById('whSignatureCanvas');
+          if (!canvas) return;
+          const ctx = canvas.getContext('2d');
+          ctx.lineWidth = 2;
+          ctx.lineCap = 'round';
+          ctx.strokeStyle = '#064E3B';
+          let drawing = false;
+          const getPos = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+          };
+          canvas.onmousedown = canvas.ontouchstart = (e) => { drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+          canvas.onmousemove = canvas.ontouchmove = (e) => { if (!drawing) return; e.preventDefault(); const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+          canvas.onmouseup = canvas.ontouchend = () => { drawing = false; };
+        },
+
+        clearSignaturePad() {
+          const canvas = document.getElementById('whSignatureCanvas');
+          if (canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+        },
+
+        async submitWarehouseOut() {
+          const canvas = document.getElementById('whSignatureCanvas');
+          const sigBase64 = canvas ? canvas.toDataURL('image/png') : '';
+          const payload = { ...this.whOutForm, signature_base64: sigBase64 };
+          const res = await this.runGas('apiWarehouseStockOut', this.session.token, payload);
+          if (res.success) {
+            this.showToast('Barang keluar Gudang berhasil dipindahkan (' + res.trx_id + ').');
+            this.whOutForm.items = [];
+            this.clearSignaturePad();
+            this.warehouseTab = 'stock';
+            this.loadWorkspaceBundle(true);
+          }
+        },
+
+        async openCatalogPickerModal(category, labId, target) {
+          if (!labId) { this.showToast('Pilih lokasi laboratorium terlebih dahulu.', 'error'); return; }
+          // Ambil langsung dari invCache di memori jika tersedia, sehingga modal terbuka instan!
+          const cachedList = (this.invCache[category] || []).filter(r => r.location_id === labId && Number(r.qty_available) > 0);
+          if (cachedList.length > 0) {
+            this.catalogPickerModal = {
+              open: true, category: category, target: target, search: '',
+              items: cachedList.map(i => ({
+                inv_id: i.eq_inv_id || i.mat_inv_id || i.chem_inv_id,
+                item_id: i.item_id, item_name: i.item_name, unit: i.unit,
+                qty_available: i.qty_available, pickQty: 1
+              }))
+            };
+            return;
+          }
+          const items = await this.runGas('apiGetLabCatalogForRequest', this.session.token, labId, category);
+          this.catalogPickerModal = {
+            open: true, category: category, target: target, search: '',
+            items: items.map(i => ({ ...i, pickQty: 1 }))
+          };
+        },
+
+        filteredPickerCatalog() {
+          const kw = this.catalogPickerModal.search.toLowerCase();
+          return this.catalogPickerModal.items.filter(i => !kw || i.item_name.toLowerCase().includes(kw) || i.item_id.toLowerCase().includes(kw));
+        },
+
+        confirmPickItem(item) {
+          const q = Number(item.pickQty || 0);
+          if (q <= 0 || q > item.qty_available) {
+            this.showToast('Jumlah tidak valid atau melebihi stok tersedia (' + item.qty_available + ').', 'error');
+            return;
+          }
+          const entry = { eq_inv_id: item.inv_id, item_id: item.item_id, item_name: item.item_name, unit: item.unit, qty: q };
+          if (this.catalogPickerModal.target === 'loan') this.loanForm.items.push(entry);
+          else if (this.catalogPickerModal.target === 'usage') this.usageForm.items.push(entry);
+          else if (this.catalogPickerModal.target === 'booking_eq') this.bookingForm.equipment_items.push(entry);
+          else if (this.catalogPickerModal.target === 'booking_mat') this.bookingForm.material_items.push(entry);
+          else if (this.catalogPickerModal.target === 'booking_chem') this.bookingForm.chemical_items.push(entry);
+          this.showToast(item.item_name + ' ditambahkan.');
+        },
+
+        async submitLoan() {
+          const res = await this.runGas('apiSubmitEquipmentLoan', this.session.token, this.loanForm);
+          if (res.success) {
+            this.loanForm.items = [];
+            this.showToast('Permohonan peminjaman alat terkirim (' + res.loan_id + ').');
+            this.loadWorkspaceBundle(true);
+          }
+        },
+
+        async submitUsage() {
+          const res = await this.runGas('apiSubmitMaterialUsage', this.session.token, this.usageForm);
+          if (res.success) {
+            this.usageForm.items = [];
+            this.showToast('Permohonan penggunaan ' + this.usageForm.category + ' terkirim (' + res.usage_id + ').');
+            this.loadWorkspaceBundle(true);
+          }
+        },
+
+        async submitBooking() {
+          const res = await this.runGas('apiSubmitRoomBooking', this.session.token, this.bookingForm);
+          if (res.success) {
+            this.bookingForm.equipment_items = [];
+            this.bookingForm.material_items = [];
+            this.bookingForm.chemical_items = [];
+            this.showToast('Pengajuan penggunaan ruangan terkirim (' + res.booking_id + ').');
+            this.loadWorkspaceBundle(true);
+          }
+        },
+
+        async processStep(type, id, action) {
+          const note = prompt('Masukkan catatan tindakan (opsional):') || '';
+          const fn = type === 'booking' ? 'apiProcessRoomBookingStep' : (type === 'loan' ? 'apiProcessEquipmentLoanStep' : 'apiProcessMaterialUsageStep');
+          const res = await this.runGas(fn, this.session.token, id, action, note);
+          if (res.success) {
+            this.showToast('Status berhasil diperbarui.');
+            this.loadWorkspaceBundle(true);
+          }
+        },
+
+        async userRequestReturn(loanId) {
+          const res = await this.runGas('apiUserRequestEquipmentReturn', this.session.token, loanId, []);
+          if (res.success) {
+            this.showToast('Pengajuan pengembalian alat dikirim ke Laboran.');
+            this.loadWorkspaceBundle(true);
+          }
+        },
+
+        async openReturnAssessmentModal(loan) {
+          const assessments = [];
+          for (const it of loan.items) {
+            if (it.return_status === 'diterima') continue;
+            const total = Number(it.qty_requested);
+            const good = Number(prompt('Penilaian Kondisi untuk ' + it.item_name + ' (Total: ' + total + ').\nMasukkan jumlah kondisi BAIK:', total));
+            const minor = Number(prompt('Masukkan jumlah kondisi RUSAK RINGAN:', 0));
+            const dmg = Number(prompt('Masukkan jumlah kondisi RUSAK BERAT:', 0));
+            const notes = (minor > 0 || dmg > 0) ? (prompt('Catatan kerusakan / tindak lanjut pemeliharaan:') || '') : '';
+            assessments.push({ loan_item_id: it.loan_item_id, qty_good: good, qty_minor: minor, qty_damaged: dmg, damage_notes: notes });
+          }
+          if (assessments.length === 0) return;
+          const res = await this.runGas('apiLaboranConfirmEquipmentReturn', this.session.token, loan.loan_id, assessments);
+          if (res.success) {
+            this.showToast('Pengembalian alat diterima & stok diperbarui.');
+            this.loadWorkspaceBundle(true);
+          }
+        },
+
+        handleImageFile(event, target) {
+          const file = event.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              const maxW = 800;
+              const scale = Math.min(1, maxW / img.width);
+              canvas.width = img.width * scale;
+              canvas.height = img.height * scale;
+              canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+              const compressed = canvas.toDataURL('image/jpeg', 0.75);
+              if (target === 'whIn') this.whInForm.photo_base64 = compressed;
+              else this.invFormModal.data.photo_base64 = compressed;
+            };
+            img.src = e.target.result;
+          };
+          reader.readAsDataURL(file);
+        },
+
+        async openCameraModal(target) {
+          this.cameraModal.target = target;
+          this.cameraModal.open = true;
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+            this.cameraModal.stream = stream;
+            document.getElementById('silarasCameraVideo').srcObject = stream;
+          } catch (e) {
+            this.showToast('Tidak dapat mengakses kamera perangkat.', 'error');
+            this.cameraModal.open = false;
+          }
+        },
+
+        captureCameraFrame() {
+          const video = document.getElementById('silarasCameraVideo');
+          const canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth || 640;
+          canvas.height = video.videoHeight || 480;
+          canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+          if (this.cameraModal.target === 'whIn') this.whInForm.photo_base64 = dataUrl;
+          else this.invFormModal.data.photo_base64 = dataUrl;
+          this.closeCameraModal();
+        },
+
+        closeCameraModal() {
+          if (this.cameraModal.stream) {
+            this.cameraModal.stream.getTracks().forEach(t => t.stop());
+          }
+          this.cameraModal.open = false;
+        },
+
+        async loadAuditLogs() {
+          this.auditLogsList = await this.runGas('apiGetAuditLogs', this.session.token);
+        },
+
+        openUserModal(u) {
+          this.userModal = {
+            open: true,
+            data: u ? { ...u, roles: [...u.roles], assigned_labs: [...u.assigned_labs] } : { full_name: '', email: '', roles: ['User'], assigned_labs: [], status: 'active' }
+          };
+        },
+
+        async submitUserModal() {
+          const res = await this.runGas('apiSaveUserAndAccess', this.session.token, this.userModal.data);
+          if (res.success) {
+            this.userModal.open = false;
+            this.showToast('Data pengguna & hak akses disimpan.');
+            this.loadWorkspaceBundle(true);
+          }
+        },
+
+        openLabModal(lb) {
+          if (!this.isSuperAdmin()) {
+            this.showToast('Hanya Super Admin yang dapat mengubah Master Lokasi Laboratorium.', 'error');
+            return;
+          }
+          if (lb) {
+            this.labModal = {
+              open: true,
+              is_edit: true,
+              data: {
+                lab_id: lb.lab_id,
+                lab_name: lb.lab_name || '',
+                pic_name: lb.pic_name || '',
+                status: lb.status || 'active'
+              }
+            };
+          } else {
+            this.labModal = {
+              open: true,
+              is_edit: false,
+              data: { lab_id: '', lab_name: '', pic_name: '', status: 'active' }
+            };
+          }
+        },
+
+        async submitLabModal() {
+          if (!this.isSuperAdmin()) {
+            this.showToast('Akses ditolak: Khusus Super Admin.', 'error');
+            return;
+          }
+          const res = await this.runGas('apiSaveLaboratory', this.session.token, this.labModal.data);
+          if (res && res.success) {
+            this.labModal.open = false;
+            this.showToast('Master Lokasi Laboratorium berhasil disimpan.');
+            this.loadWorkspaceBundle(true);
+            this.loadPublicHome();
+          }
+        },
+
+        async deleteLab(labId) {
+          if (!this.isSuperAdmin()) {
+            this.showToast('Hanya Super Admin yang dapat menghapus laboratorium.', 'error');
+            return;
+          }
+          if (!confirm('Hapus laboratorium ' + labId + ' ini?')) return;
+          const res = await this.runGas('apiDeleteLaboratory', this.session.token, labId);
+          if (res && res.success) {
+            this.showToast('Laboratorium dihapus.');
+            this.loadWorkspaceBundle(true);
+            this.loadPublicHome();
+          }
+        },
+
+        async exportExcel(reportType) {
+          const res = await this.runGas('apiExportExcelReport', this.session.token, reportType, 'ALL');
+          if (res.success && res.download_url) window.open(res.download_url, '_blank');
+        }
+      };
+    }
+  </script>
+</body>
+</html>
