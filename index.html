@@ -2960,20 +2960,7 @@
           }
         },
 
-        async submitLabModal() {
-          if (!this.isSuperAdmin()) {
-            this.showToast('Akses ditolak: Khusus Super Admin.', 'error');
-            return;
-          }
-          const res = await this.runGas('apiSaveLaboratory', this.session.token, this.labModal.data);
-          if (res && res.success) {
-            this.labModal.open = false;
-            this.showToast('Master Lokasi Laboratorium berhasil disimpan.');
-            await this.loadWorkspaceBundle(false);
-            await this.loadPublicHome();
-          }
-        },
-
+        
         async submitLabModal() {
           if (!this.isSuperAdmin()) {
             this.showToast('Akses ditolak: Khusus Super Admin.', 'error');
