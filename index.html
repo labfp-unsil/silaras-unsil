@@ -39,14 +39,12 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- HALAMAN HOME PUBLIK (REVISI V1: LOGO SILARAS & PEMBERSIHAN BADGE)      -->
+  <!-- HALAMAN HOME PUBLIK                                                   -->
   <!-- ===================================================================== -->
   <div x-show="!session" x-cloak class="min-h-screen flex flex-col">
-    <!-- Top Navbar Publik -->
     <header class="bg-silaras-dark text-white sticky top-0 z-30 shadow-md">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <!-- Logo SILARAS (Google Drive ID: 1LIq-IYBi0L6lXGEMDyrb3jmVjf9yAQRU) -->
           <div class="w-10 h-10 rounded-xl bg-white p-1 shadow-xs flex items-center justify-center overflow-hidden">
             <img src="https://drive.google.com/thumbnail?id=1LIq-IYBi0L6lXGEMDyrb3jmVjf9yAQRU&sz=w200"
                  alt="Logo SILARAS"
@@ -59,7 +57,6 @@
             </svg>
           </div>
           <div>
-            <!-- Badge FAPERTA UNSIL dihilangkan sesuai Perbaikan Silaras v1 -->
             <div class="flex items-center">
               <span class="font-bold text-lg tracking-wide">SILARAS</span>
             </div>
@@ -84,7 +81,6 @@
       </div>
     </header>
 
-    <!-- Hero Section -->
     <section class="bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-800 text-white py-16 px-4">
       <div class="max-w-7xl mx-auto">
         <div class="max-w-3xl space-y-5">
@@ -106,7 +102,6 @@
       </div>
     </section>
 
-    <!-- 1. Informasi Umum Laboratorium -->
     <section id="info-lab" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
       <div class="mb-6">
         <h2 class="text-2xl font-bold text-emerald-950">Informasi Umum Laboratorium</h2>
@@ -129,13 +124,12 @@
       </div>
     </section>
 
-    <!-- 2. Katalog Peralatan Publik (Dengan View Switcher Grid / Tabel) -->
     <section id="katalog-publik" class="bg-white border-y border-slate-200 py-12 px-4">
       <div class="max-w-7xl mx-auto">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h2 class="text-2xl font-bold text-emerald-950">Katalog Peralatan Publik</h2>
-            <p class="text-sm text-slate-600">Daftar peralatan laboratorium yang tersedia untuk informasi publik (tidak menampilkan stok internal, bahan, maupun bahan kimia).</p>
+            <p class="text-sm text-slate-600">Daftar peralatan laboratorium yang tersedia untuk informasi publik.</p>
           </div>
           <div class="flex items-center gap-2">
             <input type="text" x-model="publicCatalogSearch" placeholder="Cari nama/spesifikasi alat..."
@@ -151,13 +145,12 @@
           </div>
         </div>
 
-        <!-- Mode Grid -->
         <div x-show="publicCatalogView === 'grid'" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <template x-for="item in filteredPublicCatalog()" :key="item.item_id">
             <div class="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50/50 flex flex-col">
               <div class="h-44 bg-emerald-950/5 flex items-center justify-center overflow-hidden">
                 <template x-if="item.photo_url">
-                  <img :src="item.photo_url" :alt="item.item_name" class="w-full h-full object-cover" />
+                  <img :src="normalizeDriveImgUrl(item.photo_url)" :alt="item.item_name" class="w-full h-full object-cover" />
                 </template>
                 <template x-if="!item.photo_url">
                   <i class="fa-solid fa-microscope text-4xl text-emerald-800/30"></i>
@@ -174,7 +167,6 @@
           </template>
         </div>
 
-        <!-- Mode Tabel -->
         <div x-show="publicCatalogView === 'table'" class="overflow-x-auto border border-slate-200 rounded-2xl">
           <table class="w-full text-sm text-left">
             <thead class="bg-emerald-950 text-white text-xs uppercase">
@@ -189,7 +181,7 @@
               <template x-for="item in filteredPublicCatalog()" :key="item.item_id">
                 <tr class="hover:bg-slate-50">
                   <td class="px-4 py-3">
-                    <img x-show="item.photo_url" :src="item.photo_url" class="w-12 h-12 rounded-lg object-cover border" />
+                    <img x-show="item.photo_url" :src="normalizeDriveImgUrl(item.photo_url)" class="w-12 h-12 rounded-lg object-cover border" />
                     <span x-show="!item.photo_url" class="text-xs text-slate-400">Tidak ada foto</span>
                   </td>
                   <td class="px-4 py-3 font-semibold text-slate-900" x-text="item.item_name"></td>
@@ -207,13 +199,11 @@
       </div>
     </section>
 
-    <!-- 3 & 4. Daftar Penggunaan Laboratorium & Kalender Publik -->
     <section id="jadwal-publik" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full space-y-10">
       <div>
         <h2 class="text-2xl font-bold text-emerald-950">Penggunaan Laboratorium</h2>
         <p class="text-sm text-slate-600">Daftar jadwal penggunaan laboratorium yang telah terkonfirmasi resmi.</p>
 
-        <!-- Filter Jadwal Publik -->
         <div class="grid sm:grid-cols-4 gap-3 my-4 bg-white p-4 rounded-2xl border border-slate-200">
           <select x-model="pubFilterLab" class="px-3 py-2 border border-slate-300 rounded-xl text-sm">
             <option value="">Semua Laboratorium</option>
@@ -231,7 +221,6 @@
           <input type="text" x-model="pubFilterSearch" placeholder="Cari kegiatan..." class="px-3 py-2 border border-slate-300 rounded-xl text-sm" />
         </div>
 
-        <!-- Tabel Daftar Penggunaan Laboratorium -->
         <div class="bg-white border border-slate-200 rounded-2xl overflow-x-auto shadow-xs">
           <table class="w-full text-sm text-left">
             <thead class="bg-emerald-950 text-white text-xs uppercase">
@@ -273,7 +262,6 @@
         </div>
       </div>
 
-      <!-- 4. Kalender Penggunaan Laboratorium (Harian / Mingguan / Bulanan) -->
       <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
           <div>
@@ -334,7 +322,6 @@
         <button @click="authModal.mode = 'register'" :class="authModal.mode === 'register' ? 'text-emerald-900 border-b-2 border-emerald-800 font-bold' : 'text-slate-500'" class="pb-1 px-2 text-sm">Pendaftaran Anggota Baru</button>
       </div>
 
-      <!-- Form Login -->
       <form x-show="authModal.mode === 'login'" @submit.prevent="submitLogin()" class="space-y-4">
         <div>
           <label class="block text-xs font-semibold text-slate-700 mb-1">Email</label>
@@ -357,7 +344,6 @@
         </button>
       </form>
 
-      <!-- Form Registrasi Mandiri -->
       <form x-show="authModal.mode === 'register'" @submit.prevent="submitRegister()" class="space-y-3">
         <div>
           <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap *</label>
@@ -396,14 +382,13 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- HALAMAN INTERNAL DASHBOARD (PASCA LOGIN - SIDEBAR VERTIKAL RESPONSIF) -->
+  <!-- HALAMAN INTERNAL DASHBOARD                                            -->
   <!-- ===================================================================== -->
   <div x-show="session" x-cloak class="min-h-screen flex bg-slate-100">
 
     <!-- Sidebar Vertikal Kiri -->
     <aside :class="mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
            class="fixed lg:static inset-y-0 left-0 z-30 w-68 bg-silaras-dark text-white flex flex-col transition-transform duration-200 shadow-xl">
-      <!-- Header / Logo Sidebar Internal -->
       <div class="p-4 border-b border-emerald-800 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center overflow-hidden shadow-xs">
@@ -421,7 +406,6 @@
         </button>
       </div>
 
-      <!-- Pemilih Peran & Laboratorium Aktif -->
       <div class="p-3 bg-emerald-950/60 border-b border-emerald-800 space-y-2 text-xs">
         <div>
           <p class="font-bold text-white truncate" x-text="session?.full_name"></p>
@@ -441,7 +425,6 @@
         </div>
       </div>
 
-      <!-- Daftar Menu Utama Dikelompokkan -->
       <nav class="flex-1 overflow-y-auto p-3 space-y-4 text-sm">
         <div>
           <p class="px-3 text-[10px] font-bold uppercase tracking-wider text-emerald-400 mb-1">Workspace</p>
@@ -508,7 +491,6 @@
 
     <!-- Konten Utama Dashboard -->
     <div class="flex-1 flex flex-col min-w-0">
-      <!-- Top Bar Internal -->
       <header class="bg-white border-b border-slate-200 h-14 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20">
         <div class="flex items-center gap-3">
           <button @click="mobileSidebarOpen = true" class="lg:hidden text-slate-600 p-1.5 rounded-lg hover:bg-slate-100">
@@ -526,12 +508,10 @@
         </div>
       </header>
 
-      <!-- Workspace Area -->
       <main class="p-4 sm:p-6 space-y-6 flex-1">
 
         <!-- 1. DASHBOARD VIEW -->
         <div x-show="activeMenu === 'dashboard'" class="space-y-6">
-          <!-- Kotak Menu Akses Cepat (Quick Action Cards) untuk Gudang Masuk / Keluar -->
           <div x-show="canView('gudang') && canEdit('gudang')" class="grid sm:grid-cols-2 gap-4">
             <button @click="navigate('gudang'); warehouseTab = 'in'" class="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-r from-emerald-900 to-emerald-800 text-white shadow-md hover:brightness-105 transition text-left">
               <div class="w-12 h-12 rounded-xl bg-lime-400 text-emerald-950 flex items-center justify-center text-xl">
@@ -553,7 +533,6 @@
             </button>
           </div>
 
-          <!-- Kartu Statistik -->
           <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="bg-white p-5 rounded-2xl border border-slate-200">
               <p class="text-xs text-slate-500 font-semibold">Laboratorium Aktif</p>
@@ -573,7 +552,6 @@
             </div>
           </div>
 
-          <!-- Notifikasi Terbaru -->
           <div class="bg-white rounded-2xl border border-slate-200 p-5">
             <h3 class="font-bold text-emerald-950 mb-3"><i class="fa-solid fa-bell text-lime-600 mr-2"></i>Notifikasi & Peringatan Sistem</h3>
             <div class="space-y-2 max-h-64 overflow-y-auto">
@@ -617,7 +595,7 @@
             <template x-for="row in filteredInventory()" :key="row.eq_inv_id || row.mat_inv_id || row.chem_inv_id">
               <div @click="openInvDetailModal(row)" class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition cursor-pointer flex flex-col">
                 <div class="h-40 bg-slate-100 flex items-center justify-center overflow-hidden relative">
-                  <img x-show="row.photo_url" :src="row.photo_url" class="w-full h-full object-cover" />
+                  <img x-show="row.photo_url" :src="normalizeDriveImgUrl(row.photo_url)" class="w-full h-full object-cover" />
                   <i x-show="!row.photo_url" class="fa-solid fa-box text-3xl text-slate-300"></i>
                   <span class="absolute top-2 left-2 px-2 py-0.5 rounded bg-emerald-950/80 text-white text-[10px] font-mono" x-text="row.item_id"></span>
                 </div>
@@ -701,47 +679,64 @@
             <button x-show="canEdit('gudang')" @click="warehouseTab = 'out'; $nextTick(() => initSignaturePad())" :class="warehouseTab === 'out' ? 'bg-silaras-dark text-white' : 'bg-white text-slate-700'" class="px-4 py-2 rounded-xl text-sm font-bold border">- Barang Keluar Gudang</button>
           </div>
 
-          <!-- Tab Stok Gudang -->
+          <!-- Tab Stok Gudang (Klik Item -> Muncul Active Detail Card + Edit & Hapus) -->
           <div x-show="warehouseTab === 'stock'" class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
             <div class="flex items-center justify-between">
-              <h3 class="font-bold text-emerald-950">Stok Gudang Pusat</h3>
+              <div>
+                <h3 class="font-bold text-emerald-950">Stok Gudang Pusat</h3>
+                <p class="text-[11px] text-slate-500">Klik kartu atau baris barang untuk melihat rincian lengkap, mengedit, atau menghapus data.</p>
+              </div>
               <div class="inline-flex rounded-xl border border-slate-300 p-1 bg-slate-50">
                 <button @click="whViewMode = 'grid'" :class="whViewMode === 'grid' ? 'bg-silaras-dark text-white' : 'text-slate-600'" class="px-3 py-1 rounded-lg text-xs font-semibold">Grid</button>
                 <button @click="whViewMode = 'table'" :class="whViewMode === 'table' ? 'bg-silaras-dark text-white' : 'text-slate-600'" class="px-3 py-1 rounded-lg text-xs font-semibold">Tabel</button>
               </div>
             </div>
+
+            <!-- Mode Grid Stok Gudang -->
             <div x-show="whViewMode === 'grid'" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <template x-for="st in warehouseData.stock || []" :key="st.inv_id">
-                <div class="border border-slate-200 rounded-xl p-3 space-y-2">
-                  <div class="h-32 bg-slate-100 rounded-lg overflow-hidden flex items-center justify-center">
-                    <img x-show="st.photo_url" :src="st.photo_url" class="w-full h-full object-cover" />
-                    <i x-show="!st.photo_url" class="fa-solid fa-box text-2xl text-slate-300"></i>
+                <div @click="openWhDetailModal(st)" class="border border-slate-200 hover:border-emerald-600 rounded-xl p-3 space-y-2 cursor-pointer transition hover:shadow-md bg-white">
+                  <div class="h-36 bg-slate-100 rounded-lg overflow-hidden flex items-center justify-center relative">
+                    <img x-show="st.photo_url" :src="normalizeDriveImgUrl(st.photo_url)" class="w-full h-full object-cover" />
+                    <i x-show="!st.photo_url" class="fa-solid fa-box text-3xl text-slate-300"></i>
+                    <span class="absolute bottom-1.5 right-1.5 px-2 py-0.5 rounded bg-black/60 text-white text-[10px]">Klik Detail</span>
                   </div>
-                  <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800" x-text="st.category + ' • ' + st.item_id"></span>
+                  <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800" x-text="st.category + ' • ' + st.item_id"></span>
                   <h4 class="font-bold text-sm text-slate-900" x-text="st.item_name"></h4>
                   <p class="text-xs font-bold text-emerald-700">Sisa Gudang: <span x-text="st.qty_available + ' ' + st.unit"></span></p>
                 </div>
               </template>
             </div>
+
+            <!-- Mode Tabel Stok Gudang -->
             <div x-show="whViewMode === 'table'" class="overflow-x-auto">
               <table class="w-full text-sm text-left">
                 <thead class="bg-emerald-950 text-white text-xs uppercase">
                   <tr>
+                    <th class="px-3 py-2">Foto</th>
                     <th class="px-3 py-2">ID</th>
                     <th class="px-3 py-2">Kategori</th>
                     <th class="px-3 py-2">Nama Barang</th>
                     <th class="px-3 py-2">Batch / Info</th>
                     <th class="px-3 py-2">Sisa Stok</th>
+                    <th class="px-3 py-2">Aksi</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y">
                   <template x-for="st in warehouseData.stock || []" :key="st.inv_id">
-                    <tr>
+                    <tr @click="openWhDetailModal(st)" class="hover:bg-emerald-50/40 cursor-pointer">
+                      <td class="px-3 py-2">
+                        <img x-show="st.photo_url" :src="normalizeDriveImgUrl(st.photo_url)" class="w-10 h-10 rounded-lg object-cover border" />
+                        <span x-show="!st.photo_url" class="text-[11px] text-slate-400">-</span>
+                      </td>
                       <td class="px-3 py-2 font-mono text-xs" x-text="st.item_id"></td>
                       <td class="px-3 py-2 text-xs" x-text="st.category"></td>
-                      <td class="px-3 py-2 font-semibold" x-text="st.item_name"></td>
+                      <td class="px-3 py-2 font-semibold text-emerald-950" x-text="st.item_name"></td>
                       <td class="px-3 py-2 text-xs" x-text="st.category === 'Alat' ? st.bmn_category : ('Batch: ' + st.batch_lot + ' | Exp: ' + (st.expiry_date || '-'))"></td>
                       <td class="px-3 py-2 font-bold text-emerald-800" x-text="st.qty_available + ' ' + st.unit"></td>
+                      <td class="px-3 py-2">
+                        <button type="button" @click.stop="openWhDetailModal(st)" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-bold hover:bg-emerald-100">Detail / Edit</button>
+                      </td>
                     </tr>
                   </template>
                 </tbody>
@@ -768,7 +763,6 @@
                 </div>
               </div>
 
-              <!-- Live Autocomplete Nama Barang -->
               <div class="relative">
                 <label class="block text-xs font-bold text-slate-700 mb-1">Nama Barang (Live Autocomplete Master Data) *</label>
                 <input type="text" x-model="whInForm.item_name" @input.debounce.300ms="searchMasterForWhIn()" required placeholder="Ketik nama barang..." class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
@@ -795,7 +789,6 @@
                 </div>
               </div>
 
-              <!-- Atribut Khusus Alat -->
               <div x-show="whInForm.category === 'Alat'" class="grid sm:grid-cols-2 gap-4 p-3 bg-slate-50 rounded-xl">
                 <div>
                   <label class="block text-xs font-bold text-slate-700 mb-1">Tahun Perolehan</label>
@@ -810,7 +803,6 @@
                 </div>
               </div>
 
-              <!-- Atribut Khusus Bahan & Bahan Kimia -->
               <div x-show="whInForm.category !== 'Alat'" class="grid sm:grid-cols-2 gap-4 p-3 bg-slate-50 rounded-xl">
                 <div>
                   <label class="block text-xs font-bold text-slate-700 mb-1">Nomor Batch / Lot</label>
@@ -822,7 +814,6 @@
                 </div>
               </div>
 
-              <!-- Atribut Tambahan Bahan Kimia -->
               <div x-show="whInForm.category === 'Bahan Kimia'" class="grid sm:grid-cols-3 gap-3 p-3 bg-amber-50/60 rounded-xl">
                 <div>
                   <label class="block text-xs font-bold text-slate-700 mb-1">Nomor CAS</label>
@@ -858,7 +849,7 @@
               </div>
 
               <div x-show="whInForm.photo_base64 || whInForm.photo_url" class="flex items-center gap-3">
-                <img :src="whInForm.photo_base64 || whInForm.photo_url" class="w-20 h-20 object-cover rounded-xl border" />
+                <img :src="whInForm.photo_base64 || normalizeDriveImgUrl(whInForm.photo_url)" class="w-20 h-20 object-cover rounded-xl border" />
                 <button type="button" @click="whInForm.photo_base64 = ''; whInForm.photo_url = ''" class="text-xs text-red-600 font-semibold">Hapus Foto</button>
               </div>
 
@@ -868,7 +859,7 @@
             </form>
           </div>
 
-          <!-- Tab Barang Keluar Gudang (Distribusi ke Laboratorium + Digital Signature) -->
+          <!-- Tab Barang Keluar Gudang -->
           <div x-show="warehouseTab === 'out'" class="bg-white rounded-2xl border border-slate-200 p-6 space-y-5">
             <h3 class="font-bold text-lg text-emerald-950">Barang Keluar Gudang ke Laboratorium</h3>
             <div class="grid sm:grid-cols-3 gap-4">
@@ -897,13 +888,12 @@
               </div>
             </div>
 
-            <!-- Picker Visual Barang Gudang -->
             <div>
               <p class="text-xs font-bold text-slate-700 mb-2">Klik Barang Gudang untuk Ditambahkan ke Daftar Pengambilan:</p>
               <div class="grid sm:grid-cols-3 lg:grid-cols-4 gap-3 max-h-60 overflow-y-auto p-2 bg-slate-50 rounded-xl border">
                 <template x-for="st in (warehouseData.stock || []).filter(x => x.qty_available > 0)" :key="st.inv_id">
                   <div @click="addWhOutItem(st)" class="bg-white border border-slate-200 hover:border-emerald-700 rounded-xl p-2.5 cursor-pointer flex items-center gap-2.5 transition">
-                    <img x-show="st.photo_url" :src="st.photo_url" class="w-10 h-10 rounded-lg object-cover" />
+                    <img x-show="st.photo_url" :src="normalizeDriveImgUrl(st.photo_url)" class="w-10 h-10 rounded-lg object-cover" />
                     <div class="min-w-0">
                       <p class="text-xs font-bold text-slate-900 truncate" x-text="st.item_name"></p>
                       <p class="text-[11px] text-emerald-700">Stok: <b x-text="st.qty_available + ' ' + st.unit"></b></p>
@@ -913,7 +903,6 @@
               </div>
             </div>
 
-            <!-- Keranjang Barang Keluar -->
             <div x-show="whOutForm.items.length > 0" class="border border-slate-200 rounded-xl overflow-hidden">
               <table class="w-full text-xs text-left">
                 <thead class="bg-slate-100 font-bold">
@@ -941,7 +930,6 @@
               </table>
             </div>
 
-            <!-- Kanvas Tanda Tangan Digital -->
             <div>
               <div class="flex items-center justify-between mb-1">
                 <label class="text-xs font-bold text-slate-700">Tanda Tangan Digital Pengambil Barang *</label>
@@ -958,7 +946,6 @@
 
         <!-- 4. PEMINJAMAN PERALATAN, PENGGUNAAN BAHAN/KIMIA, BOOKING RUANGAN & VERIFIKASI -->
         <div x-show="['pinjam_alat','guna_bahan','booking_ruang','verifikasi'].includes(activeMenu)" class="space-y-5">
-          <!-- Form Pengajuan Sesuai Modul Aktif -->
           <div x-show="activeMenu === 'pinjam_alat'" class="bg-white p-6 rounded-2xl border border-slate-200 space-y-4">
             <h3 class="font-bold text-lg text-emerald-950">Formulir Peminjaman Peralatan</h3>
             <div class="grid sm:grid-cols-3 gap-4">
@@ -998,7 +985,6 @@
             <button type="button" @click="submitLoan()" class="px-6 py-2.5 rounded-xl bg-silaras-dark text-white font-bold text-sm">Kirim Permohonan Peminjaman</button>
           </div>
 
-          <!-- Form Penggunaan Bahan & Bahan Kimia -->
           <div x-show="activeMenu === 'guna_bahan'" class="bg-white p-6 rounded-2xl border border-slate-200 space-y-4">
             <h3 class="font-bold text-lg text-emerald-950">Formulir Penggunaan Bahan & Bahan Kimia</h3>
             <div class="grid sm:grid-cols-3 gap-4">
@@ -1041,7 +1027,6 @@
             <button type="button" @click="submitUsage()" class="px-6 py-2.5 rounded-xl bg-silaras-dark text-white font-bold text-sm">Kirim Permohonan Bahan</button>
           </div>
 
-          <!-- Form Booking Ruangan Laboratorium (Dinamis Praktikum vs Penelitian) -->
           <div x-show="activeMenu === 'booking_ruang'" class="bg-white p-6 rounded-2xl border border-slate-200 space-y-4">
             <h3 class="font-bold text-lg text-emerald-950">Formulir Penggunaan Ruangan Laboratorium</h3>
             <div class="grid sm:grid-cols-3 gap-4">
@@ -1094,7 +1079,6 @@
               </div>
             </div>
 
-            <!-- Integrasi Kebutuhan Terkait (Praktikum = Alat + Bahan + Kimia; Penelitian = Alat saja) -->
             <div class="p-4 bg-emerald-50/60 border border-emerald-200 rounded-2xl space-y-3">
               <p class="text-xs font-bold text-emerald-950">Kebutuhan Terintegrasi (Opsional):</p>
               <div class="flex flex-wrap gap-2">
@@ -1113,11 +1097,9 @@
             <button type="button" @click="submitBooking()" class="px-6 py-2.5 rounded-xl bg-silaras-dark text-white font-bold text-sm">Ajukan Penggunaan Ruangan</button>
           </div>
 
-          <!-- Daftar Transaksi & Panel Verifikasi Laboran / Persetujuan Kepala Lab -->
           <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-6">
             <h3 class="font-bold text-emerald-950">Daftar Permohonan & Status Verifikasi / Persetujuan</h3>
 
-            <!-- Tabel Booking Ruangan -->
             <div>
               <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">Penggunaan Ruangan</h4>
               <div class="overflow-x-auto border rounded-xl">
@@ -1150,7 +1132,6 @@
               </div>
             </div>
 
-            <!-- Tabel Peminjaman Alat & Pengembalian 2 Tahap -->
             <div>
               <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">Peminjaman Peralatan</h4>
               <div class="overflow-x-auto border rounded-xl">
@@ -1189,7 +1170,6 @@
               </div>
             </div>
 
-            <!-- Tabel Penggunaan Bahan & Bahan Kimia -->
             <div>
               <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">Penggunaan Bahan & Bahan Kimia</h4>
               <div class="overflow-x-auto border rounded-xl">
@@ -1228,7 +1208,7 @@
           </div>
         </div>
 
-        <!-- 5. MASTER DATA BARANG -->
+        <!-- 5. MASTER DATA BARANG (DILENGKAPI AKSI EDIT & HAPUS) -->
         <div x-show="activeMenu === 'master_data'" class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
           <div class="flex items-center justify-between">
             <h3 class="font-bold text-emerald-950">Master Data Barang Terpusat (ALT / BHN / KIM)</h3>
@@ -1238,23 +1218,33 @@
             <table class="w-full text-xs text-left">
               <thead class="bg-emerald-950 text-white uppercase">
                 <tr>
+                  <th class="px-3 py-2">Foto</th>
                   <th class="px-3 py-2">ID Barang</th>
                   <th class="px-3 py-2">Kategori</th>
                   <th class="px-3 py-2">Nama Barang</th>
                   <th class="px-3 py-2">Spek / CAS</th>
                   <th class="px-3 py-2">Satuan</th>
                   <th class="px-3 py-2">Publik</th>
+                  <th class="px-3 py-2">Aksi</th>
                 </tr>
               </thead>
               <tbody class="divide-y">
                 <template x-for="m in masterItemsList" :key="m.item_id">
-                  <tr>
+                  <tr class="hover:bg-slate-50">
+                    <td class="px-3 py-2">
+                      <img x-show="m.photo_url" :src="normalizeDriveImgUrl(m.photo_url)" class="w-9 h-9 rounded object-cover border" />
+                      <span x-show="!m.photo_url" class="text-slate-400">-</span>
+                    </td>
                     <td class="px-3 py-2 font-mono font-bold text-emerald-800" x-text="m.item_id"></td>
                     <td class="px-3 py-2" x-text="m.category"></td>
                     <td class="px-3 py-2 font-bold" x-text="m.item_name"></td>
                     <td class="px-3 py-2" x-text="m.maker_type_spec + (m.cas_number ? ' | CAS: ' + m.cas_number : '')"></td>
                     <td class="px-3 py-2" x-text="m.unit"></td>
                     <td class="px-3 py-2" x-text="m.is_public_catalog ? 'Ya' : 'Tidak'"></td>
+                    <td class="px-3 py-2 space-x-2 whitespace-nowrap">
+                      <button x-show="canEdit('master_data')" @click="openMasterFormModal(m)" class="px-2.5 py-1 rounded bg-blue-50 text-blue-700 font-bold hover:bg-blue-100">Edit</button>
+                      <button x-show="canDelete('master_data')" @click="deleteMasterItem(m)" class="px-2.5 py-1 rounded bg-red-50 text-red-700 font-bold hover:bg-red-100">Hapus</button>
+                    </td>
                   </tr>
                 </template>
               </tbody>
@@ -1316,7 +1306,6 @@
 
         <!-- 8. PENGATURAN PENGGUNA, MASTER LOKASI LAB & HAK AKSES GRANULAR -->
         <div x-show="activeMenu === 'settings'" class="space-y-6">
-          <!-- Manajemen Master Lokasi Laboratorium (Revisi v3: Tanpa Kode, Kepala Laboratorium, Khusus Super Admin) -->
           <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
             <div class="flex items-center justify-between">
               <div>
@@ -1365,7 +1354,6 @@
             </div>
           </div>
 
-          <!-- Manajemen Pengguna, Multi-Role & Penugasan Lab -->
           <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
             <div class="flex items-center justify-between">
               <h3 class="font-bold text-emerald-950">Manajemen Pengguna, Multi-Role & Penugasan Lokasi</h3>
@@ -1404,7 +1392,205 @@
     </div>
   </div>
 
-  <!-- MODAL DETAIL INVENTARIS & AKSI CEPAT (PINJAM / AMBIL / EDIT / HAPUS) -->
+  <!-- MODAL DETAIL AKTIF STOK GUDANG + EDIT & HAPUS -->
+  <div x-show="whDetailModal.open" x-cloak class="fixed inset-0 z-40 bg-slate-900/60 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 my-8">
+      <div class="flex justify-between items-start border-b border-slate-100 pb-3">
+        <div>
+          <span class="text-xs font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded" x-text="whDetailModal.item?.category + ' • ' + whDetailModal.item?.item_id"></span>
+          <h3 class="text-lg font-bold text-slate-900 mt-1" x-text="whDetailModal.item?.item_name"></h3>
+        </div>
+        <button @click="whDetailModal.open = false" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <div x-show="whDetailModal.item?.photo_url" class="w-full h-52 bg-slate-100 rounded-xl overflow-hidden border">
+        <img :src="normalizeDriveImgUrl(whDetailModal.item?.photo_url)" class="w-full h-full object-contain" />
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
+        <div><span class="text-slate-500">Kategori Barang:</span><p class="font-bold text-slate-900" x-text="whDetailModal.item?.category || '-'"></p></div>
+        <div><span class="text-slate-500">Tanggal Masuk / Update:</span><p class="font-bold text-slate-900" x-text="whDetailModal.item?.entry_date || '-'"></p></div>
+        <div><span class="text-slate-500">Nama Barang:</span><p class="font-bold text-slate-900" x-text="whDetailModal.item?.item_name || '-'"></p></div>
+        <div><span class="text-slate-500">Maker / Type / Spek:</span><p class="font-bold text-slate-900" x-text="whDetailModal.item?.maker_type_spec || '-'"></p></div>
+        <div><span class="text-slate-500">Satuan:</span><p class="font-bold text-slate-900" x-text="whDetailModal.item?.unit || '-'"></p></div>
+        <div><span class="text-slate-500">Kuantitas Sisa Gudang:</span><p class="font-bold text-emerald-700" x-text="(whDetailModal.item?.qty_available || 0) + ' ' + (whDetailModal.item?.unit || '')"></p></div>
+        <div><span class="text-slate-500">Nomor Batch / Lot:</span><p class="font-bold text-slate-900" x-text="whDetailModal.item?.batch_lot || '-'"></p></div>
+        <div><span class="text-slate-500">Tanggal Kedaluwarsa:</span><p class="font-bold text-slate-900" x-text="whDetailModal.item?.expiry_date || '-'"></p></div>
+        <div><span class="text-slate-500">Nomor CAS:</span><p class="font-bold text-slate-900" x-text="whDetailModal.item?.cas_number || '-'"></p></div>
+        <div><span class="text-slate-500">Grade / Model:</span><p class="font-bold text-slate-900" x-text="whDetailModal.item?.grade || '-'"></p></div>
+        <div class="col-span-2"><span class="text-slate-500">Simbol GHS / Class:</span><p class="font-bold text-slate-900" x-text="whDetailModal.item?.ghs_symbol || '-'"></p></div>
+      </div>
+
+      <div class="flex flex-wrap justify-end gap-2 pt-2 border-t border-slate-100">
+        <button x-show="canEdit('gudang')" @click="openWhEditModal(whDetailModal.item)"
+                class="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-700">
+          <i class="fa-solid fa-pen-to-square mr-1"></i> Edit Barang
+        </button>
+        <button x-show="canDelete('gudang')" @click="deleteWarehouseStockItem(whDetailModal.item)"
+                class="px-4 py-2 rounded-xl bg-red-600 text-white font-bold text-xs hover:bg-red-700">
+          <i class="fa-solid fa-trash mr-1"></i> Hapus Barang
+        </button>
+        <button @click="whDetailModal.open = false" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 font-semibold text-xs">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL EDIT STOK GUDANG -->
+  <div x-show="whEditModal.open" x-cloak class="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 my-8">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-base text-emerald-950">Edit Detail Barang Stok Gudang</h3>
+        <button @click="whEditModal.open = false" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form @submit.prevent="submitWhEditModal()" class="space-y-3 text-xs">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold mb-1">Kategori Barang *</label>
+            <select x-model="whEditModal.data.category" required class="w-full px-3 py-2 border rounded-xl">
+              <option value="Alat">Alat</option>
+              <option value="Bahan">Bahan</option>
+              <option value="Bahan Kimia">Bahan Kimia</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold mb-1">Tanggal Masuk *</label>
+            <input type="date" x-model="whEditModal.data.trx_date" required class="w-full px-3 py-2 border rounded-xl" />
+          </div>
+        </div>
+        <div>
+          <label class="block font-bold mb-1">Nama Barang *</label>
+          <input type="text" x-model="whEditModal.data.item_name" required class="w-full px-3 py-2 border rounded-xl" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold mb-1">Maker / Type / Spek</label>
+            <input type="text" x-model="whEditModal.data.maker_type_spec" class="w-full px-3 py-2 border rounded-xl" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">Satuan *</label>
+            <input type="text" x-model="whEditModal.data.unit" required class="w-full px-3 py-2 border rounded-xl" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold mb-1">Nomor Batch / Lot</label>
+            <input type="text" x-model="whEditModal.data.batch_lot" class="w-full px-3 py-2 border rounded-xl" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">Tanggal Kedaluwarsa</label>
+            <input type="date" x-model="whEditModal.data.expiry_date" class="w-full px-3 py-2 border rounded-xl" />
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <div>
+            <label class="block font-bold mb-1">Nomor CAS</label>
+            <input type="text" x-model="whEditModal.data.cas_number" class="w-full px-3 py-2 border rounded-xl" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">Grade / Model</label>
+            <input type="text" x-model="whEditModal.data.grade" class="w-full px-3 py-2 border rounded-xl" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">Simbol GHS / Class</label>
+            <input type="text" x-model="whEditModal.data.ghs_symbol" class="w-full px-3 py-2 border rounded-xl" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 items-center">
+          <div>
+            <label class="block font-bold mb-1">Kuantitas Stok Gudang *</label>
+            <input type="number" step="any" min="0" x-model="whEditModal.data.qty_available" required class="w-full px-3 py-2 border rounded-xl" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">Foto Barang (Upload / Kamera)</label>
+            <div class="flex gap-2">
+              <label class="px-3 py-2 rounded-xl border cursor-pointer hover:bg-slate-50">
+                File <input type="file" accept="image/*" @change="handleImageFile($event, 'whEdit')" class="hidden" />
+              </label>
+              <button type="button" @click="openCameraModal('whEdit')" class="px-3 py-2 rounded-xl border border-emerald-700 text-emerald-800">Kamera</button>
+            </div>
+          </div>
+        </div>
+        <div x-show="whEditModal.data.photo_base64 || whEditModal.data.photo_url" class="flex items-center gap-3">
+          <img :src="whEditModal.data.photo_base64 || normalizeDriveImgUrl(whEditModal.data.photo_url)" class="w-16 h-16 object-cover rounded-xl border" />
+          <button type="button" @click="whEditModal.data.photo_base64 = ''; whEditModal.data.photo_url = ''" class="text-red-600 font-semibold">Hapus Foto</button>
+        </div>
+        <div class="flex justify-end gap-2 pt-3 border-t">
+          <button type="button" @click="whEditModal.open = false" class="px-4 py-2 rounded-xl border">Batal</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-silaras-dark text-white font-bold">Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL TAMBAH / EDIT MASTER DATA BARANG -->
+  <div x-show="masterFormModal.open" x-cloak class="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 my-8">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-base text-emerald-950" x-text="masterFormModal.is_edit ? 'Edit Master Data Barang (' + masterFormModal.data.item_id + ')' : 'Tambah Master Data Barang Baru'"></h3>
+        <button @click="masterFormModal.open = false" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form @submit.prevent="submitMasterFormModal()" class="space-y-3 text-xs">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold mb-1">Kategori *</label>
+            <select x-model="masterFormModal.data.category" :disabled="masterFormModal.is_edit" required class="w-full px-3 py-2 border rounded-xl">
+              <option value="Alat">Alat</option>
+              <option value="Bahan">Bahan</option>
+              <option value="Bahan Kimia">Bahan Kimia</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold mb-1">Satuan *</label>
+            <input type="text" x-model="masterFormModal.data.unit" required class="w-full px-3 py-2 border rounded-xl" />
+          </div>
+        </div>
+        <div>
+          <label class="block font-bold mb-1">Nama Barang *</label>
+          <input type="text" x-model="masterFormModal.data.item_name" required class="w-full px-3 py-2 border rounded-xl" />
+        </div>
+        <div>
+          <label class="block font-bold mb-1">Maker / Type / Spek</label>
+          <input type="text" x-model="masterFormModal.data.maker_type_spec" class="w-full px-3 py-2 border rounded-xl" />
+        </div>
+        <div x-show="masterFormModal.data.category === 'Bahan Kimia'" class="grid grid-cols-3 gap-2">
+          <div>
+            <label class="block font-bold mb-1">Nomor CAS</label>
+            <input type="text" x-model="masterFormModal.data.cas_number" class="w-full px-3 py-2 border rounded-xl" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">Grade / Model</label>
+            <input type="text" x-model="masterFormModal.data.grade" class="w-full px-3 py-2 border rounded-xl" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">GHS / Class</label>
+            <input type="text" x-model="masterFormModal.data.ghs_symbol" class="w-full px-3 py-2 border rounded-xl" />
+          </div>
+        </div>
+        <div x-show="masterFormModal.data.category === 'Alat'">
+          <label class="flex items-center gap-2 font-semibold">
+            <input type="checkbox" x-model="masterFormModal.data.is_public_catalog" />
+            <span>Tampilkan di Katalog Peralatan Publik</span>
+          </label>
+        </div>
+        <div>
+          <label class="block font-bold mb-1">Foto Barang (Upload / Kamera)</label>
+          <div class="flex gap-2">
+            <label class="px-3 py-1.5 rounded-xl border cursor-pointer">
+              File <input type="file" accept="image/*" @change="handleImageFile($event, 'masterForm')" class="hidden" />
+            </label>
+            <button type="button" @click="openCameraModal('masterForm')" class="px-3 py-1.5 rounded-xl border border-emerald-700 text-emerald-800">Kamera</button>
+          </div>
+          <div x-show="masterFormModal.data.photo_base64 || masterFormModal.data.photo_url" class="mt-2 flex items-center gap-2">
+            <img :src="masterFormModal.data.photo_base64 || normalizeDriveImgUrl(masterFormModal.data.photo_url)" class="w-14 h-14 object-cover rounded-lg border" />
+            <button type="button" @click="masterFormModal.data.photo_base64 = ''; masterFormModal.data.photo_url = ''" class="text-red-600">Hapus</button>
+          </div>
+        </div>
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-silaras-dark text-white font-bold">Simpan Master Barang</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL DETAIL INVENTARIS & AKSI CEPAT -->
   <div x-show="invDetailModal.open" x-cloak class="fixed inset-0 z-40 bg-slate-900/60 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
       <div class="flex justify-between items-start">
@@ -1414,7 +1600,7 @@
         </div>
         <button @click="invDetailModal.open = false" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <img x-show="invDetailModal.item?.photo_url" :src="invDetailModal.item?.photo_url" class="w-full h-48 object-cover rounded-xl border" />
+      <img x-show="invDetailModal.item?.photo_url" :src="normalizeDriveImgUrl(invDetailModal.item?.photo_url)" class="w-full h-48 object-cover rounded-xl border" />
       <div class="text-xs space-y-1.5 bg-slate-50 p-4 rounded-xl">
         <p><b>Spesifikasi:</b> <span x-text="invDetailModal.item?.maker_type_spec || '-'"></span></p>
         <p><b>Lokasi:</b> <span x-text="invDetailModal.item?.location_name"></span></p>
@@ -1533,7 +1719,7 @@
     </div>
   </div>
 
-  <!-- MODAL KATALOG BERGAMBAR (+ PILIH ITEM UNTUK PEMINJAMAN / BAHAN / BOOKING) -->
+  <!-- MODAL KATALOG BERGAMBAR (+ PILIH ITEM) -->
   <div x-show="catalogPickerModal.open" x-cloak class="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4">
       <div class="flex justify-between items-center">
@@ -1558,7 +1744,7 @@
     </div>
   </div>
 
-  <!-- MODAL KAMERA PERANGKAT (DIRECT CAMERA CAPTURE) -->
+  <!-- MODAL KAMERA PERANGKAT -->
   <div x-show="cameraModal.open" x-cloak class="fixed inset-0 z-50 bg-slate-900/80 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-md w-full p-5 space-y-4">
       <div class="flex justify-between items-center">
@@ -1572,7 +1758,7 @@
     </div>
   </div>
 
-  <!-- MODAL KELOLA PENGGUNA (MULTI-ROLE & PENUGASAN LAB) -->
+  <!-- MODAL KELOLA PENGGUNA -->
   <div x-show="userModal.open" x-cloak class="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
       <div class="flex justify-between items-center">
@@ -1629,7 +1815,7 @@
     </div>
   </div>
 
-<!-- MODAL EDIT / TAMBAH MASTER LOKASI LABORATORIUM (KHUSUS SUPER ADMIN) -->
+  <!-- MODAL EDIT / TAMBAH MASTER LOKASI LABORATORIUM -->
   <div x-show="labModal.open" x-cloak class="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
       <div class="flex justify-between items-center border-b border-slate-100 pb-3">
@@ -1671,7 +1857,7 @@
     </div>
   </div>
 
-  <!-- MODAL LENGKAPI PROFIL DASAR (GOOGLE SSO PERTAMA KALI) -->
+  <!-- MODAL LENGKAPI PROFIL DASAR -->
   <div x-show="session && session.needs_profile_completion" x-cloak class="fixed inset-0 z-50 bg-slate-900/70 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
       <h3 class="font-bold text-lg text-emerald-950">Lengkapi Profil Dasar Anda</h3>
@@ -1697,7 +1883,6 @@
         activeMenu: 'dashboard',
         mobileSidebarOpen: false,
 
-        // Data Publik
         publicData: { labs: [], catalog: [], schedules: [] },
         publicCatalogSearch: '',
         publicCatalogView: 'grid',
@@ -1708,13 +1893,11 @@
         calendarMode: 'week',
         calendarAnchorDate: new Date().toISOString().slice(0, 10),
 
-        // Auth & Profile
         authModal: { open: false, mode: 'login' },
         loginForm: { email: '', password: '' },
         regForm: { full_name: '', nim_nip: '', unit_prodi: '', phone: '', email: '', password: '' },
         profileForm: { full_name: '', nim_nip: '', unit_prodi: '', phone: '' },
 
-        // Cache Memori Lokal untuk Perpindahan Menu Instan (0ms)
         bundleLoaded: false,
         invCache: { Alat: [], Bahan: [], 'Bahan Kimia': [] },
         dashData: { stats: {}, bookings: [], loans: [], usages: [], notifications: [] },
@@ -1731,6 +1914,13 @@
         whInForm: { category: 'Alat', trx_date: new Date().toISOString().slice(0,10), item_id: '', item_name: '', maker_type_spec: '', unit: 'Unit', acquisition_year: 2026, bmn_category: 'Non BM', batch_lot: '', expiry_date: '', cas_number: '', grade: '', ghs_symbol: '', qty: 1, photo_base64: '', photo_url: '' },
         whInSuggestions: [],
         whOutForm: { taker_name: '', course_name: '', destination_lab_id: '', items: [] },
+
+        // Modal Detail & Edit Stok Gudang
+        whDetailModal: { open: false, item: null },
+        whEditModal: { open: false, data: {} },
+
+        // Modal Form Master Data Barang
+        masterFormModal: { open: false, is_edit: false, data: {} },
 
         loanForm: { lab_id: '', loan_date: new Date().toISOString().slice(0,10), due_date: new Date().toISOString().slice(0,10), purpose: '', items: [] },
         usageForm: { category: 'Bahan', lab_id: '', usage_date: new Date().toISOString().slice(0,10), purpose: '', items: [] },
@@ -1758,6 +1948,40 @@
             }
           }
           this.loadPublicHome();
+        },
+
+        // Helper agar seluruh format URL gambar Google Drive tampil sempurna di browser
+        normalizeDriveImgUrl(url) {
+          if (!url) return '';
+          const str = String(url).trim();
+          const match = str.match(/[-\w]{25,}/);
+          if (str.includes('drive.google.com') && match) {
+            return 'https://drive.google.com/thumbnail?id=' + match[0] + '&sz=w1000';
+          }
+          return str;
+        },
+
+        resetWhInForm(keepCategory = true) {
+          const cat = keepCategory ? this.whInForm.category : 'Alat';
+          this.whInForm = {
+            category: cat,
+            trx_date: new Date().toISOString().slice(0, 10),
+            item_id: '',
+            item_name: '',
+            maker_type_spec: '',
+            unit: cat === 'Alat' ? 'Unit' : '',
+            acquisition_year: 2026,
+            bmn_category: 'Non BM',
+            batch_lot: '',
+            expiry_date: '',
+            cas_number: '',
+            grade: '',
+            ghs_symbol: '',
+            qty: 1,
+            photo_base64: '',
+            photo_url: ''
+          };
+          this.whInSuggestions = [];
         },
 
         showToast(msg, type = 'success') {
@@ -1832,7 +2056,6 @@
           if (res && res.success) this.publicData = res;
         },
 
-        // Muat seluruh paket data sekali saja agar pindah menu 100% instan
         async loadWorkspaceBundle(silent = false) {
           const runner = silent ? this.runGasSilent.bind(this) : this.runGas.bind(this);
           const res = await runner('apiGetInitialWorkspaceBundle', this.session.token);
@@ -1975,7 +2198,6 @@
           return titles[this.activeMenu] || 'SILARAS';
         },
 
-        // PERPINDAHAN MENU INSTAN (TANPA LOADING SPINNER)
         navigate(menu) {
           this.activeMenu = menu;
           this.mobileSidebarOpen = false;
@@ -1984,13 +2206,11 @@
           } else if (menu === 'audit' && this.auditLogsList.length === 0) {
             this.loadAuditLogs();
           }
-          // Jika bundle belum pernah dimuat, baru panggil server
           if (!this.bundleLoaded) {
             this.loadWorkspaceBundle(false);
           }
         },
 
-        // Tombol refresh manual di header
         refreshActiveView() {
           this.loadWorkspaceBundle(false);
           if (this.activeMenu === 'audit') this.loadAuditLogs();
@@ -2060,11 +2280,122 @@
           }
         },
 
+        // Detail Aktif, Edit, & Hapus Stok Gudang
+        openWhDetailModal(st) {
+          this.whDetailModal = { open: true, item: { ...st } };
+        },
+
+        openWhEditModal(st) {
+          this.whDetailModal.open = false;
+          this.whEditModal = {
+            open: true,
+            data: {
+              inv_id: st.inv_id,
+              item_id: st.item_id,
+              old_category: st.category,
+              category: st.category,
+              trx_date: st.entry_date || new Date().toISOString().slice(0, 10),
+              item_name: st.item_name || '',
+              maker_type_spec: st.maker_type_spec || '',
+              unit: st.unit || '',
+              batch_lot: (st.batch_lot && st.batch_lot !== '-') ? st.batch_lot : '',
+              expiry_date: st.expiry_date || '',
+              cas_number: st.cas_number || '',
+              grade: st.grade || '',
+              ghs_symbol: st.ghs_symbol || '',
+              qty_available: st.qty_available || 0,
+              acquisition_year: st.acquisition_year || 2026,
+              bmn_category: st.bmn_category || 'Non BM',
+              photo_url: st.photo_url || '',
+              photo_base64: ''
+            }
+          };
+        },
+
+        async submitWhEditModal() {
+          const res = await this.runGas('apiUpdateWarehouseStockItem', this.session.token, this.whEditModal.data);
+          if (res && res.success) {
+            this.whEditModal.open = false;
+            this.showToast('Data stok gudang berhasil diperbarui.');
+            this.loadWorkspaceBundle(false);
+          }
+        },
+
+        async deleteWarehouseStockItem(st) {
+          if (!confirm('Yakin ingin menghapus "' + st.item_name + '" dari Daftar Stok Gudang?')) return;
+          const res = await this.runGas('apiDeleteWarehouseStockItem', this.session.token, st.category, st.inv_id);
+          if (res && res.success) {
+            this.whDetailModal.open = false;
+            this.showToast('Item berhasil dihapus dari stok gudang.');
+            this.loadWorkspaceBundle(false);
+          }
+        },
+
+        // Master Data Barang: Tambah, Edit, & Hapus
+        openMasterFormModal(m) {
+          if (m) {
+            this.masterFormModal = {
+              open: true,
+              is_edit: true,
+              data: {
+                item_id: m.item_id,
+                category: m.category,
+                item_name: m.item_name || '',
+                maker_type_spec: m.maker_type_spec || '',
+                unit: m.unit || '',
+                cas_number: m.cas_number || '',
+                grade: m.grade || '',
+                ghs_symbol: m.ghs_symbol || '',
+                is_public_catalog: Boolean(m.is_public_catalog),
+                photo_url: m.photo_url || '',
+                photo_base64: ''
+              }
+            };
+          } else {
+            this.masterFormModal = {
+              open: true,
+              is_edit: false,
+              data: {
+                item_id: '',
+                category: 'Alat',
+                item_name: '',
+                maker_type_spec: '',
+                unit: 'Unit',
+                cas_number: '',
+                grade: '',
+                ghs_symbol: '',
+                is_public_catalog: false,
+                photo_url: '',
+                photo_base64: ''
+              }
+            };
+          }
+        },
+
+        async submitMasterFormModal() {
+          const res = await this.runGas('apiSaveMasterItem', this.session.token, this.masterFormModal.data);
+          if (res && res.success) {
+            this.masterFormModal.open = false;
+            this.showToast('Master Data Barang berhasil disimpan.');
+            this.loadWorkspaceBundle(false);
+          }
+        },
+
+        async deleteMasterItem(m) {
+          if (!confirm('Hapus Master Data "' + m.item_name + '" (' + m.item_id + ')?')) return;
+          const res = await this.runGas('apiDeleteMasterItem', this.session.token, m.item_id);
+          if (res && res.success) {
+            this.showToast('Master Data Barang berhasil dihapus.');
+            this.loadWorkspaceBundle(false);
+          } else if (res && res.message) {
+            this.showToast(res.message, 'error');
+          }
+        },
+
         async searchMasterForWhIn() {
           this.whInForm.item_id = '';
           if (this.whInForm.item_name.length < 2) { this.whInSuggestions = []; return; }
           const kw = this.whInForm.item_name.toLowerCase();
-          // Pencarian instan langsung dari masterItemsList di memori browser!
           this.whInSuggestions = (this.masterItemsList || [])
             .filter(m => m.category === this.whInForm.category && (m.item_name.toLowerCase().includes(kw) || m.item_id.toLowerCase().includes(kw)))
             .slice(0, 10);
@@ -2084,10 +2415,12 @@
 
         async submitWarehouseIn() {
           const res = await this.runGas('apiWarehouseStockIn', this.session.token, this.whInForm);
-          if (res.success) {
+          if (res && res.success) {
             this.showToast('Barang masuk Gudang berhasil dicatat (' + res.trx_id + ').');
+            // Reset seluruh isian form ke kosong setelah berhasil disimpan
+            this.resetWhInForm(true);
             this.warehouseTab = 'stock';
-            this.loadWorkspaceBundle(true);
+            this.loadWorkspaceBundle(false);
           }
         },
 
@@ -2139,7 +2472,6 @@
 
         async openCatalogPickerModal(category, labId, target) {
           if (!labId) { this.showToast('Pilih lokasi laboratorium terlebih dahulu.', 'error'); return; }
-          // Ambil langsung dari invCache di memori jika tersedia, sehingga modal terbuka instan!
           const cachedList = (this.invCache[category] || []).filter(r => r.location_id === labId && Number(r.qty_available) > 0);
           if (cachedList.length > 0) {
             this.catalogPickerModal = {
@@ -2260,6 +2592,8 @@
               canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
               const compressed = canvas.toDataURL('image/jpeg', 0.75);
               if (target === 'whIn') this.whInForm.photo_base64 = compressed;
+              else if (target === 'whEdit') this.whEditModal.data.photo_base64 = compressed;
+              else if (target === 'masterForm') this.masterFormModal.data.photo_base64 = compressed;
               else this.invFormModal.data.photo_base64 = compressed;
             };
             img.src = e.target.result;
@@ -2288,6 +2622,8 @@
           canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
           const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
           if (this.cameraModal.target === 'whIn') this.whInForm.photo_base64 = dataUrl;
+          else if (this.cameraModal.target === 'whEdit') this.whEditModal.data.photo_base64 = dataUrl;
+          else if (this.cameraModal.target === 'masterForm') this.masterFormModal.data.photo_base64 = dataUrl;
           else this.invFormModal.data.photo_base64 = dataUrl;
           this.closeCameraModal();
         },
