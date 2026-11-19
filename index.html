@@ -334,14 +334,14 @@
         <button type="submit" class="w-full py-2.5 rounded-xl bg-silaras-dark text-white font-bold text-sm hover:bg-emerald-900 transition">
           Masuk ke SILARAS
         </button>
-        <div class="relative flex py-1 items-center">
-          <div class="flex-grow border-t border-slate-200"></div>
-          <span class="flex-shrink mx-3 text-xs text-slate-400">atau</span>
-          <div class="flex-grow border-t border-slate-200"></div>
+        <div class="pt-2 border-t border-slate-100 text-center">
+          <p class="text-xs text-slate-500">
+            Belum memiliki akun SILARAS?
+            <button type="button" @click="authModal.mode = 'register'" class="font-semibold text-[#114232] hover:text-[#1b5e48] hover:underline ml-1">
+              Daftar Anggota Baru
+            </button>
+          </p>
         </div>
-        <button type="button" @click="loginWithGoogle()" class="w-full py-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 font-semibold text-sm hover:bg-slate-50 flex items-center justify-center gap-2">
-          <i class="fa-brands fa-google text-red-500"></i> Masuk dengan Akun Google
-        </button>
       </form>
 
       <form x-show="authModal.mode === 'register'" @submit.prevent="submitRegister()" class="space-y-3">
