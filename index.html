@@ -112,18 +112,18 @@
         <template x-for="lab in publicData.labs" :key="lab.lab_id">
           <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs hover:shadow-md transition flex flex-col justify-between">
             <div>
-              <div class="flex items-start justify-between gap-2 mb-3">
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 font-semibold text-xs">
-                  <i class="fa-solid fa-location-dot text-[11px] text-emerald-700"></i>
-                  <span x-text="lab.lab_position || lab.lab_code || 'Gedung Laboratorium Faperta'"></span>
+              <div class="flex items-center justify-between mb-3">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 font-bold text-xs">
+                  <i class="fa-solid fa-location-dot text-emerald-600"></i>
+                  <span x-text="lab.lab_position || 'Gedung Laboratorium Faperta'"></span>
                 </span>
-                <i class="fa-solid fa-seedling text-lime-600 shrink-0 mt-1"></i>
+                <i class="fa-solid fa-seedling text-lime-600"></i>
               </div>
               <h3 class="font-bold text-lg text-slate-900 mb-2" x-text="lab.lab_name"></h3>
-              <p class="text-sm text-slate-600 mb-4 leading-relaxed" x-text="lab.description"></p>
+              <p class="text-sm text-slate-600 mb-4" x-text="lab.description"></p>
             </div>
             <div class="pt-3 border-t border-slate-100 text-xs text-slate-500">
-              <span class="font-semibold text-slate-700">Koordinator:</span> <span x-text="lab.pic_name || '-'"></span>
+              <span class="font-semibold text-slate-700">Kepala Laboratorium:</span> <span x-text="lab.pic_name || '-'"></span>
             </div>
           </div>
         </template>
@@ -1468,11 +1468,11 @@
                 <tbody class="divide-y divide-slate-200">
                   <template x-for="lb in adminData.labs || []" :key="lb.lab_id">
                     <tr class="hover:bg-slate-50">
-                      <td class="px-3 py-2.5 font-mono font-semibold text-slate-700 whitespace-nowrap" x-text="lb.lab_id"></td>
+                      <td class="px-3 py-2.5 font-mono font-semibold text-slate-700" x-text="lb.lab_id"></td>
                       <td class="px-3 py-2.5 font-bold text-slate-900" x-text="lb.lab_name"></td>
-                      <td class="px-3 py-2.5 text-emerald-800 font-semibold" x-text="lb.lab_position || lb.lab_code || '-'"></td>
+                      <td class="px-3 py-2.5 font-medium text-emerald-800" x-text="lb.lab_position || lb.lab_code || '-'"></td>
                       <td class="px-3 py-2.5 text-slate-600 max-w-xs" x-text="lb.description || '-'"></td>
-                      <td class="px-3 py-2.5 text-slate-700 whitespace-nowrap" x-text="lb.pic_name || '-'"></td>
+                      <td class="px-3 py-2.5 text-slate-700" x-text="lb.pic_name || '-'"></td>
                       <td class="px-3 py-2.5">
                         <span class="px-2 py-0.5 rounded-full text-[11px] font-bold"
                               :class="lb.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'"
@@ -1955,9 +1955,9 @@
     </div>
   </div>
 
-  <!-- MODAL EDIT / TAMBAH MASTER LOKASI LABORATORIUM (DILENGKAPI POSISI LAB & KETERANGAN INFORMASI UMUM) -->
+  <!-- MODAL EDIT / TAMBAH MASTER LOKASI LABORATORIUM -->
   <div x-show="labModal.open" x-cloak class="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
       <div class="flex justify-between items-center border-b border-slate-100 pb-3">
         <div>
           <h3 class="font-bold text-base text-emerald-950" x-text="labModal.is_edit ? 'Edit Master Lokasi Laboratorium' : 'Tambah Laboratorium Baru'"></h3>
@@ -1974,12 +1974,12 @@
 
         <div>
           <label class="block font-bold text-slate-700 mb-1">Posisi Lab (Gedung / Lantai / Lokasi Fisik) *</label>
-          <input type="text" x-model="labModal.data.lab_position" required placeholder="Contoh: Gedung Laboratorium Faperta Lt. 2" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-700" />
+          <input type="text" x-model="labModal.data.lab_position" required placeholder="Contoh: Gedung Laboratorium Lt. 2" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-700" />
         </div>
 
         <div>
           <label class="block font-bold text-slate-700 mb-1">Keterangan / Deskripsi Informasi Umum Laboratorium *</label>
-          <textarea rows="3" x-model="labModal.data.description" required placeholder="Contoh: Fasilitas praktikum dan penelitian budidaya tanaman, kultur jaringan, dan fisiologi tumbuhan." class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-700"></textarea>
+          <textarea rows="3" x-model="labModal.data.description" required placeholder="Deskripsi fasilitas praktikum dan penelitian laboratorium..." class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-700"></textarea>
         </div>
 
         <div>
@@ -2916,13 +2916,14 @@
             return;
           }
           if (lb) {
+            const rawPos = lb.lab_position || lb.lab_code || '';
             this.labModal = {
               open: true,
               is_edit: true,
               data: {
                 lab_id: lb.lab_id,
                 lab_name: lb.lab_name || '',
-                lab_position: lb.lab_position || lb.lab_code || '',
+                lab_position: /^LAB-\d+$/i.test(rawPos.trim()) ? '' : rawPos,
                 description: lb.description || '',
                 pic_name: lb.pic_name || '',
                 status: lb.status || 'active'
@@ -2932,15 +2933,22 @@
             this.labModal = {
               open: true,
               is_edit: false,
-              data: {
-                lab_id: '',
-                lab_name: '',
-                lab_position: 'Gedung Laboratorium Faperta Lt. 1',
-                description: '',
-                pic_name: '',
-                status: 'active'
-              }
+              data: { lab_id: '', lab_name: '', lab_position: '', description: '', pic_name: '', status: 'active' }
             };
+          }
+        },
+
+        async submitLabModal() {
+          if (!this.isSuperAdmin()) {
+            this.showToast('Akses ditolak: Khusus Super Admin.', 'error');
+            return;
+          }
+          const res = await this.runGas('apiSaveLaboratory', this.session.token, this.labModal.data);
+          if (res && res.success) {
+            this.labModal.open = false;
+            this.showToast('Master Lokasi Laboratorium berhasil disimpan.');
+            await this.loadWorkspaceBundle(false);
+            await this.loadPublicHome();
           }
         },
 
