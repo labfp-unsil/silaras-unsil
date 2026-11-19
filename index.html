@@ -2133,18 +2133,6 @@
           }
         },
 
-        async loginWithGoogle() {
-          const res = await this.runGas('apiLoginWithGoogle');
-          if (res.success) {
-            this.session = res.session;
-            localStorage.setItem('SILARAS_SESSION', JSON.stringify(res.session));
-            this.authModal.open = false;
-            this.loadWorkspaceBundle(false);
-          } else {
-            this.showToast(res.message, 'error');
-          }
-        },
-
         async submitRegister() {
           const res = await this.runGas('apiRegisterSelf', this.regForm);
           if (res.success) {
