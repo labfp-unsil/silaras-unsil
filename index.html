@@ -102,7 +102,7 @@
       </div>
     </section>
 
-    <!-- INFORMASI UMUM LABORATORIUM (MENAMPILKAN POSISI LAB & KETERANGAN YANG DAPAT DIEDIT ADMIN) -->
+    <!-- INFORMASI UMUM LABORATORIUM -->
     <section id="info-lab" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
       <div class="mb-6">
         <h2 class="text-2xl font-bold text-emerald-950">Informasi Umum Laboratorium</h2>
@@ -268,7 +268,7 @@
         </div>
       </div>
 
-      <!-- KALENDER PENGGUNAAN LABORATORIUM (TAMPILAN VISUAL SESUAI PERBAIKAN V6) -->
+      <!-- KALENDER PENGGUNAAN LABORATORIUM -->
       <div class="space-y-4">
         <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
           <div>
@@ -291,7 +291,6 @@
           </div>
         </div>
 
-        <!-- Bar Legenda + Navigasi Bulan/Tanggal -->
         <div class="bg-white border border-slate-200 rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
           <div class="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-700">
             <span class="text-slate-400 font-bold uppercase tracking-wider">LEGENDA:</span>
@@ -326,25 +325,18 @@
           </div>
         </div>
 
-        <!-- Kontainer Kalender Utama (Kiri: Grid Kalender, Kanan: Panel Rincian Tanggal) -->
         <div class="grid lg:grid-cols-12 gap-5 items-start">
-          <!-- Panel Grid Kalender -->
           <div class="lg:col-span-8 bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs">
-            <!-- Header Hari (MIN - SAB) untuk Mode Bulanan & Mingguan -->
             <div x-show="calendarMode !== 'day'" class="grid grid-cols-7 gap-2 mb-2 text-center">
               <template x-for="dayName in ['MIN','SEN','SEL','RAB','KAM','JUM','SAB']" :key="dayName">
                 <div class="text-[11px] font-bold tracking-wider text-slate-400 py-1" x-text="dayName"></div>
               </template>
             </div>
 
-            <!-- Grid Bulanan & Mingguan -->
             <div x-show="calendarMode !== 'day'" class="grid grid-cols-7 gap-2">
               <template x-for="cell in getCalendarGridCells()" :key="cell.key">
                 <div>
-                  <!-- Sel Kosong Padding Awal Bulan -->
                   <div x-show="cell.isEmpty" class="min-h-[86px] sm:min-h-[96px] rounded-xl bg-slate-50/40"></div>
-
-                  <!-- Sel Tanggal Aktif -->
                   <button type="button"
                           x-show="!cell.isEmpty"
                           @click="selectedCalendarDate = cell.dateStr; calendarAnchorDate = cell.dateStr"
@@ -373,7 +365,6 @@
               </template>
             </div>
 
-            <!-- Tampilan Mode Harian -->
             <div x-show="calendarMode === 'day'" class="space-y-3">
               <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div>
@@ -402,7 +393,6 @@
             </div>
           </div>
 
-          <!-- Panel Samping Rincian Tanggal -->
           <div class="lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
               <h4 class="font-extrabold text-base text-slate-900">
@@ -544,18 +534,23 @@
         </button>
       </div>
 
+      <!-- SINKRONISASI DROPDOWN PERAN & LOKASI AKTIF (active_lab_id) DI SIDEBAR -->
       <div class="p-3 bg-emerald-950/60 border-b border-emerald-800 space-y-2 text-xs">
         <div>
           <p class="font-bold text-white truncate" x-text="session?.full_name"></p>
           <p class="text-[11px] text-emerald-300 truncate" x-text="session?.email"></p>
         </div>
         <div class="grid grid-cols-1 gap-1.5">
-          <select x-model="session.active_role" @change="switchContext()" class="w-full bg-emerald-900 border border-emerald-700 rounded-lg px-2 py-1 text-white text-xs">
+          <select x-model="session.active_role" @change="switchContext()" class="w-full bg-emerald-900 border border-emerald-700 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-lime-400">
             <template x-for="r in session?.roles || []" :key="r">
               <option :value="r" x-text="'Peran: ' + r"></option>
             </template>
           </select>
-          <select x-show="(session?.accessible_labs || []).length > 0" x-model="session.active_lab_id" @change="switchContext()" class="w-full bg-emerald-900 border border-emerald-700 rounded-lg px-2 py-1 text-lime-300 text-xs">
+          <select x-show="(session?.accessible_labs || []).length > 0 || isSuperAdmin()"
+                  x-model="session.active_lab_id"
+                  @change="switchContext()"
+                  class="w-full bg-emerald-900 border border-emerald-700 rounded-lg px-2 py-1.5 text-lime-300 text-xs focus:outline-none focus:border-lime-400">
+            <option value="ALL" x-show="(session?.accessible_labs || []).length > 1 || isSuperAdmin()">Lokasi: Semua Lokasi Akses</option>
             <template x-for="l in session?.accessible_labs || []" :key="l.lab_id">
               <option :value="l.lab_id" x-text="'Lokasi: ' + l.lab_name"></option>
             </template>
@@ -637,6 +632,10 @@
           <h2 class="font-bold text-emerald-950 text-base capitalize" x-text="menuTitle()"></h2>
         </div>
         <div class="flex items-center gap-3">
+          <span class="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
+            <i class="fa-solid fa-location-dot text-emerald-700"></i>
+            <span x-text="getActiveLabLabel()"></span>
+          </span>
           <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-semibold">
             <i class="fa-solid fa-user-shield"></i> <span x-text="session?.active_role"></span>
           </span>
@@ -711,7 +710,7 @@
         <div x-show="['inv_alat','inv_bahan','inv_kimia'].includes(activeMenu)" class="space-y-4">
           <div class="bg-white p-4 rounded-2xl border border-slate-200 flex flex-wrap items-center justify-between gap-3">
             <div class="flex flex-wrap items-center gap-2">
-              <select x-model="invLocationFilter" @change="loadInventory()" class="px-3 py-2 border border-slate-300 rounded-xl text-sm">
+              <select x-model="invLocationFilter" @change="session.active_lab_id = invLocationFilter; loadInventory()" class="px-3 py-2 border border-slate-300 rounded-xl text-sm">
                 <option value="ALL">Semua Lokasi Akses</option>
                 <template x-for="l in session?.accessible_labs || []" :key="l.lab_id">
                   <option :value="l.lab_id" x-text="l.lab_name"></option>
@@ -728,7 +727,6 @@
             </button>
           </div>
 
-          <!-- Grid View Inventaris -->
           <div x-show="invViewMode === 'grid'" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <template x-for="row in filteredInventory()" :key="row.eq_inv_id || row.mat_inv_id || row.chem_inv_id">
               <div @click="openInvDetailModal(row)" class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition cursor-pointer flex flex-col">
@@ -765,7 +763,6 @@
             </template>
           </div>
 
-          <!-- Table View Inventaris -->
           <div x-show="invViewMode === 'table'" class="bg-white border border-slate-200 rounded-2xl overflow-x-auto">
             <table class="w-full text-sm text-left">
               <thead class="bg-emerald-950 text-white text-xs uppercase">
@@ -817,7 +814,6 @@
             <button x-show="canEdit('gudang')" @click="warehouseTab = 'out'; $nextTick(() => initSignaturePad())" :class="warehouseTab === 'out' ? 'bg-silaras-dark text-white' : 'bg-white text-slate-700'" class="px-4 py-2 rounded-xl text-sm font-bold border">- Barang Keluar Gudang</button>
           </div>
 
-          <!-- Tab Stok Gudang -->
           <div x-show="warehouseTab === 'stock'" class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
             <div class="flex items-center justify-between">
               <div>
@@ -880,7 +876,6 @@
             </div>
           </div>
 
-          <!-- Tab Barang Masuk Gudang -->
           <div x-show="warehouseTab === 'in'" class="bg-white rounded-2xl border border-slate-200 p-6 w-full">
             <h3 class="font-bold text-lg text-emerald-950 mb-4">Input Barang Masuk ke Gudang</h3>
             <form @submit.prevent="submitWarehouseIn()" class="space-y-4">
@@ -995,7 +990,6 @@
             </form>
           </div>
 
-          <!-- Tab Barang Keluar Gudang -->
           <div x-show="warehouseTab === 'out'" class="bg-white rounded-2xl border border-slate-200 p-6 space-y-5">
             <h3 class="font-bold text-lg text-emerald-950">Barang Keluar Gudang ke Laboratorium</h3>
             <div class="grid sm:grid-cols-3 gap-4">
@@ -1233,9 +1227,18 @@
             <button type="button" @click="submitBooking()" class="px-6 py-2.5 rounded-xl bg-silaras-dark text-white font-bold text-sm">Ajukan Penggunaan Ruangan</button>
           </div>
 
+          <!-- ANTREAN VERIFIKASI & PERSETUJUAN (DENGAN TOMBOL PERSETUJUAN KEPALA LABORATORIUM) -->
           <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-6">
-            <h3 class="font-bold text-emerald-950">Daftar Permohonan & Status Verifikasi / Persetujuan</h3>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 class="font-bold text-emerald-950">Daftar Permohonan & Antrean Verifikasi / Persetujuan</h3>
+                <p class="text-[11px] text-slate-500">Verifikasi berjenjang oleh Laboran dan Persetujuan akhir oleh Kepala Laboratorium.</p>
+              </div>
+              <span class="text-[11px] font-semibold px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200"
+                    x-text="'Filter Lokasi Aktif: ' + getActiveLabLabel()"></span>
+            </div>
 
+            <!-- 1. Antrean Penggunaan Ruangan -->
             <div>
               <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">Penggunaan Ruangan</h4>
               <div class="overflow-x-auto border rounded-xl">
@@ -1250,24 +1253,40 @@
                     </tr>
                   </thead>
                   <tbody class="divide-y">
-                    <template x-for="b in dashData.bookings || []" :key="b.booking_id">
+                    <template x-for="b in filteredApprovalList(dashData.bookings)" :key="b.booking_id">
                       <tr>
                         <td class="px-3 py-2 font-mono font-bold" x-text="b.booking_id"></td>
                         <td class="px-3 py-2"><b x-text="b.lab_name"></b><br><span x-text="'[' + b.activity_type + '] ' + b.activity_title"></span></td>
                         <td class="px-3 py-2" x-text="b.booking_date + ' (' + b.start_time + '-' + b.end_time + ')'"></td>
                         <td class="px-3 py-2 font-bold" x-text="b.status"></td>
-                        <td class="px-3 py-2 space-x-1">
-                          <button x-show="b.status === 'pending_verification' && hasRole('Laboran')" @click="processStep('booking', b.booking_id, 'verify_laboran')" class="px-2 py-1 bg-amber-500 text-white rounded font-bold">Verifikasi Laboran</button>
-                          <button x-show="b.status === 'verified_laboran' && hasRole('Kepala Laboratorium')" @click="processStep('booking', b.booking_id, 'approve_kalab')" class="px-2 py-1 bg-emerald-700 text-white rounded font-bold">Setujui (Ka. Lab)</button>
-                          <button x-show="['pending_verification','verified_laboran'].includes(b.status) && (hasRole('Laboran') || hasRole('Kepala Laboratorium'))" @click="processStep('booking', b.booking_id, 'reject')" class="px-2 py-1 bg-red-600 text-white rounded">Tolak</button>
+                        <td class="px-3 py-2 space-x-1 whitespace-nowrap">
+                          <button x-show="b.status === 'pending_verification' && hasRole('Laboran')"
+                                  @click="processStep('booking', b.booking_id, 'verify_laboran')"
+                                  class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded font-bold">
+                            Verifikasi Laboran
+                          </button>
+                          <button x-show="['pending_verification','verified_laboran'].includes(b.status) && canApproveKalab()"
+                                  @click="processStep('booking', b.booking_id, 'approve_kalab')"
+                                  class="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded font-bold">
+                            <i class="fa-solid fa-check-double mr-1"></i>Setujui (Ka. Lab)
+                          </button>
+                          <button x-show="['pending_verification','verified_laboran'].includes(b.status) && (hasRole('Laboran') || canApproveKalab())"
+                                  @click="processStep('booking', b.booking_id, 'reject')"
+                                  class="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded font-bold">
+                            Tolak
+                          </button>
                         </td>
                       </tr>
                     </template>
+                    <tr x-show="filteredApprovalList(dashData.bookings).length === 0">
+                      <td colspan="5" class="px-3 py-4 text-center text-slate-400">Tidak ada antrean penggunaan ruangan pada lokasi aktif ini.</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
             </div>
 
+            <!-- 2. Antrean Peminjaman Peralatan -->
             <div>
               <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">Peminjaman Peralatan</h4>
               <div class="overflow-x-auto border rounded-xl">
@@ -1282,7 +1301,7 @@
                     </tr>
                   </thead>
                   <tbody class="divide-y">
-                    <template x-for="l in dashData.loans || []" :key="l.loan_id">
+                    <template x-for="l in filteredApprovalList(dashData.loans)" :key="l.loan_id">
                       <tr>
                         <td class="px-3 py-2 font-mono font-bold" x-text="l.loan_id"></td>
                         <td class="px-3 py-2"><b x-text="l.borrower_name"></b><br><span x-text="l.lab_name"></span></td>
@@ -1292,20 +1311,49 @@
                           </template>
                         </td>
                         <td class="px-3 py-2 font-bold" x-text="l.status"></td>
-                        <td class="px-3 py-2 space-x-1">
-                          <button x-show="l.status === 'pending_verification' && hasRole('Laboran')" @click="processStep('loan', l.loan_id, 'verify_laboran')" class="px-2 py-1 bg-amber-500 text-white rounded font-bold">Verifikasi Laboran</button>
-                          <button x-show="l.status === 'verified_laboran' && hasRole('Kepala Laboratorium')" @click="processStep('loan', l.loan_id, 'approve_kalab')" class="px-2 py-1 bg-emerald-700 text-white rounded font-bold">Setujui (Ka. Lab)</button>
-                          <button x-show="l.status === 'approved' && hasRole('Laboran')" @click="processStep('loan', l.loan_id, 'handover')" class="px-2 py-1 bg-blue-600 text-white rounded font-bold">Serah Terima</button>
-                          <button x-show="['active_borrowed','returned_partial'].includes(l.status) && l.user_id === session.user_id" @click="userRequestReturn(l.loan_id)" class="px-2 py-1 bg-indigo-600 text-white rounded font-bold">Ajukan Kembali</button>
-                          <button x-show="['active_borrowed','returned_partial'].includes(l.status) && hasRole('Laboran')" @click="openReturnAssessmentModal(l)" class="px-2 py-1 bg-emerald-800 text-white rounded font-bold">Terima & Nilai Kondisi</button>
+                        <td class="px-3 py-2 space-x-1 whitespace-nowrap">
+                          <button x-show="l.status === 'pending_verification' && hasRole('Laboran')"
+                                  @click="processStep('loan', l.loan_id, 'verify_laboran')"
+                                  class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded font-bold">
+                            Verifikasi Laboran
+                          </button>
+                          <button x-show="['pending_verification','verified_laboran'].includes(l.status) && canApproveKalab()"
+                                  @click="processStep('loan', l.loan_id, 'approve_kalab')"
+                                  class="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded font-bold">
+                            <i class="fa-solid fa-check-double mr-1"></i>Setujui (Ka. Lab)
+                          </button>
+                          <button x-show="['pending_verification','verified_laboran'].includes(l.status) && (hasRole('Laboran') || canApproveKalab())"
+                                  @click="processStep('loan', l.loan_id, 'reject')"
+                                  class="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded font-bold">
+                            Tolak
+                          </button>
+                          <button x-show="l.status === 'approved' && hasRole('Laboran')"
+                                  @click="processStep('loan', l.loan_id, 'handover')"
+                                  class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded font-bold">
+                            Serah Terima
+                          </button>
+                          <button x-show="['active_borrowed','returned_partial'].includes(l.status) && l.user_id === session.user_id"
+                                  @click="userRequestReturn(l.loan_id)"
+                                  class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold">
+                            Ajukan Kembali
+                          </button>
+                          <button x-show="['active_borrowed','returned_partial'].includes(l.status) && hasRole('Laboran')"
+                                  @click="openReturnAssessmentModal(l)"
+                                  class="px-2.5 py-1 bg-emerald-800 hover:bg-emerald-900 text-white rounded font-bold">
+                            Terima & Nilai Kondisi
+                          </button>
                         </td>
                       </tr>
                     </template>
+                    <tr x-show="filteredApprovalList(dashData.loans).length === 0">
+                      <td colspan="5" class="px-3 py-4 text-center text-slate-400">Tidak ada antrean peminjaman peralatan pada lokasi aktif ini.</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
             </div>
 
+            <!-- 3. Antrean Penggunaan Bahan & Bahan Kimia -->
             <div>
               <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">Penggunaan Bahan & Bahan Kimia</h4>
               <div class="overflow-x-auto border rounded-xl">
@@ -1320,7 +1368,7 @@
                     </tr>
                   </thead>
                   <tbody class="divide-y">
-                    <template x-for="u in dashData.usages || []" :key="u.usage_id">
+                    <template x-for="u in filteredApprovalList(dashData.usages)" :key="u.usage_id">
                       <tr>
                         <td class="px-3 py-2 font-mono font-bold" x-text="u.usage_id"></td>
                         <td class="px-3 py-2"><b x-text="u.requester_name"></b><br><span x-text="u.lab_name + ' (' + u.category + ')'"></span></td>
@@ -1330,13 +1378,33 @@
                           </template>
                         </td>
                         <td class="px-3 py-2 font-bold" x-text="u.status"></td>
-                        <td class="px-3 py-2 space-x-1">
-                          <button x-show="u.status === 'pending_verification' && hasRole('Laboran')" @click="processStep('usage', u.usage_id, 'verify_laboran')" class="px-2 py-1 bg-amber-500 text-white rounded font-bold">Verifikasi Laboran</button>
-                          <button x-show="u.status === 'verified_laboran' && hasRole('Kepala Laboratorium')" @click="processStep('usage', u.usage_id, 'approve_kalab')" class="px-2 py-1 bg-emerald-700 text-white rounded font-bold">Setujui (Ka. Lab)</button>
-                          <button x-show="u.status === 'approved' && hasRole('Laboran')" @click="processStep('usage', u.usage_id, 'dispense')" class="px-2 py-1 bg-emerald-800 text-white rounded font-bold">Serahkan (FEFO)</button>
+                        <td class="px-3 py-2 space-x-1 whitespace-nowrap">
+                          <button x-show="u.status === 'pending_verification' && hasRole('Laboran')"
+                                  @click="processStep('usage', u.usage_id, 'verify_laboran')"
+                                  class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded font-bold">
+                            Verifikasi Laboran
+                          </button>
+                          <button x-show="['pending_verification','verified_laboran'].includes(u.status) && canApproveKalab()"
+                                  @click="processStep('usage', u.usage_id, 'approve_kalab')"
+                                  class="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded font-bold">
+                            <i class="fa-solid fa-check-double mr-1"></i>Setujui (Ka. Lab)
+                          </button>
+                          <button x-show="['pending_verification','verified_laboran'].includes(u.status) && (hasRole('Laboran') || canApproveKalab())"
+                                  @click="processStep('usage', u.usage_id, 'reject')"
+                                  class="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded font-bold">
+                            Tolak
+                          </button>
+                          <button x-show="u.status === 'approved' && hasRole('Laboran')"
+                                  @click="processStep('usage', u.usage_id, 'dispense')"
+                                  class="px-2.5 py-1 bg-emerald-800 hover:bg-emerald-900 text-white rounded font-bold">
+                            Serahkan (FEFO)
+                          </button>
                         </td>
                       </tr>
                     </template>
+                    <tr x-show="filteredApprovalList(dashData.usages).length === 0">
+                      <td colspan="5" class="px-3 py-4 text-center text-slate-400">Tidak ada antrean penggunaan bahan/kimia pada lokasi aktif ini.</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -1442,6 +1510,7 @@
 
         <!-- 8. PENGATURAN PENGGUNA, MASTER LOKASI LAB & HAK AKSES GRANULAR -->
         <div x-show="activeMenu === 'settings'" class="space-y-6">
+          <!-- 8A. Master Lokasi Laboratorium -->
           <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
             <div class="flex items-center justify-between">
               <div>
@@ -1494,6 +1563,7 @@
             </div>
           </div>
 
+          <!-- 8B. Manajemen Pengguna, Multi-Role & Penugasan Lokasi -->
           <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
             <div class="flex items-center justify-between">
               <h3 class="font-bold text-emerald-950">Manajemen Pengguna, Multi-Role & Penugasan Lokasi</h3>
@@ -1519,6 +1589,85 @@
                       <td class="px-3 py-2 font-bold" x-text="u.status"></td>
                       <td class="px-3 py-2">
                         <button @click="openUserModal(u)" class="px-2.5 py-1 bg-emerald-50 text-emerald-800 rounded font-bold">Kelola Akses</button>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 8C. PENGATURAN MATRIKS HAK AKSES GRANULAR BAGI SUPER ADMIN -->
+          <div x-show="isSuperAdmin()" class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded bg-emerald-950 text-lime-400 text-[10px] font-bold uppercase tracking-wider">Super Admin Only</span>
+                  <h3 class="font-bold text-emerald-950">Matriks Hak Akses Granular per Peran & Modul</h3>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-1">
+                  Atur hak akses <b>Lihat (View)</b>, <b>Tambah/Ubah (Edit)</b>, dan <b>Hapus (Delete)</b> secara granular untuk setiap peran pengguna pada modul SILARAS.
+                </p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button type="button" @click="resetDefaultPermissionMatrix()" class="px-3 py-2 rounded-xl border border-slate-300 text-slate-600 text-xs font-semibold hover:bg-slate-50">
+                  Reset Default
+                </button>
+                <button type="button" @click="saveRolePermissionsMatrix()" class="px-4 py-2 rounded-xl bg-silaras-dark text-white text-xs font-bold hover:bg-emerald-900 shadow-xs">
+                  <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Matriks Hak Akses
+                </button>
+              </div>
+            </div>
+
+            <!-- Pilihan Tab Peran -->
+            <div class="flex flex-wrap gap-1.5 bg-slate-100 p-1.5 rounded-xl">
+              <template x-for="r in availableRoles" :key="r">
+                <button type="button"
+                        @click="selectedMatrixRole = r"
+                        :class="selectedMatrixRole === r ? 'bg-silaras-dark text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'"
+                        class="px-3 py-1.5 rounded-lg text-xs font-bold transition"
+                        x-text="r">
+                </button>
+              </template>
+            </div>
+
+            <!-- Tabel Granular Modul vs Izin (View / Edit / Delete) -->
+            <div class="overflow-x-auto border border-slate-200 rounded-xl">
+              <table class="w-full text-xs text-left">
+                <thead class="bg-emerald-950 text-white uppercase">
+                  <tr>
+                    <th class="px-4 py-2.5">Modul / Fitur Sistem</th>
+                    <th class="px-4 py-2.5">Kode Modul</th>
+                    <th class="px-4 py-2.5 text-center">Lihat (View)</th>
+                    <th class="px-4 py-2.5 text-center">Tambah & Edit</th>
+                    <th class="px-4 py-2.5 text-center">Hapus (Delete)</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                  <template x-for="mod in permissionModules" :key="mod.key">
+                    <tr class="hover:bg-slate-50">
+                      <td class="px-4 py-2.5 font-bold text-slate-900" x-text="mod.label"></td>
+                      <td class="px-4 py-2.5 font-mono text-[11px] text-slate-500" x-text="mod.key"></td>
+                      <td class="px-4 py-2.5 text-center">
+                        <input type="checkbox"
+                               :checked="getRolePerm(selectedMatrixRole, mod.key, 'view')"
+                               @change="toggleRolePerm(selectedMatrixRole, mod.key, 'view', $event.target.checked)"
+                               :disabled="selectedMatrixRole === 'Super Admin' && mod.key === 'settings'"
+                               class="w-4 h-4 accent-emerald-800 rounded cursor-pointer" />
+                      </td>
+                      <td class="px-4 py-2.5 text-center">
+                        <input type="checkbox"
+                               :checked="getRolePerm(selectedMatrixRole, mod.key, 'edit')"
+                               @change="toggleRolePerm(selectedMatrixRole, mod.key, 'edit', $event.target.checked)"
+                               :disabled="selectedMatrixRole === 'Super Admin' && mod.key === 'settings'"
+                               class="w-4 h-4 accent-emerald-800 rounded cursor-pointer" />
+                      </td>
+                      <td class="px-4 py-2.5 text-center">
+                        <input type="checkbox"
+                               :checked="getRolePerm(selectedMatrixRole, mod.key, 'delete')"
+                               @change="toggleRolePerm(selectedMatrixRole, mod.key, 'delete', $event.target.checked)"
+                               :disabled="selectedMatrixRole === 'Super Admin' && mod.key === 'settings'"
+                               class="w-4 h-4 accent-emerald-800 rounded cursor-pointer" />
                       </td>
                     </tr>
                   </template>
@@ -1919,7 +2068,7 @@
         <div>
           <label class="block font-bold mb-1">Peran Pengguna (Dapat Memilih Lebih dari Satu):</label>
           <div class="grid grid-cols-2 gap-1.5 p-2.5 bg-slate-50 rounded-xl border">
-            <template x-for="r in ['Super Admin','Admin','Petugas Gudang','Laboran','Kepala Laboratorium','User']" :key="r">
+            <template x-for="r in availableRoles" :key="r">
               <label class="flex items-center gap-2">
                 <input type="checkbox" :value="r" x-model="userModal.data.roles" />
                 <span x-text="r"></span>
@@ -2078,15 +2227,36 @@
         cameraModal: { open: false, target: '', stream: null },
         masterItemsList: [],
         auditLogsList: [],
-        adminData: { users: [], labs: [] },
+        adminData: { users: [], labs: [], role_permissions: null },
         userModal: { open: false, data: { roles: ['User'], assigned_labs: [], status: 'active' } },
         labModal: { open: false, is_edit: false, data: { lab_id: '', lab_name: '', lab_position: '', description: '', pic_name: '', status: 'active' } },
 
+        // STATE MATRIKS HAK AKSES GRANULAR (SUPER ADMIN)
+        availableRoles: ['Super Admin', 'Admin', 'Petugas Gudang', 'Laboran', 'Kepala Laboratorium', 'User'],
+        selectedMatrixRole: 'Laboran',
+        permissionModules: [
+          { key: 'master_data', label: 'Master Data Barang' },
+          { key: 'inv_alat', label: 'Inventaris Peralatan' },
+          { key: 'inv_bahan', label: 'Inventaris Bahan' },
+          { key: 'inv_kimia', label: 'Inventaris Bahan Kimia' },
+          { key: 'gudang', label: 'Gudang & Stok Pusat' },
+          { key: 'pinjam_alat', label: 'Peminjaman Peralatan' },
+          { key: 'guna_bahan', label: 'Penggunaan Bahan & Kimia' },
+          { key: 'booking_ruang', label: 'Penggunaan Ruangan' },
+          { key: 'verifikasi', label: 'Verifikasi & Persetujuan' },
+          { key: 'laporan', label: 'Laporan & Ekspor' },
+          { key: 'audit', label: 'Audit Trail Sistem' },
+          { key: 'settings', label: 'Pengaturan Pengguna, Lab & Hak Akses' }
+        ],
+        rolePermissionsMatrix: {},
+
         initApp() {
+          this.initPermissionMatrix(null);
           const saved = localStorage.getItem('SILARAS_SESSION');
           if (saved) {
             try {
               this.session = JSON.parse(saved);
+              this.syncActiveLabContext();
               this.profileForm.full_name = this.session.full_name || '';
               this.bookingForm.pic_name = this.session.full_name || '';
               this.bookingForm.unit_prodi = this.session.unit_prodi || '';
@@ -2096,6 +2266,145 @@
             }
           }
           this.loadPublicHome();
+        },
+
+        // SINKRONISASI KONTEKS LOKASI AKTIF (active_lab_id) DI SIDEBAR & FILTER
+        syncActiveLabContext() {
+          if (!this.session) return;
+          const labs = this.session.accessible_labs || [];
+          if (!this.session.active_lab_id) {
+            this.session.active_lab_id = labs.length === 1 ? labs[0].lab_id : 'ALL';
+          }
+          this.invLocationFilter = this.session.active_lab_id || 'ALL';
+          if (this.session.active_lab_id && this.session.active_lab_id !== 'ALL' && this.session.active_lab_id !== 'GUDANG') {
+            if (!this.loanForm.lab_id) this.loanForm.lab_id = this.session.active_lab_id;
+            if (!this.usageForm.lab_id) this.usageForm.lab_id = this.session.active_lab_id;
+            if (!this.bookingForm.lab_id) this.bookingForm.lab_id = this.session.active_lab_id;
+          }
+        },
+
+        getActiveLabLabel() {
+          if (!this.session || !this.session.active_lab_id || this.session.active_lab_id === 'ALL') {
+            return 'Semua Lokasi Akses';
+          }
+          if (this.session.active_lab_id === 'GUDANG') return 'Gudang Pusat';
+          const found = (this.session.accessible_labs || []).find(l => l.lab_id === this.session.active_lab_id);
+          return found ? found.lab_name : this.session.active_lab_id;
+        },
+
+        filteredApprovalList(list) {
+          const items = list || [];
+          const activeLab = this.session?.active_lab_id;
+          if (!activeLab || activeLab === 'ALL' || activeLab === 'GUDANG') return items;
+          return items.filter(item => item.lab_id === activeLab);
+        },
+
+        canApproveKalab() {
+          return this.hasRole('Kepala Laboratorium') || this.isSuperAdmin();
+        },
+
+        // INISIALISASI & PENGELOLAAN MATRIKS HAK AKSES GRANULAR
+        getDefaultPermissionMatrix() {
+          const full = { view: true, edit: true, delete: true };
+          const viewEdit = { view: true, edit: true, delete: false };
+          const viewOnly = { view: true, edit: false, delete: false };
+          const none = { view: false, edit: false, delete: false };
+
+          const build = (overrides) => {
+            const out = {};
+            this.permissionModules.forEach(m => {
+              out[m.key] = { ...(overrides[m.key] || none) };
+            });
+            return out;
+          };
+
+          return {
+            'Super Admin': build(Object.fromEntries(this.permissionModules.map(m => [m.key, full]))),
+            'Admin': build({
+              master_data: full, inv_alat: full, inv_bahan: full, inv_kimia: full,
+              gudang: viewEdit, pinjam_alat: viewOnly, guna_bahan: viewOnly, booking_ruang: viewOnly,
+              verifikasi: viewOnly, laporan: viewOnly, audit: viewOnly, settings: viewEdit
+            }),
+            'Petugas Gudang': build({
+              master_data: viewEdit, inv_alat: viewOnly, inv_bahan: viewOnly, inv_kimia: viewOnly,
+              gudang: full, laporan: viewOnly
+            }),
+            'Laboran': build({
+              master_data: viewEdit, inv_alat: full, inv_bahan: full, inv_kimia: full,
+              gudang: viewOnly, pinjam_alat: viewOnly, guna_bahan: viewOnly, booking_ruang: viewOnly,
+              verifikasi: viewEdit, laporan: viewOnly
+            }),
+            'Kepala Laboratorium': build({
+              master_data: viewOnly, inv_alat: viewOnly, inv_bahan: viewOnly, inv_kimia: viewOnly,
+              gudang: viewOnly, pinjam_alat: viewOnly, guna_bahan: viewOnly, booking_ruang: viewOnly,
+              verifikasi: viewEdit, laporan: viewOnly, audit: viewOnly
+            }),
+            'User': build({
+              inv_alat: viewOnly, inv_bahan: viewOnly, inv_kimia: viewOnly,
+              pinjam_alat: viewEdit, guna_bahan: viewEdit, booking_ruang: viewEdit
+            })
+          };
+        },
+
+        initPermissionMatrix(serverMatrix) {
+          const base = this.getDefaultPermissionMatrix();
+          if (serverMatrix && typeof serverMatrix === 'object') {
+            for (const role of this.availableRoles) {
+              if (serverMatrix[role]) {
+                for (const mod of this.permissionModules) {
+                  if (serverMatrix[role][mod.key]) {
+                    base[role][mod.key] = {
+                      view: Boolean(serverMatrix[role][mod.key].view),
+                      edit: Boolean(serverMatrix[role][mod.key].edit),
+                      delete: Boolean(serverMatrix[role][mod.key].delete)
+                    };
+                  }
+                }
+              }
+            }
+          }
+          this.rolePermissionsMatrix = base;
+        },
+
+        getRolePerm(role, modKey, action) {
+          return Boolean(this.rolePermissionsMatrix?.[role]?.[modKey]?.[action]);
+        },
+
+        toggleRolePerm(role, modKey, action, checked) {
+          if (!this.rolePermissionsMatrix[role]) this.rolePermissionsMatrix[role] = {};
+          if (!this.rolePermissionsMatrix[role][modKey]) {
+            this.rolePermissionsMatrix[role][modKey] = { view: false, edit: false, delete: false };
+          }
+          this.rolePermissionsMatrix[role][modKey][action] = checked;
+          if ((action === 'edit' || action === 'delete') && checked) {
+            this.rolePermissionsMatrix[role][modKey].view = true;
+          }
+          if (action === 'view' && !checked) {
+            this.rolePermissionsMatrix[role][modKey].edit = false;
+            this.rolePermissionsMatrix[role][modKey].delete = false;
+          }
+        },
+
+        resetDefaultPermissionMatrix() {
+          if (!confirm('Kembalikan pengaturan matriks hak akses ke konfigurasi standar sistem?')) return;
+          this.rolePermissionsMatrix = this.getDefaultPermissionMatrix();
+          this.showToast('Matriks hak akses direset ke default (klik Simpan untuk menerapkan ke server).');
+        },
+
+        async saveRolePermissionsMatrix() {
+          if (!this.isSuperAdmin()) {
+            this.showToast('Hanya Super Admin yang dapat menyimpan matriks hak akses.', 'error');
+            return;
+          }
+          const res = await this.runGas('apiSaveRolePermissionsMatrix', this.session.token, this.rolePermissionsMatrix);
+          if (res && res.success) {
+            if (this.session?.active_role && this.rolePermissionsMatrix[this.session.active_role]) {
+              this.session.permissions = JSON.parse(JSON.stringify(this.rolePermissionsMatrix[this.session.active_role]));
+              localStorage.setItem('SILARAS_SESSION', JSON.stringify(this.session));
+            }
+            this.showToast('Matriks hak akses granular berhasil disimpan.');
+            this.loadWorkspaceBundle(true);
+          }
         },
 
         normalizeDriveImgUrl(url) {
@@ -2216,7 +2525,11 @@
             };
             this.warehouseData = res.warehouse || this.warehouseData;
             this.adminData = res.admin || this.adminData;
+            if (res.admin?.role_permissions) {
+              this.initPermissionMatrix(res.admin.role_permissions);
+            }
             this.bundleLoaded = true;
+            this.syncActiveLabContext();
             this.applyLocalInventoryFilter();
           }
         },
@@ -2394,15 +2707,15 @@
             password: ''
           };
         },
-		
-		openAuthModal(mode) {
+
+        openAuthModal(mode) {
           if (mode === 'register') {
             this.resetRegForm();
           }
           this.authModal = { open: true, mode: mode };
         },
-		
-		switchAuthMode(mode) {
+
+        switchAuthMode(mode) {
           if (mode === 'register') {
             this.resetRegForm();
           }
@@ -2413,7 +2726,8 @@
           const res = await this.runGas('apiLoginStandard', this.loginForm.email, this.loginForm.password);
           if (res.success) {
             this.session = res.session;
-            localStorage.setItem('SILARAS_SESSION', JSON.stringify(res.session));
+            this.syncActiveLabContext();
+            localStorage.setItem('SILARAS_SESSION', JSON.stringify(this.session));
             this.authModal.open = false;
             this.bookingForm.pic_name = this.session.full_name;
             this.bookingForm.unit_prodi = this.session.unit_prodi;
@@ -2439,17 +2753,26 @@
           const res = await this.runGas('apiCompleteProfile', this.session.token, this.profileForm);
           if (res.success) {
             this.session = res.session;
-            localStorage.setItem('SILARAS_SESSION', JSON.stringify(res.session));
+            this.syncActiveLabContext();
+            localStorage.setItem('SILARAS_SESSION', JSON.stringify(this.session));
             this.showToast('Profil berhasil dilengkapi.');
           }
         },
 
         async switchContext() {
-          const res = await this.runGas('apiSwitchContext', this.session.token, this.session.active_lab_id, this.session.active_role);
-          if (res.success) {
+          const targetLabId = this.session.active_lab_id || 'ALL';
+          const targetRole = this.session.active_role;
+          const res = await this.runGas('apiSwitchContext', this.session.token, targetLabId, targetRole);
+          if (res && res.success) {
             this.session = res.session;
-            localStorage.setItem('SILARAS_SESSION', JSON.stringify(res.session));
+            if (!this.session.active_lab_id) {
+              this.session.active_lab_id = targetLabId;
+            }
+            this.syncActiveLabContext();
+            localStorage.setItem('SILARAS_SESSION', JSON.stringify(this.session));
+            this.applyLocalInventoryFilter();
             this.loadWorkspaceBundle(false);
+            this.showToast('Konteks aktif: ' + this.session.active_role + ' (' + this.getActiveLabLabel() + ')');
           }
         },
 
@@ -2482,6 +2805,7 @@
           this.activeMenu = menu;
           this.mobileSidebarOpen = false;
           if (['inv_alat','inv_bahan','inv_kimia'].includes(menu)) {
+            this.invLocationFilter = this.session?.active_lab_id || 'ALL';
             this.applyLocalInventoryFilter();
           } else if (menu === 'audit' && this.auditLogsList.length === 0) {
             this.loadAuditLogs();
@@ -2532,9 +2856,10 @@
           if (row) {
             this.invFormModal = { open: true, is_edit: true, data: { ...row } };
           } else {
+            const defaultLoc = (this.session.active_lab_id && this.session.active_lab_id !== 'ALL') ? this.session.active_lab_id : '';
             this.invFormModal = {
               open: true, is_edit: false,
-              data: { location_id: this.session.active_lab_id || '', item_name: '', maker_type_spec: '', unit: this.currentInvCategory() === 'Alat' ? 'Unit' : 'Gram', acquisition_year: 2026, bmn_category: 'Non BM', qty_available: 1 }
+              data: { location_id: defaultLoc, item_name: '', maker_type_spec: '', unit: this.currentInvCategory() === 'Alat' ? 'Unit' : 'Gram', acquisition_year: 2026, bmn_category: 'Non BM', qty_available: 1 }
             };
           }
         },
@@ -2960,7 +3285,6 @@
           }
         },
 
-        
         async submitLabModal() {
           if (!this.isSuperAdmin()) {
             this.showToast('Akses ditolak: Khusus Super Admin.', 'error');
