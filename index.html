@@ -485,7 +485,6 @@
           <p x-show="forgotForm.step === 2">Masukkan kode OTP yang telah dikirim ke <b x-text="forgotForm.email"></b> beserta kata sandi baru.</p>
         </div>
 
-        <!-- Langkah 1: Minta OTP -->
         <form x-show="forgotForm.step === 1" @submit.prevent="submitRequestResetOtp()" class="space-y-4">
           <div>
             <label class="block text-xs font-semibold text-slate-700 mb-1">Email Terdaftar *</label>
@@ -496,7 +495,6 @@
           </button>
         </form>
 
-        <!-- Langkah 2: Verifikasi OTP & Password Baru -->
         <form x-show="forgotForm.step === 2" @submit.prevent="submitConfirmResetPassword()" class="space-y-3">
           <div>
             <label class="block text-xs font-semibold text-slate-700 mb-1">Kode OTP (6 Digit) *</label>
@@ -772,6 +770,11 @@
                 </template>
               </select>
               <input type="text" x-model="invSearch" placeholder="Cari nama / ID barang..." class="px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+              <!-- SORT ASCENDING / DESCENDING NAMA BARANG -->
+              <select x-model="invSortOrder" class="px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white font-medium text-slate-700" title="Urutkan berdasarkan Nama Barang">
+                <option value="asc">Urutkan: Nama A → Z (Asc)</option>
+                <option value="desc">Urutkan: Nama Z → A (Desc)</option>
+              </select>
               <div class="inline-flex rounded-xl border border-slate-300 p-1 bg-slate-50">
                 <button @click="invViewMode = 'grid'" :class="invViewMode === 'grid' ? 'bg-silaras-dark text-white' : 'text-slate-600'" class="px-3 py-1 rounded-lg text-xs font-semibold">Grid</button>
                 <button @click="invViewMode = 'table'" :class="invViewMode === 'table' ? 'bg-silaras-dark text-white' : 'text-slate-600'" class="px-3 py-1 rounded-lg text-xs font-semibold">Tabel</button>
@@ -823,7 +826,12 @@
               <thead class="bg-emerald-950 text-white text-xs uppercase">
                 <tr>
                   <th class="px-4 py-3">ID</th>
-                  <th class="px-4 py-3">Nama Barang</th>
+                  <th class="px-4 py-3">
+                    <button type="button" @click="invSortOrder = invSortOrder === 'asc' ? 'desc' : 'asc'" class="flex items-center gap-1.5 uppercase hover:text-lime-300">
+                      <span>Nama Barang</span>
+                      <i class="fa-solid" :class="invSortOrder === 'asc' ? 'fa-arrow-up-a-z' : 'fa-arrow-down-z-a'"></i>
+                    </button>
+                  </th>
                   <th class="px-4 py-3">Lokasi</th>
                   <th class="px-4 py-3">Rincian Stok</th>
                   <th class="px-4 py-3">Keterangan / Batch</th>
@@ -870,19 +878,26 @@
           </div>
 
           <div x-show="warehouseTab === 'stock'" class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
-            <div class="flex items-center justify-between">
+            <div class="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 class="font-bold text-emerald-950">Stok Gudang Pusat</h3>
                 <p class="text-[11px] text-slate-500">Klik kartu atau baris barang untuk melihat rincian lengkap, mengedit, atau menghapus data.</p>
               </div>
-              <div class="inline-flex rounded-xl border border-slate-300 p-1 bg-slate-50">
-                <button @click="whViewMode = 'grid'" :class="whViewMode === 'grid' ? 'bg-silaras-dark text-white' : 'text-slate-600'" class="px-3 py-1 rounded-lg text-xs font-semibold">Grid</button>
-                <button @click="whViewMode = 'table'" :class="whViewMode === 'table' ? 'bg-silaras-dark text-white' : 'text-slate-600'" class="px-3 py-1 rounded-lg text-xs font-semibold">Tabel</button>
+              <div class="flex flex-wrap items-center gap-2">
+                <input type="text" x-model="whStockSearch" placeholder="Cari nama / ID barang..." class="px-3 py-1.5 border border-slate-300 rounded-xl text-xs" />
+                <select x-model="whSortOrder" class="px-3 py-1.5 border border-slate-300 rounded-xl text-xs bg-white font-medium text-slate-700">
+                  <option value="asc">Urutkan: Nama A → Z (Asc)</option>
+                  <option value="desc">Urutkan: Nama Z → A (Desc)</option>
+                </select>
+                <div class="inline-flex rounded-xl border border-slate-300 p-1 bg-slate-50">
+                  <button @click="whViewMode = 'grid'" :class="whViewMode === 'grid' ? 'bg-silaras-dark text-white' : 'text-slate-600'" class="px-3 py-1 rounded-lg text-xs font-semibold">Grid</button>
+                  <button @click="whViewMode = 'table'" :class="whViewMode === 'table' ? 'bg-silaras-dark text-white' : 'text-slate-600'" class="px-3 py-1 rounded-lg text-xs font-semibold">Tabel</button>
+                </div>
               </div>
             </div>
 
             <div x-show="whViewMode === 'grid'" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <template x-for="st in warehouseData.stock || []" :key="st.inv_id">
+              <template x-for="st in sortedWarehouseStock()" :key="st.inv_id">
                 <div @click="openWhDetailModal(st)" class="border border-slate-200 hover:border-emerald-600 rounded-xl p-3 space-y-2 cursor-pointer transition hover:shadow-md bg-white">
                   <div class="h-36 bg-slate-100 rounded-lg overflow-hidden flex items-center justify-center relative">
                     <img x-show="st.photo_url" :src="normalizeDriveImgUrl(st.photo_url)" class="w-full h-full object-cover" />
@@ -903,14 +918,19 @@
                     <th class="px-3 py-2">Foto</th>
                     <th class="px-3 py-2">ID</th>
                     <th class="px-3 py-2">Kategori</th>
-                    <th class="px-3 py-2">Nama Barang</th>
+                    <th class="px-3 py-2">
+                      <button type="button" @click="whSortOrder = whSortOrder === 'asc' ? 'desc' : 'asc'" class="flex items-center gap-1.5 uppercase hover:text-lime-300">
+                        <span>Nama Barang</span>
+                        <i class="fa-solid" :class="whSortOrder === 'asc' ? 'fa-arrow-up-a-z' : 'fa-arrow-down-z-a'"></i>
+                      </button>
+                    </th>
                     <th class="px-3 py-2">Batch / Info</th>
                     <th class="px-3 py-2">Sisa Stok</th>
                     <th class="px-3 py-2">Aksi</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y">
-                  <template x-for="st in warehouseData.stock || []" :key="st.inv_id">
+                  <template x-for="st in sortedWarehouseStock()" :key="st.inv_id">
                     <tr @click="openWhDetailModal(st)" class="hover:bg-emerald-50/40 cursor-pointer">
                       <td class="px-3 py-2">
                         <img x-show="st.photo_url" :src="normalizeDriveImgUrl(st.photo_url)" class="w-10 h-10 rounded-lg object-cover border" />
@@ -951,11 +971,11 @@
 
               <div class="relative">
                 <label class="block text-xs font-bold text-slate-700 mb-1">Nama Barang (Live Autocomplete Master Data) *</label>
-                <input type="text" x-model="whInForm.item_name" @input.debounce.300ms="searchMasterForWhIn()" required placeholder="Ketik nama barang..." class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+                <input type="text" x-model="whInForm.item_name" @input.debounce.250ms="searchMasterForWhIn()" required placeholder="Ketik nama barang..." class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
                 <div x-show="whInSuggestions.length > 0" class="absolute z-20 w-full bg-white border border-slate-300 rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto">
                   <template x-for="s in whInSuggestions" :key="s.item_id">
                     <button type="button" @click="selectWhInSuggestion(s)" class="w-full text-left px-3 py-2 hover:bg-emerald-50 text-xs border-b">
-                      <span class="font-mono font-bold text-emerald-800" x-text="s.item_id"></span> - <span class="font-semibold" x-text="s.item_name"></span> (<span x-text="s.maker_type_spec"></span>)
+                      <span class="font-mono font-bold text-emerald-800" x-text="s.item_id"></span> - <span class="font-semibold" x-text="s.item_name"></span> (<span x-text="s.maker_type_spec || '-'"></span>)
                     </button>
                   </template>
                 </div>
@@ -967,11 +987,11 @@
               <div class="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label class="block text-xs font-bold text-slate-700 mb-1">Maker / Type / Spek</label>
-                  <input type="text" x-model="whInForm.maker_type_spec" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+                  <input type="text" list="makerHistoryList" x-model="whInForm.maker_type_spec" placeholder="Pilih atau ketik manual..." class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
                 </div>
                 <div>
                   <label class="block text-xs font-bold text-slate-700 mb-1">Satuan *</label>
-                  <input type="text" x-model="whInForm.unit" required placeholder="Unit / Gram / mL / Botol" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+                  <input type="text" list="unitHistoryList" x-model="whInForm.unit" required placeholder="Pilih atau ketik manual..." class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
                 </div>
               </div>
 
@@ -1024,19 +1044,26 @@
                   <label class="block text-xs font-bold text-slate-700 mb-1">Foto Barang (Upload / Kamera)</label>
                   <div class="flex gap-2">
                     <label class="px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold cursor-pointer hover:bg-slate-50">
-                      <i class="fa-solid fa-upload mr-1"></i> File
+                      <i class="fa-solid fa-upload mr-1"></i> Upload File
                       <input type="file" accept="image/*" @change="handleImageFile($event, 'whIn')" class="hidden" />
                     </label>
                     <button type="button" @click="openCameraModal('whIn')" class="px-3 py-2 rounded-xl border border-emerald-700 text-emerald-800 text-xs font-semibold hover:bg-emerald-50">
-                      <i class="fa-solid fa-camera mr-1"></i> Kamera
+                      <i class="fa-solid fa-camera mr-1"></i> Ambil Kamera
                     </button>
                   </div>
                 </div>
               </div>
 
-              <div x-show="whInForm.photo_base64 || whInForm.photo_url" class="flex items-center gap-3">
-                <img :src="whInForm.photo_base64 || normalizeDriveImgUrl(whInForm.photo_url)" class="w-20 h-20 object-cover rounded-xl border" />
-                <button type="button" @click="whInForm.photo_base64 = ''; whInForm.photo_url = ''" class="text-xs text-red-600 font-semibold">Hapus Foto</button>
+              <!-- THUMBNAIL PRATINJAU FOTO + TOMBOL X HAPUS -->
+              <div x-show="whInForm.photo_base64 || whInForm.photo_url" class="flex items-center gap-3 pt-1">
+                <div class="relative inline-block">
+                  <img :src="whInForm.photo_base64 || normalizeDriveImgUrl(whInForm.photo_url)" class="w-24 h-24 object-cover rounded-xl border border-slate-300 shadow-xs" />
+                  <button type="button" @click="clearPhotoTarget('whIn')" title="Hapus foto & ambil ulang"
+                          class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-600 text-white hover:bg-red-700 flex items-center justify-center shadow-md text-xs font-bold">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+                <span class="text-[11px] text-slate-500">Klik tombol <b>X</b> untuk menghapus foto atau pilih Upload File / Ambil Kamera untuk mengganti.</span>
               </div>
 
               <button type="submit" class="px-6 py-2.5 rounded-xl bg-silaras-dark text-white font-bold text-sm hover:bg-emerald-900">
@@ -1282,7 +1309,7 @@
             <button type="button" @click="submitBooking()" class="px-6 py-2.5 rounded-xl bg-silaras-dark text-white font-bold text-sm">Ajukan Penggunaan Ruangan</button>
           </div>
 
-          <!-- ANTREAN VERIFIKASI & PERSETUJUAN (DENGAN TOMBOL PERSETUJUAN KEPALA LABORATORIUM) -->
+          <!-- ANTREAN VERIFIKASI & PERSETUJUAN -->
           <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-6">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
@@ -1293,7 +1320,6 @@
                     x-text="'Filter Lokasi Aktif: ' + getActiveLabLabel()"></span>
             </div>
 
-            <!-- 1. Antrean Penggunaan Ruangan -->
             <div>
               <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">Penggunaan Ruangan</h4>
               <div class="overflow-x-auto border rounded-xl">
@@ -1341,7 +1367,6 @@
               </div>
             </div>
 
-            <!-- 2. Antrean Peminjaman Peralatan -->
             <div>
               <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">Peminjaman Peralatan</h4>
               <div class="overflow-x-auto border rounded-xl">
@@ -1408,7 +1433,6 @@
               </div>
             </div>
 
-            <!-- 3. Antrean Penggunaan Bahan & Bahan Kimia -->
             <div>
               <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">Penggunaan Bahan & Bahan Kimia</h4>
               <div class="overflow-x-auto border rounded-xl">
@@ -1467,11 +1491,24 @@
           </div>
         </div>
 
-        <!-- 5. MASTER DATA BARANG -->
+        <!-- 5. MASTER DATA BARANG (DILENGKAPI SORT ASC/DESC NAMA BARANG) -->
         <div x-show="activeMenu === 'master_data'" class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
-          <div class="flex items-center justify-between">
+          <div class="flex flex-wrap items-center justify-between gap-3">
             <h3 class="font-bold text-emerald-950">Master Data Barang Terpusat (ALT / BHN / KIM)</h3>
-            <button x-show="canEdit('master_data')" @click="openMasterFormModal(null)" class="px-4 py-2 rounded-xl bg-silaras-dark text-white text-xs font-bold">+ Tambah Master Barang</button>
+            <div class="flex flex-wrap items-center gap-2">
+              <select x-model="masterCategoryFilter" class="px-3 py-1.5 border border-slate-300 rounded-xl text-xs bg-white">
+                <option value="ALL">Semua Kategori</option>
+                <option value="Alat">Alat</option>
+                <option value="Bahan">Bahan</option>
+                <option value="Bahan Kimia">Bahan Kimia</option>
+              </select>
+              <input type="text" x-model="masterSearch" placeholder="Cari nama / ID / spek..." class="px-3 py-1.5 border border-slate-300 rounded-xl text-xs" />
+              <select x-model="masterSortOrder" class="px-3 py-1.5 border border-slate-300 rounded-xl text-xs bg-white font-medium text-slate-700">
+                <option value="asc">Urutkan: Nama A → Z (Asc)</option>
+                <option value="desc">Urutkan: Nama Z → A (Desc)</option>
+              </select>
+              <button x-show="canEdit('master_data')" @click="openMasterFormModal(null)" class="px-4 py-2 rounded-xl bg-silaras-dark text-white text-xs font-bold">+ Tambah Master Barang</button>
+            </div>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full text-xs text-left">
@@ -1480,7 +1517,12 @@
                   <th class="px-3 py-2">Foto</th>
                   <th class="px-3 py-2">ID Barang</th>
                   <th class="px-3 py-2">Kategori</th>
-                  <th class="px-3 py-2">Nama Barang</th>
+                  <th class="px-3 py-2">
+                    <button type="button" @click="masterSortOrder = masterSortOrder === 'asc' ? 'desc' : 'asc'" class="flex items-center gap-1.5 uppercase hover:text-lime-300">
+                      <span>Nama Barang</span>
+                      <i class="fa-solid" :class="masterSortOrder === 'asc' ? 'fa-arrow-up-a-z' : 'fa-arrow-down-z-a'"></i>
+                    </button>
+                  </th>
                   <th class="px-3 py-2">Spek / CAS</th>
                   <th class="px-3 py-2">Satuan</th>
                   <th class="px-3 py-2">Publik</th>
@@ -1488,7 +1530,7 @@
                 </tr>
               </thead>
               <tbody class="divide-y">
-                <template x-for="m in masterItemsList" :key="m.item_id">
+                <template x-for="m in filteredMasterItems()" :key="m.item_id">
                   <tr class="hover:bg-slate-50">
                     <td class="px-3 py-2">
                       <img x-show="m.photo_url" :src="normalizeDriveImgUrl(m.photo_url)" class="w-9 h-9 rounded object-cover border" />
@@ -1565,7 +1607,6 @@
 
         <!-- 8. PENGATURAN PENGGUNA, MASTER LOKASI LAB & HAK AKSES GRANULAR -->
         <div x-show="activeMenu === 'settings'" class="space-y-6">
-          <!-- 8A. Master Lokasi Laboratorium -->
           <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
             <div class="flex items-center justify-between">
               <div>
@@ -1618,7 +1659,6 @@
             </div>
           </div>
 
-          <!-- 8B. Manajemen Pengguna, Multi-Role & Penugasan Lokasi -->
           <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
             <div class="flex items-center justify-between">
               <h3 class="font-bold text-emerald-950">Manajemen Pengguna, Multi-Role & Penugasan Lokasi</h3>
@@ -1652,7 +1692,6 @@
             </div>
           </div>
 
-          <!-- 8C. PENGATURAN MATRIKS HAK AKSES GRANULAR BAGI SUPER ADMIN -->
           <div x-show="isSuperAdmin()" class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
               <div>
@@ -1674,7 +1713,6 @@
               </div>
             </div>
 
-            <!-- Pilihan Tab Peran -->
             <div class="flex flex-wrap gap-1.5 bg-slate-100 p-1.5 rounded-xl">
               <template x-for="r in availableRoles" :key="r">
                 <button type="button"
@@ -1686,7 +1724,6 @@
               </template>
             </div>
 
-            <!-- Tabel Granular Modul vs Izin (View / Edit / Delete) -->
             <div class="overflow-x-auto border border-slate-200 rounded-xl">
               <table class="w-full text-xs text-left">
                 <thead class="bg-emerald-950 text-white uppercase">
@@ -1735,6 +1772,18 @@
       </main>
     </div>
   </div>
+
+  <!-- DATALIST RIWAYAT ISIAN MAKER & SATUAN GLOBAL -->
+  <datalist id="makerHistoryList">
+    <template x-for="mk in getMakerHistoryOptions()" :key="mk">
+      <option :value="mk"></option>
+    </template>
+  </datalist>
+  <datalist id="unitHistoryList">
+    <template x-for="un in getUnitHistoryOptions()" :key="un">
+      <option :value="un"></option>
+    </template>
+  </datalist>
 
   <!-- MODAL DETAIL AKTIF STOK GUDANG + EDIT & HAPUS -->
   <div x-show="whDetailModal.open" x-cloak class="fixed inset-0 z-40 bg-slate-900/60 flex items-center justify-center p-4 overflow-y-auto">
@@ -1808,11 +1857,11 @@
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block font-bold mb-1">Maker / Type / Spek</label>
-            <input type="text" x-model="whEditModal.data.maker_type_spec" class="w-full px-3 py-2 border rounded-xl" />
+            <input type="text" list="makerHistoryList" x-model="whEditModal.data.maker_type_spec" class="w-full px-3 py-2 border rounded-xl" />
           </div>
           <div>
             <label class="block font-bold mb-1">Satuan *</label>
-            <input type="text" x-model="whEditModal.data.unit" required class="w-full px-3 py-2 border rounded-xl" />
+            <input type="text" list="unitHistoryList" x-model="whEditModal.data.unit" required class="w-full px-3 py-2 border rounded-xl" />
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
@@ -1848,15 +1897,21 @@
             <label class="block font-bold mb-1">Foto Barang (Upload / Kamera)</label>
             <div class="flex gap-2">
               <label class="px-3 py-2 rounded-xl border cursor-pointer hover:bg-slate-50">
-                File <input type="file" accept="image/*" @change="handleImageFile($event, 'whEdit')" class="hidden" />
+                Upload File <input type="file" accept="image/*" @change="handleImageFile($event, 'whEdit')" class="hidden" />
               </label>
-              <button type="button" @click="openCameraModal('whEdit')" class="px-3 py-2 rounded-xl border border-emerald-700 text-emerald-800">Kamera</button>
+              <button type="button" @click="openCameraModal('whEdit')" class="px-3 py-2 rounded-xl border border-emerald-700 text-emerald-800">Ambil Kamera</button>
             </div>
           </div>
         </div>
-        <div x-show="whEditModal.data.photo_base64 || whEditModal.data.photo_url" class="flex items-center gap-3">
-          <img :src="whEditModal.data.photo_base64 || normalizeDriveImgUrl(whEditModal.data.photo_url)" class="w-16 h-16 object-cover rounded-xl border" />
-          <button type="button" @click="whEditModal.data.photo_base64 = ''; whEditModal.data.photo_url = ''" class="text-red-600 font-semibold">Hapus Foto</button>
+        <div x-show="whEditModal.data.photo_base64 || whEditModal.data.photo_url" class="flex items-center gap-3 pt-1">
+          <div class="relative inline-block">
+            <img :src="whEditModal.data.photo_base64 || normalizeDriveImgUrl(whEditModal.data.photo_url)" class="w-20 h-20 object-cover rounded-xl border border-slate-300" />
+            <button type="button" @click="clearPhotoTarget('whEdit')" title="Hapus foto & ambil ulang"
+                    class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-600 text-white hover:bg-red-700 flex items-center justify-center shadow text-[10px] font-bold">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <span class="text-[11px] text-slate-500">Klik <b>X</b> untuk menghapus foto atau pilih Upload/Kamera untuk mengganti.</span>
         </div>
         <div class="flex justify-end gap-2 pt-3 border-t">
           <button type="button" @click="whEditModal.open = false" class="px-4 py-2 rounded-xl border">Batal</button>
@@ -1885,7 +1940,7 @@
           </div>
           <div>
             <label class="block font-bold mb-1">Satuan *</label>
-            <input type="text" x-model="masterFormModal.data.unit" required class="w-full px-3 py-2 border rounded-xl" />
+            <input type="text" list="unitHistoryList" x-model="masterFormModal.data.unit" required class="w-full px-3 py-2 border rounded-xl" />
           </div>
         </div>
         <div>
@@ -1894,7 +1949,7 @@
         </div>
         <div>
           <label class="block font-bold mb-1">Maker / Type / Spek</label>
-          <input type="text" x-model="masterFormModal.data.maker_type_spec" class="w-full px-3 py-2 border rounded-xl" />
+          <input type="text" list="makerHistoryList" x-model="masterFormModal.data.maker_type_spec" class="w-full px-3 py-2 border rounded-xl" />
         </div>
         <div x-show="masterFormModal.data.category === 'Bahan Kimia'" class="grid grid-cols-3 gap-2">
           <div>
@@ -1919,14 +1974,20 @@
         <div>
           <label class="block font-bold mb-1">Foto Barang (Upload / Kamera)</label>
           <div class="flex gap-2">
-            <label class="px-3 py-1.5 rounded-xl border cursor-pointer">
-              File <input type="file" accept="image/*" @change="handleImageFile($event, 'masterForm')" class="hidden" />
+            <label class="px-3 py-1.5 rounded-xl border cursor-pointer hover:bg-slate-50">
+              Upload File <input type="file" accept="image/*" @change="handleImageFile($event, 'masterForm')" class="hidden" />
             </label>
-            <button type="button" @click="openCameraModal('masterForm')" class="px-3 py-1.5 rounded-xl border border-emerald-700 text-emerald-800">Kamera</button>
+            <button type="button" @click="openCameraModal('masterForm')" class="px-3 py-1.5 rounded-xl border border-emerald-700 text-emerald-800 hover:bg-emerald-50">Ambil Kamera</button>
           </div>
-          <div x-show="masterFormModal.data.photo_base64 || masterFormModal.data.photo_url" class="mt-2 flex items-center gap-2">
-            <img :src="masterFormModal.data.photo_base64 || normalizeDriveImgUrl(masterFormModal.data.photo_url)" class="w-14 h-14 object-cover rounded-lg border" />
-            <button type="button" @click="masterFormModal.data.photo_base64 = ''; masterFormModal.data.photo_url = ''" class="text-red-600">Hapus</button>
+          <div x-show="masterFormModal.data.photo_base64 || masterFormModal.data.photo_url" class="mt-2.5 flex items-center gap-3">
+            <div class="relative inline-block">
+              <img :src="masterFormModal.data.photo_base64 || normalizeDriveImgUrl(masterFormModal.data.photo_url)" class="w-20 h-20 object-cover rounded-xl border border-slate-300" />
+              <button type="button" @click="clearPhotoTarget('masterForm')" title="Hapus foto & ambil ulang"
+                      class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-600 text-white hover:bg-red-700 flex items-center justify-center shadow text-[10px] font-bold">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            <span class="text-[11px] text-slate-500">Klik tombol <b>X</b> untuk menghapus foto atau pilih Upload/Kamera untuk mengganti.</span>
           </div>
         </div>
         <button type="submit" class="w-full py-2.5 rounded-xl bg-silaras-dark text-white font-bold">Simpan Master Barang</button>
@@ -1971,94 +2032,161 @@
     </div>
   </div>
 
-  <!-- MODAL FORM TAMBAH / EDIT INVENTARIS -->
+  <!-- MODAL FORM TAMBAH / EDIT INVENTARIS (ALAT / BAHAN / BAHAN KIMIA) -->
   <div x-show="invFormModal.open" x-cloak class="fixed inset-0 z-40 bg-slate-900/60 flex items-center justify-center p-4 overflow-y-auto">
     <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 my-8">
-      <div class="flex justify-between items-center">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
         <h3 class="font-bold text-lg text-emerald-950" x-text="(invFormModal.is_edit ? 'Edit ' : 'Tambah ') + currentInvCategory()"></h3>
-        <button @click="invFormModal.open = false" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button>
+        <button @click="invFormModal.open = false; invFormSuggestions = []" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
-      <form @submit.prevent="submitInventoryForm()" class="space-y-3 text-xs">
+      <form @submit.prevent="submitInventoryForm()" autocomplete="off" class="space-y-3 text-xs">
         <div>
           <label class="block font-bold mb-1">Lokasi Laboratorium *</label>
-          <select x-model="invFormModal.data.location_id" required class="w-full px-3 py-2 border rounded-xl">
+          <select x-model="invFormModal.data.location_id" required class="w-full px-3 py-2 border border-slate-300 rounded-xl">
             <option value="">-- Pilih Lokasi --</option>
             <template x-for="l in session?.accessible_labs || []" :key="l.lab_id">
               <option :value="l.lab_id" x-text="l.lab_name"></option>
             </template>
           </select>
         </div>
-        <div>
-          <label class="block font-bold mb-1">Nama Barang *</label>
-          <input type="text" x-model="invFormModal.data.item_name" required class="w-full px-3 py-2 border rounded-xl" />
+
+        <!-- LIVE AUTOCOMPLETE MASTER DATA PADA KOLOM NAMA BARANG -->
+        <div class="relative">
+          <label class="block font-bold mb-1">Nama Barang (Live Autocomplete Master Data) *</label>
+          <input type="text"
+                 x-model="invFormModal.data.item_name"
+                 @input.debounce.200ms="searchMasterForInvForm()"
+                 required
+                 placeholder="Ketik nama barang dari Master Data atau nama baru..."
+                 class="w-full px-3 py-2 border border-slate-300 rounded-xl" />
+
+          <!-- Dropdown Saran Master Data -->
+          <div x-show="invFormSuggestions.length > 0" class="absolute z-30 w-full bg-white border border-slate-300 rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto">
+            <template x-for="s in invFormSuggestions" :key="s.item_id">
+              <button type="button" @click="selectInvFormSuggestion(s)" class="w-full text-left px-3 py-2 hover:bg-emerald-50 text-xs border-b flex items-center gap-2.5">
+                <img x-show="s.photo_url" :src="normalizeDriveImgUrl(s.photo_url)" class="w-8 h-8 rounded object-cover border shrink-0" />
+                <div class="min-w-0">
+                  <span class="font-mono font-bold text-emerald-800" x-text="s.item_id"></span> -
+                  <span class="font-semibold text-slate-900" x-text="s.item_name"></span>
+                  <p class="text-[11px] text-slate-500 truncate" x-text="(s.maker_type_spec || '-') + ' • Satuan: ' + (s.unit || '-')"></p>
+                </div>
+              </button>
+            </template>
+          </div>
+
+          <p x-show="invFormModal.data.item_id" class="text-[11px] text-emerald-700 font-semibold mt-1">
+            <i class="fa-solid fa-link mr-1"></i> Terhubung dengan Master Data (<span class="font-mono" x-text="invFormModal.data.item_id"></span>). Atribut & foto otomatis terisi.
+          </p>
+          <p x-show="!invFormModal.is_edit && invFormModal.data.item_name && !invFormModal.data.item_id" class="text-[11px] text-amber-700 mt-1">
+            Data belum ada di Master Data — akan otomatis ditambahkan sebagai item baru.
+          </p>
         </div>
+
+        <!-- MAKER & SATUAN DENGAN RIWAYAT ISIAN SEBELUMNYA -->
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block font-bold mb-1">Maker / Type / Spek</label>
-            <input type="text" x-model="invFormModal.data.maker_type_spec" class="w-full px-3 py-2 border rounded-xl" />
+            <input type="text"
+                   list="makerHistoryList"
+                   x-model="invFormModal.data.maker_type_spec"
+                   placeholder="Pilih riwayat atau ketik..."
+                   class="w-full px-3 py-2 border border-slate-300 rounded-xl" />
           </div>
           <div>
             <label class="block font-bold mb-1">Satuan *</label>
-            <input type="text" x-model="invFormModal.data.unit" required class="w-full px-3 py-2 border rounded-xl" />
+            <input type="text"
+                   list="unitHistoryList"
+                   x-model="invFormModal.data.unit"
+                   required
+                   placeholder="Pilih riwayat atau ketik..."
+                   class="w-full px-3 py-2 border border-slate-300 rounded-xl" />
           </div>
         </div>
+
         <template x-if="currentInvCategory() === 'Alat'">
           <div class="grid grid-cols-3 gap-2">
             <div>
               <label class="block font-bold mb-1">Tahun</label>
-              <input type="number" x-model="invFormModal.data.acquisition_year" class="w-full px-3 py-2 border rounded-xl" />
+              <input type="number" x-model="invFormModal.data.acquisition_year" placeholder="2026" class="w-full px-3 py-2 border border-slate-300 rounded-xl" />
             </div>
             <div>
               <label class="block font-bold mb-1">BMN</label>
-              <select x-model="invFormModal.data.bmn_category" class="w-full px-3 py-2 border rounded-xl">
+              <select x-model="invFormModal.data.bmn_category" class="w-full px-3 py-2 border border-slate-300 rounded-xl">
+                <option value="">-- Pilih --</option>
                 <option value="BM">BM</option>
                 <option value="Non BM">Non BM</option>
               </select>
             </div>
             <div>
               <label class="block font-bold mb-1">Stok Tersedia *</label>
-              <input type="number" min="0" x-model="invFormModal.data.qty_available" required class="w-full px-3 py-2 border rounded-xl" />
+              <input type="number" min="0" x-model="invFormModal.data.qty_available" required placeholder="0" class="w-full px-3 py-2 border border-slate-300 rounded-xl" />
             </div>
           </div>
         </template>
+
         <template x-if="currentInvCategory() !== 'Alat'">
           <div class="grid grid-cols-3 gap-2">
             <div>
-              <label class="block font-bold mb-1">Batch/Lot</label>
-              <input type="text" x-model="invFormModal.data.batch_lot" class="w-full px-3 py-2 border rounded-xl" />
+              <label class="block font-bold mb-1">Batch / Lot</label>
+              <input type="text" x-model="invFormModal.data.batch_lot" placeholder="Nomor batch" class="w-full px-3 py-2 border border-slate-300 rounded-xl" />
             </div>
             <div>
               <label class="block font-bold mb-1">Kedaluwarsa</label>
-              <input type="date" x-model="invFormModal.data.expiry_date" class="w-full px-3 py-2 border rounded-xl" />
+              <input type="date" x-model="invFormModal.data.expiry_date" class="w-full px-3 py-2 border border-slate-300 rounded-xl" />
             </div>
             <div>
               <label class="block font-bold mb-1">Stok *</label>
-              <input type="number" step="any" min="0" x-model="invFormModal.data.qty_available" required class="w-full px-3 py-2 border rounded-xl" />
+              <input type="number" step="any" min="0" x-model="invFormModal.data.qty_available" required placeholder="0" class="w-full px-3 py-2 border border-slate-300 rounded-xl" />
             </div>
           </div>
         </template>
+
         <template x-if="currentInvCategory() === 'Bahan Kimia'">
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block font-bold mb-1">CAS Number</label>
-              <input type="text" x-model="invFormModal.data.cas_number" class="w-full px-3 py-2 border rounded-xl" />
+              <input type="text" x-model="invFormModal.data.cas_number" placeholder="Contoh: 64-17-5" class="w-full px-3 py-2 border border-slate-300 rounded-xl" />
             </div>
             <div>
               <label class="block font-bold mb-1">Posisi Rak / Lemari</label>
-              <input type="text" x-model="invFormModal.data.storage_position" class="w-full px-3 py-2 border rounded-xl" />
+              <input type="text" x-model="invFormModal.data.storage_position" placeholder="Contoh: Lemari Asam A1" class="w-full px-3 py-2 border border-slate-300 rounded-xl" />
             </div>
           </div>
         </template>
+
+        <!-- FOTO BARANG + THUMBNAIL PRATINJAU + TOMBOL X HAPUS & AMBIL ULANG -->
         <div>
           <label class="block font-bold mb-1">Foto Barang (Upload / Kamera)</label>
           <div class="flex gap-2">
-            <label class="px-3 py-1.5 rounded-xl border cursor-pointer">
-              Upload File <input type="file" accept="image/*" @change="handleImageFile($event, 'invForm')" class="hidden" />
+            <label class="px-3 py-1.5 rounded-xl border border-slate-300 cursor-pointer hover:bg-slate-50 font-semibold">
+              <i class="fa-solid fa-upload mr-1"></i> Upload File
+              <input type="file" accept="image/*" @change="handleImageFile($event, 'invForm')" class="hidden" />
             </label>
-            <button type="button" @click="openCameraModal('invForm')" class="px-3 py-1.5 rounded-xl border border-emerald-700 text-emerald-800">Ambil Kamera</button>
+            <button type="button" @click="openCameraModal('invForm')" class="px-3 py-1.5 rounded-xl border border-emerald-700 text-emerald-800 hover:bg-emerald-50 font-semibold">
+              <i class="fa-solid fa-camera mr-1"></i> Ambil Kamera
+            </button>
+          </div>
+
+          <div x-show="invFormModal.data.photo_base64 || invFormModal.data.photo_url" class="mt-3 flex items-center gap-3">
+            <div class="relative inline-block">
+              <img :src="invFormModal.data.photo_base64 || normalizeDriveImgUrl(invFormModal.data.photo_url)"
+                   alt="Pratinjau Foto Barang"
+                   class="w-24 h-24 object-cover rounded-xl border border-slate-300 shadow-xs" />
+              <button type="button"
+                      @click="clearPhotoTarget('invForm')"
+                      title="Hapus foto & ambil foto kembali"
+                      class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-600 text-white hover:bg-red-700 flex items-center justify-center shadow-md text-xs font-bold">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            <div class="text-[11px] text-slate-500 space-y-0.5">
+              <p class="font-semibold text-slate-700">Pratinjau Foto Barang</p>
+              <p>Klik ikon <b>X</b> untuk menghapus foto ini, atau klik <b>Upload File / Ambil Kamera</b> untuk mengambil foto kembali.</p>
+            </div>
           </div>
         </div>
-        <button type="submit" class="w-full py-2.5 rounded-xl bg-silaras-dark text-white font-bold">Simpan Data</button>
+
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-silaras-dark text-white font-bold hover:bg-emerald-900">Simpan Data</button>
       </form>
     </div>
   </div>
@@ -2167,7 +2295,7 @@
                  class="w-full px-3 py-2 border border-amber-300 bg-white rounded-xl" />
           <p class="text-[11px] text-amber-800">Minimal 6 karakter. Isi kolom ini untuk mengatur ulang kata sandi pengguna secara langsung.</p>
         </div>
-		<button type="submit" class="w-full py-2.5 rounded-xl bg-silaras-dark text-white font-bold">Simpan Pengguna</button>
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-silaras-dark text-white font-bold">Simpan Pengguna</button>
       </form>
     </div>
   </div>
@@ -2239,7 +2367,7 @@
     </div>
   </div>
 
-<script>
+  <script>
     function silarasApp() {
       return {
         loading: false,
@@ -2263,7 +2391,7 @@
 
         authModal: { open: false, mode: 'login' },
         loginForm: { email: '', password: '' },
-		forgotForm: { step: 1, email: '', otp: '', new_password: '', confirm_password: '' },
+        forgotForm: { step: 1, email: '', otp: '', new_password: '', confirm_password: '' },
         regForm: { full_name: '', nim_nip: '', unit_prodi: '', phone: '', email: '', password: '' },
         profileForm: { full_name: '', nim_nip: '', unit_prodi: '', phone: '' },
 
@@ -2273,13 +2401,21 @@
         inventoryList: [],
         invLocationFilter: 'ALL',
         invSearch: '',
+        invSortOrder: 'asc',
         invViewMode: 'grid',
         invDetailModal: { open: false, item: null },
         invFormModal: { open: false, is_edit: false, data: {} },
+        invFormSuggestions: [],
+
+        // Riwayat isian Maker/Type/Spek & Satuan (localStorage + Master Data)
+        savedMakerHistory: [],
+        savedUnitHistory: [],
 
         warehouseData: { stock: [], transactions: [], labs: [], takers: [], courses: [] },
         warehouseTab: 'stock',
         whViewMode: 'grid',
+        whStockSearch: '',
+        whSortOrder: 'asc',
         whInForm: { category: 'Alat', trx_date: new Date().toISOString().slice(0,10), item_id: '', item_name: '', maker_type_spec: '', unit: 'Unit', acquisition_year: 2026, bmn_category: 'Non BM', batch_lot: '', expiry_date: '', cas_number: '', grade: '', ghs_symbol: '', qty: 1, photo_base64: '', photo_url: '' },
         whInSuggestions: [],
         whOutForm: { taker_name: '', course_name: '', destination_lab_id: '', items: [] },
@@ -2295,6 +2431,9 @@
         catalogPickerModal: { open: false, category: 'Alat', target: '', search: '', items: [] },
         cameraModal: { open: false, target: '', stream: null },
         masterItemsList: [],
+        masterCategoryFilter: 'ALL',
+        masterSearch: '',
+        masterSortOrder: 'asc',
         auditLogsList: [],
         adminData: { users: [], labs: [], role_permissions: null },
         userModal: { open: false, data: { roles: ['User'], assigned_labs: [], status: 'active' } },
@@ -2321,6 +2460,7 @@
 
         initApp() {
           this.initPermissionMatrix(null);
+          this.loadLocalInputHistories();
           const saved = localStorage.getItem('SILARAS_SESSION');
           if (saved) {
             try {
@@ -2335,6 +2475,81 @@
             }
           }
           this.loadPublicHome();
+        },
+
+        // ===================================================================
+        // HELPER SORT NAMA BARANG (ASCENDING & DESCENDING)
+        // ===================================================================
+        sortByItemName(list, order = 'asc') {
+          const dir = order === 'desc' ? -1 : 1;
+          return [...(list || [])].sort((a, b) => {
+            const nameA = String(a?.item_name || '').trim();
+            const nameB = String(b?.item_name || '').trim();
+            return nameA.localeCompare(nameB, 'id', { sensitivity: 'base', numeric: true }) * dir;
+          });
+        },
+
+        // ===================================================================
+        // RIWAYAT ISIAN MAKER/TYPE/SPEK & SATUAN
+        // ===================================================================
+        loadLocalInputHistories() {
+          try {
+            const makers = JSON.parse(localStorage.getItem('SILARAS_MAKER_HISTORY') || '[]');
+            const units = JSON.parse(localStorage.getItem('SILARAS_UNIT_HISTORY') || '[]');
+            if (Array.isArray(makers)) this.savedMakerHistory = makers;
+            if (Array.isArray(units)) this.savedUnitHistory = units;
+          } catch (e) {}
+        },
+
+        recordInputHistory(maker, unit) {
+          const cleanMaker = String(maker || '').trim();
+          const cleanUnit = String(unit || '').trim();
+          if (cleanMaker && !this.savedMakerHistory.some(x => x.toLowerCase() === cleanMaker.toLowerCase())) {
+            this.savedMakerHistory.push(cleanMaker);
+            localStorage.setItem('SILARAS_MAKER_HISTORY', JSON.stringify(this.savedMakerHistory));
+          }
+          if (cleanUnit && !this.savedUnitHistory.some(x => x.toLowerCase() === cleanUnit.toLowerCase())) {
+            this.savedUnitHistory.push(cleanUnit);
+            localStorage.setItem('SILARAS_UNIT_HISTORY', JSON.stringify(this.savedUnitHistory));
+          }
+        },
+
+        getMakerHistoryOptions() {
+          const set = new Set(this.savedMakerHistory || []);
+          (this.masterItemsList || []).forEach(m => {
+            const v = String(m.maker_type_spec || '').trim();
+            if (v && v !== '-') set.add(v);
+          });
+          return Array.from(set).sort((a, b) => a.localeCompare(b, 'id', { sensitivity: 'base' }));
+        },
+
+        getUnitHistoryOptions() {
+          const defaults = ['Unit', 'Buah', 'Set', 'Gram', 'Kg', 'mL', 'Liter', 'Botol', 'Pack', 'Lembar'];
+          const set = new Set([...defaults, ...(this.savedUnitHistory || [])]);
+          (this.masterItemsList || []).forEach(m => {
+            const v = String(m.unit || '').trim();
+            if (v && v !== '-') set.add(v);
+          });
+          return Array.from(set).sort((a, b) => a.localeCompare(b, 'id', { sensitivity: 'base' }));
+        },
+
+        // ===================================================================
+        // HELPER HAPUS FOTO (TOMBOL X) PADA SEMUA FORM
+        // ===================================================================
+        clearPhotoTarget(target) {
+          if (target === 'whIn') {
+            this.whInForm.photo_base64 = '';
+            this.whInForm.photo_url = '';
+          } else if (target === 'whEdit') {
+            this.whEditModal.data.photo_base64 = '';
+            this.whEditModal.data.photo_url = '';
+          } else if (target === 'masterForm') {
+            this.masterFormModal.data.photo_base64 = '';
+            this.masterFormModal.data.photo_url = '';
+          } else if (target === 'invForm') {
+            this.invFormModal.data.photo_base64 = '';
+            this.invFormModal.data.photo_url = '';
+          }
         },
 
         // SINKRONISASI KONTEKS LOKASI AKTIF (active_lab_id) DI SIDEBAR & FILTER
@@ -2614,9 +2829,10 @@
 
         filteredPublicCatalog() {
           const kw = this.publicCatalogSearch.toLowerCase();
-          return (this.publicData.catalog || []).filter(c =>
+          const list = (this.publicData.catalog || []).filter(c =>
             !kw || c.item_name.toLowerCase().includes(kw) || (c.maker_type_spec || '').toLowerCase().includes(kw) || c.laboratories.toLowerCase().includes(kw)
           );
+          return this.sortByItemName(list, 'asc');
         },
 
         filteredPublicSchedules() {
@@ -2776,8 +2992,8 @@
             password: ''
           };
         },
-		
-		resetForgotForm() {
+
+        resetForgotForm() {
           this.forgotForm = {
             step: 1,
             email: this.loginForm.email || '',
@@ -2794,28 +3010,28 @@
         },
 
         switchAuthMode(mode) {
-		  if (mode === 'register') this.resetRegForm();
-		  if (mode === 'forgot') this.resetForgotForm();
-		  this.authModal.mode = mode;
-		},
+          if (mode === 'register') this.resetRegForm();
+          if (mode === 'forgot') this.resetForgotForm();
+          this.authModal.mode = mode;
+        },
 
         async submitLogin() {
-			const res = await this.runGas('apiLoginStandard', this.loginForm.email, this.loginForm.password);
-			if (res.success) {
-				this.activeMenu = 'dashboard';
-				this.session = res.session;
-				this.syncActiveLabContext();
-				localStorage.setItem('SILARAS_SESSION', JSON.stringify(this.session));
-				this.authModal.open = false;
-				this.loginForm = { email: '', password: '' };
-				this.bookingForm.pic_name = this.session.full_name;
-				this.bookingForm.unit_prodi = this.session.unit_prodi;
-				this.loadWorkspaceBundle(false);
-				this.showToast('Selamat datang, ' + this.session.full_name);
-			} else {
-				this.showToast(res.message, 'error');
-			}
-		},
+          const res = await this.runGas('apiLoginStandard', this.loginForm.email, this.loginForm.password);
+          if (res.success) {
+            this.activeMenu = 'dashboard';
+            this.session = res.session;
+            this.syncActiveLabContext();
+            localStorage.setItem('SILARAS_SESSION', JSON.stringify(this.session));
+            this.authModal.open = false;
+            this.loginForm = { email: '', password: '' };
+            this.bookingForm.pic_name = this.session.full_name;
+            this.bookingForm.unit_prodi = this.session.unit_prodi;
+            this.loadWorkspaceBundle(false);
+            this.showToast('Selamat datang, ' + this.session.full_name);
+          } else {
+            this.showToast(res.message, 'error');
+          }
+        },
 
         async submitRegister() {
           const res = await this.runGas('apiRegisterSelf', this.regForm);
@@ -2827,38 +3043,38 @@
             this.showToast(res.message, 'error');
           }
         },
-		
-		async submitRequestResetOtp() {
-			const res = await this.runGas('apiRequestPasswordReset', this.forgotForm.email);
-			if (res && res.success) {
-				this.showToast(res.message);
-				this.forgotForm.step = 2;
-			} else {
-				this.showToast(res?.message || 'Gagal mengirim OTP.', 'error');
-			}
-		},
 
-		async submitConfirmResetPassword() {
-			if (this.forgotForm.new_password !== this.forgotForm.confirm_password) {
-				this.showToast('Konfirmasi kata sandi baru tidak cocok.', 'error');
-				return;
-			}
-			const res = await this.runGas(
-				'apiConfirmPasswordReset',
-				this.forgotForm.email,
-				this.forgotForm.otp,
-				this.forgotForm.new_password
-			);
-			if (res && res.success) {
-				this.showToast(res.message);
-				this.loginForm.email = this.forgotForm.email;
-				this.loginForm.password = '';
-				this.resetForgotForm();
-				this.authModal.mode = 'login';
-			} else {
-				this.showToast(res?.message || 'Gagal mengatur ulang kata sandi.', 'error');
-			}
-		},
+        async submitRequestResetOtp() {
+          const res = await this.runGas('apiRequestPasswordReset', this.forgotForm.email);
+          if (res && res.success) {
+            this.showToast(res.message);
+            this.forgotForm.step = 2;
+          } else {
+            this.showToast(res?.message || 'Gagal mengirim OTP.', 'error');
+          }
+        },
+
+        async submitConfirmResetPassword() {
+          if (this.forgotForm.new_password !== this.forgotForm.confirm_password) {
+            this.showToast('Konfirmasi kata sandi baru tidak cocok.', 'error');
+            return;
+          }
+          const res = await this.runGas(
+            'apiConfirmPasswordReset',
+            this.forgotForm.email,
+            this.forgotForm.otp,
+            this.forgotForm.new_password
+          );
+          if (res && res.success) {
+            this.showToast(res.message);
+            this.loginForm.email = this.forgotForm.email;
+            this.loginForm.password = '';
+            this.resetForgotForm();
+            this.authModal.mode = 'login';
+          } else {
+            this.showToast(res?.message || 'Gagal mengatur ulang kata sandi.', 'error');
+          }
+        },
 
         async submitCompleteProfile() {
           const res = await this.runGas('apiCompleteProfile', this.session.token, this.profileForm);
@@ -2888,19 +3104,19 @@
         },
 
         logout() {
-		  if (this.session) this.runGasSilent('apiLogout', this.session.token);
-		  this.session = null;
-		  this.activeMenu = 'dashboard';
-		  this.bundleLoaded = false;
-		  this.invCache = { Alat: [], Bahan: [], 'Bahan Kimia': [] };
-		  this.dashData = { stats: {}, bookings: [], loans: [], usages: [], notifications: [] };
-		  this.warehouseData = { stock: [], transactions: [], labs: [], takers: [], courses: [] };
-		  this.adminData = { users: [], labs: [], role_permissions: null };
-		  this.masterItemsList = [];
-		  this.auditLogsList = [];
-		  localStorage.removeItem('SILARAS_SESSION');
-		  this.loadPublicHome();
-		},
+          if (this.session) this.runGasSilent('apiLogout', this.session.token);
+          this.session = null;
+          this.activeMenu = 'dashboard';
+          this.bundleLoaded = false;
+          this.invCache = { Alat: [], Bahan: [], 'Bahan Kimia': [] };
+          this.dashData = { stats: {}, bookings: [], loans: [], usages: [], notifications: [] };
+          this.warehouseData = { stock: [], transactions: [], labs: [], takers: [], courses: [] };
+          this.adminData = { users: [], labs: [], role_permissions: null };
+          this.masterItemsList = [];
+          this.auditLogsList = [];
+          localStorage.removeItem('SILARAS_SESSION');
+          this.loadPublicHome();
+        },
 
         canView(mod) { return Boolean(this.session?.permissions?.[mod]?.view); },
         canEdit(mod) { return Boolean(this.session?.permissions?.[mod]?.edit); },
@@ -2948,7 +3164,32 @@
 
         filteredInventory() {
           const kw = this.invSearch.toLowerCase();
-          return (this.inventoryList || []).filter(r => !kw || r.item_name.toLowerCase().includes(kw) || r.item_id.toLowerCase().includes(kw));
+          const filtered = (this.inventoryList || []).filter(r =>
+            !kw || r.item_name.toLowerCase().includes(kw) || r.item_id.toLowerCase().includes(kw)
+          );
+          return this.sortByItemName(filtered, this.invSortOrder);
+        },
+
+        filteredMasterItems() {
+          const kw = this.masterSearch.toLowerCase();
+          const filtered = (this.masterItemsList || []).filter(m => {
+            if (this.masterCategoryFilter !== 'ALL' && m.category !== this.masterCategoryFilter) return false;
+            if (kw && !String(m.item_name || '').toLowerCase().includes(kw) &&
+                !String(m.item_id || '').toLowerCase().includes(kw) &&
+                !String(m.maker_type_spec || '').toLowerCase().includes(kw)) {
+              return false;
+            }
+            return true;
+          });
+          return this.sortByItemName(filtered, this.masterSortOrder);
+        },
+
+        sortedWarehouseStock() {
+          const kw = this.whStockSearch.toLowerCase();
+          const filtered = (this.warehouseData.stock || []).filter(st =>
+            !kw || String(st.item_name || '').toLowerCase().includes(kw) || String(st.item_id || '').toLowerCase().includes(kw)
+          );
+          return this.sortByItemName(filtered, this.whSortOrder);
         },
 
         openInvDetailModal(row) {
@@ -2970,23 +3211,101 @@
           }
         },
 
+        // ===================================================================
+        // TAMBAH & EDIT INVENTARIS (ALAT / BAHAN / BAHAN KIMIA)
+        // Default kolom isian KOSONG saat Tambah + Live Autocomplete Master Data
+        // ===================================================================
         openInvFormModal(row) {
+          this.invFormSuggestions = [];
           if (row) {
-            this.invFormModal = { open: true, is_edit: true, data: { ...row } };
-          } else {
-            const defaultLoc = (this.session.active_lab_id && this.session.active_lab_id !== 'ALL') ? this.session.active_lab_id : '';
             this.invFormModal = {
-              open: true, is_edit: false,
-              data: { location_id: defaultLoc, item_name: '', maker_type_spec: '', unit: this.currentInvCategory() === 'Alat' ? 'Unit' : 'Gram', acquisition_year: 2026, bmn_category: 'Non BM', qty_available: 1 }
+              open: true,
+              is_edit: true,
+              data: {
+                ...row,
+                photo_base64: ''
+              }
+            };
+          } else {
+            const defaultLoc = (this.session.active_lab_id && this.session.active_lab_id !== 'ALL' && this.session.active_lab_id !== 'GUDANG')
+              ? this.session.active_lab_id
+              : '';
+            this.invFormModal = {
+              open: true,
+              is_edit: false,
+              data: {
+                location_id: defaultLoc,
+                item_id: '',
+                item_name: '',
+                maker_type_spec: '',
+                unit: '',
+                acquisition_year: '',
+                bmn_category: '',
+                batch_lot: '',
+                expiry_date: '',
+                cas_number: '',
+                storage_position: '',
+                grade: '',
+                ghs_symbol: '',
+                qty_available: '',
+                photo_base64: '',
+                photo_url: ''
+              }
             };
           }
         },
 
+        searchMasterForInvForm() {
+          if (!this.invFormModal.is_edit) {
+            this.invFormModal.data.item_id = '';
+          }
+          const kw = String(this.invFormModal.data.item_name || '').trim().toLowerCase();
+          if (kw.length < 1) {
+            this.invFormSuggestions = [];
+            return;
+          }
+          const cat = this.currentInvCategory();
+          this.invFormSuggestions = (this.masterItemsList || [])
+            .filter(m => m.category === cat && (
+              String(m.item_name || '').toLowerCase().includes(kw) ||
+              String(m.item_id || '').toLowerCase().includes(kw) ||
+              String(m.maker_type_spec || '').toLowerCase().includes(kw)
+            ))
+            .slice(0, 10);
+        },
+
+        selectInvFormSuggestion(s) {
+          const cat = this.currentInvCategory();
+          this.invFormModal.data.item_id = s.item_id;
+          this.invFormModal.data.item_name = s.item_name || '';
+          this.invFormModal.data.maker_type_spec = s.maker_type_spec || '';
+          this.invFormModal.data.unit = s.unit || (cat === 'Alat' ? 'Unit' : '');
+          this.invFormModal.data.photo_url = s.photo_url || '';
+          this.invFormModal.data.photo_base64 = '';
+
+          if (cat === 'Alat') {
+            // Ambil referensi tahun & BMN dari riwayat inventaris alat jika pernah tercatat
+            const histEq = (this.invCache['Alat'] || []).find(eq => eq.item_id === s.item_id);
+            if (histEq) {
+              if (histEq.acquisition_year) this.invFormModal.data.acquisition_year = histEq.acquisition_year;
+              if (histEq.bmn_category) this.invFormModal.data.bmn_category = histEq.bmn_category;
+            }
+          } else if (cat === 'Bahan Kimia') {
+            this.invFormModal.data.cas_number = s.cas_number || '';
+            this.invFormModal.data.grade = s.grade || '';
+            this.invFormModal.data.ghs_symbol = s.ghs_symbol || '';
+          }
+
+          this.invFormSuggestions = [];
+        },
+
         async submitInventoryForm() {
+          this.recordInputHistory(this.invFormModal.data.maker_type_spec, this.invFormModal.data.unit);
           const payload = { ...this.invFormModal.data, is_edit: this.invFormModal.is_edit };
           const res = await this.runGas('apiSaveInventoryRecord', this.session.token, this.currentInvCategory(), payload);
           if (res.success) {
             this.invFormModal.open = false;
+            this.invFormSuggestions = [];
             this.showToast('Data inventaris berhasil disimpan.');
             this.loadWorkspaceBundle(true);
           }
@@ -3035,6 +3354,7 @@
         },
 
         async submitWhEditModal() {
+          this.recordInputHistory(this.whEditModal.data.maker_type_spec, this.whEditModal.data.unit);
           const res = await this.runGas('apiUpdateWarehouseStockItem', this.session.token, this.whEditModal.data);
           if (res && res.success) {
             this.whEditModal.open = false;
@@ -3081,7 +3401,7 @@
                 category: 'Alat',
                 item_name: '',
                 maker_type_spec: '',
-                unit: 'Unit',
+                unit: '',
                 cas_number: '',
                 grade: '',
                 ghs_symbol: '',
@@ -3094,6 +3414,7 @@
         },
 
         async submitMasterFormModal() {
+          this.recordInputHistory(this.masterFormModal.data.maker_type_spec, this.masterFormModal.data.unit);
           const res = await this.runGas('apiSaveMasterItem', this.session.token, this.masterFormModal.data);
           if (res && res.success) {
             this.masterFormModal.open = false;
@@ -3115,7 +3436,7 @@
 
         async searchMasterForWhIn() {
           this.whInForm.item_id = '';
-          if (this.whInForm.item_name.length < 2) { this.whInSuggestions = []; return; }
+          if (this.whInForm.item_name.length < 1) { this.whInSuggestions = []; return; }
           const kw = this.whInForm.item_name.toLowerCase();
           this.whInSuggestions = (this.masterItemsList || [])
             .filter(m => m.category === this.whInForm.category && (m.item_name.toLowerCase().includes(kw) || m.item_id.toLowerCase().includes(kw)))
@@ -3135,6 +3456,7 @@
         },
 
         async submitWarehouseIn() {
+          this.recordInputHistory(this.whInForm.maker_type_spec, this.whInForm.unit);
           const res = await this.runGas('apiWarehouseStockIn', this.session.token, this.whInForm);
           if (res && res.success) {
             this.showToast('Barang masuk Gudang berhasil dicatat (' + res.trx_id + ').');
@@ -3196,7 +3518,7 @@
           if (cachedList.length > 0) {
             this.catalogPickerModal = {
               open: true, category: category, target: target, search: '',
-              items: cachedList.map(i => ({
+              items: this.sortByItemName(cachedList, 'asc').map(i => ({
                 inv_id: i.eq_inv_id || i.mat_inv_id || i.chem_inv_id,
                 item_id: i.item_id, item_name: i.item_name, unit: i.unit,
                 qty_available: i.qty_available, pickQty: 1
@@ -3207,7 +3529,7 @@
           const items = await this.runGas('apiGetLabCatalogForRequest', this.session.token, labId, category);
           this.catalogPickerModal = {
             open: true, category: category, target: target, search: '',
-            items: items.map(i => ({ ...i, pickQty: 1 }))
+            items: this.sortByItemName(items, 'asc').map(i => ({ ...i, pickQty: 1 }))
           };
         },
 
@@ -3319,6 +3641,7 @@
             img.src = e.target.result;
           };
           reader.readAsDataURL(file);
+          event.target.value = '';
         },
 
         async openCameraModal(target) {
@@ -3360,37 +3683,52 @@
         },
 
         openUserModal(u) {
-			this.userModal = {
-				open: true,
-				data: u
-					? { ...u, roles: [...u.roles], assigned_labs: [...u.assigned_labs], new_password: '' }
-					: { full_name: '', email: '', roles: ['User'], assigned_labs: [], status: 'active', new_password: '' }
-			};
-		},
+          if (u) {
+            this.userModal = {
+              open: true,
+              data: {
+                ...JSON.parse(JSON.stringify(u)),
+                new_password: ''
+              }
+            };
+          } else {
+            this.userModal = {
+              open: true,
+              data: {
+                full_name: '',
+                email: '',
+                roles: ['User'],
+                assigned_labs: [],
+                status: 'active',
+                new_password: ''
+              }
+            };
+          }
+        },
 
         async submitUserModal() {
-          const res = await this.runGas('apiSaveUserAndAccess', this.session.token, this.userModal.data);
+          const res = await this.runGas('apiAdminSaveUser', this.session.token, this.userModal.data);
           if (res.success) {
             this.userModal.open = false;
-            this.showToast('Data pengguna & hak akses disimpan.');
+            this.userModal.data.new_password = '';
+            this.showToast(res.message || 'Data pengguna tersimpan.');
             this.loadWorkspaceBundle(true);
           }
         },
 
         openLabModal(lb) {
           if (!this.isSuperAdmin()) {
-            this.showToast('Hanya Super Admin yang dapat mengubah Master Lokasi Laboratorium.', 'error');
+            this.showToast('Hanya Super Admin yang berwenang mengelola Master Lokasi Laboratorium.', 'error');
             return;
           }
           if (lb) {
-            const rawPos = lb.lab_position || lb.lab_code || '';
             this.labModal = {
               open: true,
               is_edit: true,
               data: {
                 lab_id: lb.lab_id,
                 lab_name: lb.lab_name || '',
-                lab_position: /^LAB-\d+$/i.test(rawPos.trim()) ? '' : rawPos,
+                lab_position: lb.lab_position || lb.lab_code || '',
                 description: lb.description || '',
                 pic_name: lb.pic_name || '',
                 status: lb.status || 'active'
@@ -3400,7 +3738,14 @@
             this.labModal = {
               open: true,
               is_edit: false,
-              data: { lab_id: '', lab_name: '', lab_position: '', description: '', pic_name: '', status: 'active' }
+              data: {
+                lab_id: '',
+                lab_name: '',
+                lab_position: '',
+                description: '',
+                pic_name: '',
+                status: 'active'
+              }
             };
           }
         },
@@ -3410,10 +3755,10 @@
             this.showToast('Akses ditolak: Khusus Super Admin.', 'error');
             return;
           }
-          const res = await this.runGas('apiSaveLaboratory', this.session.token, this.labModal.data);
+          const res = await this.runGas('apiAdminSaveLab', this.session.token, this.labModal.data);
           if (res && res.success) {
             this.labModal.open = false;
-            this.showToast('Master Lokasi Laboratorium berhasil disimpan.');
+            this.showToast(res.message || 'Data Master Lokasi Laboratorium berhasil disimpan.');
             this.loadWorkspaceBundle(true);
             this.loadPublicHome();
           }
@@ -3421,21 +3766,29 @@
 
         async deleteLab(labId) {
           if (!this.isSuperAdmin()) {
-            this.showToast('Hanya Super Admin yang dapat menghapus laboratorium.', 'error');
+            this.showToast('Akses ditolak: Khusus Super Admin.', 'error');
             return;
           }
-          if (!confirm('Hapus laboratorium ' + labId + ' ini?')) return;
-          const res = await this.runGas('apiDeleteLaboratory', this.session.token, labId);
-          if (res && res.success) {
-            this.showToast('Laboratorium dihapus.');
+          if (!confirm('Hapus laboratorium ini?')) return;
+          const res = await this.runGas('apiAdminDeleteLab', this.session.token, labId);
+          if (res.success) {
+            this.showToast(res.message);
             this.loadWorkspaceBundle(true);
             this.loadPublicHome();
+          } else {
+            this.showToast(res.message, 'error');
           }
         },
 
         async exportExcel(reportType) {
-          const res = await this.runGas('apiExportExcelReport', this.session.token, reportType, 'ALL');
-          if (res.success && res.download_url) window.open(res.download_url, '_blank');
+          const res = await this.runGas('apiExportReportExcel', this.session.token, reportType, this.session.active_lab_id || 'ALL');
+          if (res.success) {
+            const link = document.createElement('a');
+            link.href = 'data:' + res.mimeType + ';base64,' + res.base64;
+            link.download = res.fileName;
+            link.click();
+            this.showToast('File Excel berhasil diunduh.');
+          }
         }
       };
     }
