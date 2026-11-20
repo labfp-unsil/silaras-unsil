@@ -154,30 +154,44 @@
           </div>
         </div>
 
-        <!-- TAMPILAN GRID (2 BARIS x 4 KOLOM = 8 ITEM PER HALAMAN) -->
+        <!-- TAMPILAN GRID -->
         <div x-show="publicCatalogView === 'grid'" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <template x-for="item in paginatedPublicCatalog()" :key="item.item_id">
-            <div class="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50/50 flex flex-col">
-              <div class="h-44 bg-emerald-950/5 flex items-center justify-center overflow-hidden">
+            <div class="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50/50 flex flex-col hover:shadow-md transition">
+              <div class="h-44 bg-emerald-950/5 flex items-center justify-center overflow-hidden relative">
                 <template x-if="item.photo_url">
                   <img :src="normalizeDriveImgUrl(item.photo_url)" :alt="item.item_name" class="w-full h-full object-cover" />
                 </template>
                 <template x-if="!item.photo_url">
                   <i class="fa-solid fa-microscope text-4xl text-emerald-800/30"></i>
                 </template>
+                <span x-show="item.borrow_count > 0"
+                      class="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-emerald-950/80 text-lime-300 text-[10px] font-bold backdrop-blur-xs">
+                  <i class="fa-solid fa-fire mr-1"></i>Dipinjam <span x-text="item.borrow_count"></span>x
+                </span>
               </div>
-              <div class="p-4 flex-1 flex flex-col justify-between">
+              <div class="p-4 flex-1 flex flex-col justify-between gap-3">
                 <div>
                   <span class="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded" x-text="item.laboratories"></span>
                   <h4 class="font-bold text-slate-900 mt-2" x-text="item.item_name"></h4>
                   <p class="text-xs text-slate-600 mt-1 line-clamp-2" x-text="item.maker_type_spec || 'Peralatan Laboratorium'"></p>
+                </div>
+
+                <!-- Tombol Login untuk Peminjaman -->
+                <div class="pt-2 border-t border-slate-200/70">
+                  <button type="button"
+                          @click="openAuthModal('login')"
+                          class="w-full py-2 px-3 rounded-xl bg-silaras-dark hover:bg-emerald-900 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-2xs">
+                    <i class="fa-solid fa-right-to-bracket text-lime-400"></i>
+                    <span>Login untuk Peminjaman</span>
+                  </button>
                 </div>
               </div>
             </div>
           </template>
         </div>
 
-        <!-- TAMPILAN TABEL (8 BARIS PER HALAMAN) -->
+        <!-- TAMPILAN TABEL -->
         <div x-show="publicCatalogView === 'table'" class="overflow-x-auto border border-slate-200 rounded-2xl">
           <table class="w-full text-sm text-left">
             <thead class="bg-emerald-950 text-white text-xs uppercase">
@@ -186,6 +200,7 @@
                 <th class="px-4 py-3">Nama Alat</th>
                 <th class="px-4 py-3">Laboratorium</th>
                 <th class="px-4 py-3">Deskripsi / Spesifikasi Singkat</th>
+                <th class="px-4 py-3 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-200">
@@ -195,9 +210,22 @@
                     <img x-show="item.photo_url" :src="normalizeDriveImgUrl(item.photo_url)" class="w-12 h-12 rounded-lg object-cover border" />
                     <span x-show="!item.photo_url" class="text-xs text-slate-400">Tidak ada foto</span>
                   </td>
-                  <td class="px-4 py-3 font-semibold text-slate-900" x-text="item.item_name"></td>
+                  <td class="px-4 py-3">
+                    <div class="font-semibold text-slate-900" x-text="item.item_name"></div>
+                    <span x-show="item.borrow_count > 0" class="inline-block mt-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                      Dipinjam <span x-text="item.borrow_count"></span>x
+                    </span>
+                  </td>
                   <td class="px-4 py-3 text-emerald-800 font-medium" x-text="item.laboratories"></td>
                   <td class="px-4 py-3 text-slate-600" x-text="item.maker_type_spec"></td>
+                  <td class="px-4 py-3 text-center whitespace-nowrap">
+                    <button type="button"
+                            @click="openAuthModal('login')"
+                            class="px-3 py-1.5 rounded-xl bg-silaras-dark hover:bg-emerald-900 text-white text-xs font-bold inline-flex items-center gap-1.5 transition">
+                      <i class="fa-solid fa-right-to-bracket text-lime-400"></i>
+                      <span>Login untuk Peminjaman</span>
+                    </button>
+                  </td>
                 </tr>
               </template>
             </tbody>
@@ -2962,10 +2990,12 @@
 
         filteredPublicCatalog() {
           const kw = this.publicCatalogSearch.toLowerCase();
-          const list = (this.publicData.catalog || []).filter(c =>
-            !kw || c.item_name.toLowerCase().includes(kw) || (c.maker_type_spec || '').toLowerCase().includes(kw) || c.laboratories.toLowerCase().includes(kw)
+          return (this.publicData.catalog || []).filter(c =>
+            !kw ||
+            c.item_name.toLowerCase().includes(kw) ||
+            (c.maker_type_spec || '').toLowerCase().includes(kw) ||
+            c.laboratories.toLowerCase().includes(kw)
           );
-          return this.sortByItemName(list, 'asc');
         },
 
         publicCatalogTotalPages() {
