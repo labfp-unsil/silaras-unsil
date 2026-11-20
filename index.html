@@ -2036,16 +2036,32 @@
           </div>
         </template>
       </div>
-      <div class="flex flex-wrap gap-2 justify-end pt-2">
-        <button x-show="invDetailModal.item?.qty_available > 0 && invDetailModal.item?.location_id !== 'GUDANG'"
-                @click="quickRequestFromDetail(invDetailModal.item)"
-                class="px-4 py-2 rounded-xl bg-silaras-lime text-emerald-950 font-bold text-xs">
-          <span x-text="currentInvCategory() === 'Alat' ? 'Pinjam Alat Ini' : 'Ajukan Pengambilan'"></span>
-        </button>
-        <button x-show="canEdit(activeMenu)" @click="invDetailModal.open = false; openInvFormModal(invDetailModal.item)"
-                class="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold text-xs">Edit Data</button>
-        <button x-show="canDelete(activeMenu)" @click="deleteInventoryItem(invDetailModal.item)"
-                class="px-4 py-2 rounded-xl bg-red-600 text-white font-bold text-xs">Hapus</button>
+      <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
+        <!-- Checkbox Tampilkan di Publik (Pojok Kiri Bawah, khusus kategori Alat) -->
+        <div class="flex items-center">
+          <label x-show="currentInvCategory() === 'Alat'"
+                 class="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer select-none bg-slate-50 hover:bg-emerald-50/70 px-3 py-2 rounded-xl border border-slate-200 transition">
+            <input type="checkbox"
+                   :checked="invDetailModal.item?.is_public_catalog !== false"
+                   :disabled="!canEdit('inv_alat')"
+                   @change="toggleEquipmentPublic(invDetailModal.item, $event.target.checked)"
+                   class="w-4 h-4 accent-emerald-800 rounded cursor-pointer" />
+            <span>Tampilkan di Publik</span>
+          </label>
+        </div>
+
+        <!-- Tombol Aksi Cepat (Pojok Kanan Bawah) -->
+        <div class="flex flex-wrap gap-2 justify-end ml-auto">
+          <button x-show="invDetailModal.item?.qty_available > 0 && invDetailModal.item?.location_id !== 'GUDANG'"
+                  @click="quickRequestFromDetail(invDetailModal.item)"
+                  class="px-4 py-2 rounded-xl bg-silaras-lime text-emerald-950 font-bold text-xs">
+            <span x-text="currentInvCategory() === 'Alat' ? 'Pinjam Alat Ini' : 'Ajukan Pengambilan'"></span>
+          </button>
+          <button x-show="canEdit(activeMenu)" @click="invDetailModal.open = false; openInvFormModal(invDetailModal.item)"
+                  class="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold text-xs">Edit Data</button>
+          <button x-show="canDelete(activeMenu)" @click="deleteInventoryItem(invDetailModal.item)"
+                  class="px-4 py-2 rounded-xl bg-red-600 text-white font-bold text-xs">Hapus</button>
+        </div>
       </div>
     </div>
   </div>
@@ -3256,7 +3272,56 @@
         },
 
         openInvDetailModal(row) {
-          this.invDetailModal = { open: true, item: row };
+          const normalizedRow = {
+            ...row,
+            is_public_catalog: row.is_public_catalog === undefined || row.is_public_catalog === null || row.is_public_catalog === ''
+              ? true
+              : (row.is_public_catalog === true || String(row.is_public_catalog).toUpperCase() === 'TRUE')
+          };
+          this.invDetailModal = { open: true, item: normalizedRow };
+        },
+
+        async toggleEquipmentPublic(row, isPublic) {
+          if (!row || !row.item_id) return;
+          const prevState = row.is_public_catalog !== false;
+          const nextState = Boolean(isPublic);
+
+          row.is_public_catalog = nextState;
+          (this.invCache['Alat'] || []).forEach(it => {
+            if (it.item_id === row.item_id) it.is_public_catalog = nextState;
+          });
+          (this.masterItemsList || []).forEach(m => {
+            if (m.item_id === row.item_id) m.is_public_catalog = nextState;
+          });
+
+          try {
+            const res = await this.runGasSilent(
+              'apiToggleEquipmentPublicStatus',
+              this.session.token,
+              row.item_id,
+              nextState
+            );
+
+            if (res && res.success) {
+              this.showToast(
+                nextState
+                  ? 'Peralatan ditampilkan di Katalog Publik.'
+                  : 'Peralatan disembunyikan dari Katalog Publik.'
+              );
+              await this.loadPublicHome();
+            } else {
+              throw new Error(res?.message || 'Gagal memperbarui status katalog publik.');
+            }
+          } catch (e) {
+            row.is_public_catalog = prevState;
+            (this.invCache['Alat'] || []).forEach(it => {
+              if (it.item_id === row.item_id) it.is_public_catalog = prevState;
+            });
+            (this.masterItemsList || []).forEach(m => {
+              if (m.item_id === row.item_id) m.is_public_catalog = prevState;
+            });
+            this.showToast(e.message || 'Gagal mengubah status publik peralatan.', 'error');
+          }
         },
 
         quickRequestFromDetail(row) {
@@ -3286,6 +3351,9 @@
               is_edit: true,
               data: {
                 ...row,
+                is_public_catalog: row.is_public_catalog === undefined || row.is_public_catalog === null || row.is_public_catalog === ''
+                  ? true
+                  : (row.is_public_catalog === true || String(row.is_public_catalog).toUpperCase() === 'TRUE'),
                 photo_base64: ''
               }
             };
@@ -3311,6 +3379,7 @@
                 grade: '',
                 ghs_symbol: '',
                 qty_available: '',
+                is_public_catalog: true,
                 photo_base64: '',
                 photo_url: ''
               }
@@ -3450,7 +3519,9 @@
                 cas_number: m.cas_number || '',
                 grade: m.grade || '',
                 ghs_symbol: m.ghs_symbol || '',
-                is_public_catalog: Boolean(m.is_public_catalog),
+                is_public_catalog: m.is_public_catalog === undefined || m.is_public_catalog === null || m.is_public_catalog === ''
+                  ? true
+                  : (m.is_public_catalog === true || String(m.is_public_catalog).toUpperCase() === 'TRUE'),
                 photo_url: m.photo_url || '',
                 photo_base64: ''
               }
@@ -3468,7 +3539,7 @@
                 cas_number: '',
                 grade: '',
                 ghs_symbol: '',
-                is_public_catalog: false,
+                is_public_catalog: true,
                 photo_url: '',
                 photo_base64: ''
               }
