@@ -2766,7 +2766,18 @@
           return 'bg-[#0284C7] text-white';
         },
 
-        resetForgotForm() {
+        resetRegForm() {
+          this.regForm = {
+            full_name: '',
+            nim_nip: '',
+            unit_prodi: '',
+            phone: '',
+            email: '',
+            password: ''
+          };
+        },
+		
+		resetForgotForm() {
           this.forgotForm = {
             step: 1,
             email: this.loginForm.email || '',
