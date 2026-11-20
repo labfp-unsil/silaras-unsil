@@ -708,6 +708,15 @@
           <button x-show="canView('inv_alat')" @click="navigate('inv_alat')" :class="activeMenu === 'inv_alat' ? 'bg-lime-400 text-emerald-950 font-bold' : 'text-emerald-100 hover:bg-emerald-800/60'" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition">
             <i class="fa-solid fa-microscope w-4"></i> Inventaris Peralatan
           </button>
+          <button x-show="canView('alat_rusak') || canView('inv_alat')" @click="navigate('alat_rusak')" :class="activeMenu === 'alat_rusak' ? 'bg-lime-400 text-emerald-950 font-bold' : 'text-emerald-100 hover:bg-emerald-800/60'" class="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl transition">
+            <span class="flex items-center gap-3">
+              <i class="fa-solid fa-screwdriver-wrench w-4"></i> Alat Perbaikan & Rusak
+            </span>
+            <span x-show="damagedCount() > 0"
+                  :class="activeMenu === 'alat_rusak' ? 'bg-emerald-950 text-lime-300' : 'bg-red-500 text-white'"
+                  class="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold leading-none"
+                  x-text="damagedCount()"></span>
+          </button>
           <button x-show="canView('inv_bahan')" @click="navigate('inv_bahan')" :class="activeMenu === 'inv_bahan' ? 'bg-lime-400 text-emerald-950 font-bold' : 'text-emerald-100 hover:bg-emerald-800/60'" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition">
             <i class="fa-solid fa-seedling w-4"></i> Inventaris Bahan
           </button>
@@ -873,6 +882,10 @@
                   <img x-show="row.photo_url" :src="normalizeDriveImgUrl(row.photo_url)" class="w-full h-full object-cover" />
                   <i x-show="!row.photo_url" class="fa-solid fa-box text-3xl text-slate-300"></i>
                   <span class="absolute top-2 left-2 px-2 py-0.5 rounded bg-emerald-950/80 text-white text-[10px] font-mono" x-text="row.item_id"></span>
+                  <span x-show="currentInvCategory() === 'Alat'"
+                        class="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-extrabold shadow-xs"
+                        :class="getConditionBadgeClass(row.condition_status || 'Baik')"
+                        x-text="row.condition_status || 'Baik'"></span>
                 </div>
                 <div class="p-4 flex-1 flex flex-col justify-between space-y-2">
                   <div>
@@ -914,6 +927,7 @@
                     </button>
                   </th>
                   <th class="px-4 py-3">Lokasi</th>
+                  <th x-show="currentInvCategory() === 'Alat'" class="px-4 py-3">Kondisi</th>
                   <th class="px-4 py-3">Rincian Stok</th>
                   <th class="px-4 py-3">Keterangan / Batch</th>
                   <th class="px-4 py-3">Aksi</th>
@@ -928,6 +942,11 @@
                       <p class="text-xs text-slate-500" x-text="row.maker_type_spec"></p>
                     </td>
                     <td class="px-4 py-3 text-xs font-medium" x-text="row.location_name"></td>
+                    <td x-show="currentInvCategory() === 'Alat'" class="px-4 py-3 text-xs">
+                      <span class="px-2 py-0.5 rounded-full text-[11px] font-bold"
+                            :class="getConditionBadgeClass(row.condition_status || 'Baik')"
+                            x-text="row.condition_status || 'Baik'"></span>
+                    </td>
                     <td class="px-4 py-3 text-xs">
                       <template x-if="currentInvCategory() === 'Alat'">
                         <span>Tersedia: <b class="text-emerald-700" x-text="row.qty_available"></b> | Dipinjam: <b class="text-amber-600" x-text="row.qty_borrowed"></b> | Total: <b x-text="row.qty_total"></b></span>
@@ -945,6 +964,137 @@
                     </td>
                   </tr>
                 </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 2B. MENU BARU: ALAT PERBAIKAN & RUSAK -->
+        <div x-show="activeMenu === 'alat_rusak'" class="space-y-5">
+          <!-- Ringkasan Kartu Status Kerusakan -->
+          <div class="grid sm:grid-cols-3 gap-4">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 flex items-center justify-between">
+              <div>
+                <p class="text-xs font-semibold text-slate-500">Total Unit Bermasalah</p>
+                <p class="text-2xl font-extrabold text-slate-900 mt-1" x-text="filteredDamagedEquipment().reduce((acc, r) => acc + Number(r.qty_total || r.qty_available || 0), 0)"></p>
+              </div>
+              <div class="w-11 h-11 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-screwdriver-wrench"></i>
+              </div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-amber-200 flex items-center justify-between">
+              <div>
+                <p class="text-xs font-semibold text-amber-700">Rusak Ringan / Perlu Perbaikan</p>
+                <p class="text-2xl font-extrabold text-amber-600 mt-1" x-text="filteredDamagedEquipment().filter(r => (r.condition_status || '') === 'Rusak Ringan').reduce((acc, r) => acc + Number(r.qty_total || r.qty_available || 0), 0)"></p>
+              </div>
+              <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+              </div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-red-200 flex items-center justify-between">
+              <div>
+                <p class="text-xs font-semibold text-red-700">Rusak Berat / Usulan Penghapusan</p>
+                <p class="text-2xl font-extrabold text-red-600 mt-1" x-text="filteredDamagedEquipment().filter(r => (r.condition_status || '') === 'Rusak Berat').reduce((acc, r) => acc + Number(r.qty_total || r.qty_available || 0), 0)"></p>
+              </div>
+              <div class="w-11 h-11 rounded-xl bg-red-50 text-red-600 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-circle-xmark"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filter Bar -->
+          <div class="bg-white p-4 rounded-2xl border border-slate-200 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <select x-model="damagedLocationFilter" @change="session.active_lab_id = damagedLocationFilter" class="px-3 py-2 border border-slate-300 rounded-xl text-sm">
+                <option value="ALL">Semua Lokasi Akses</option>
+                <template x-for="l in session?.accessible_labs || []" :key="l.lab_id">
+                  <option :value="l.lab_id" x-text="l.lab_name"></option>
+                </template>
+              </select>
+              <select x-model="damagedConditionFilter" class="px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white font-medium text-slate-700">
+                <option value="ALL">Semua Kondisi (Ringan & Berat)</option>
+                <option value="Rusak Ringan">Rusak Ringan (Perbaikan)</option>
+                <option value="Rusak Berat">Rusak Berat (Penghapusan)</option>
+              </select>
+              <input type="text" x-model="damagedSearch" placeholder="Cari nama alat / ID / catatan kerusakan..." class="px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+              <div class="inline-flex rounded-xl border border-slate-300 p-1 bg-slate-50">
+                <button @click="damagedViewMode = 'grid'" :class="damagedViewMode === 'grid' ? 'bg-silaras-dark text-white' : 'text-slate-600'" class="px-3 py-1 rounded-lg text-xs font-semibold">Grid</button>
+                <button @click="damagedViewMode = 'table'" :class="damagedViewMode === 'table' ? 'bg-silaras-dark text-white' : 'text-slate-600'" class="px-3 py-1 rounded-lg text-xs font-semibold">Tabel</button>
+              </div>
+            </div>
+            <button type="button" @click="loadDamagedEquipment(true)" class="px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-700 text-emerald-900 text-xs font-bold hover:bg-emerald-100">
+              <i class="fa-solid fa-rotate mr-1"></i> Segarkan Data
+            </button>
+          </div>
+
+          <!-- Tampilan Grid Alat Perbaikan & Rusak -->
+          <div x-show="damagedViewMode === 'grid'" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <template x-for="row in filteredDamagedEquipment()" :key="row.eq_inv_id">
+              <div @click="openDamagedDetailModal(row)" class="bg-white border border-slate-200 hover:border-amber-500 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition cursor-pointer flex flex-col">
+                <div class="h-40 bg-slate-100 flex items-center justify-center overflow-hidden relative">
+                  <img x-show="row.photo_url" :src="normalizeDriveImgUrl(row.photo_url)" class="w-full h-full object-cover" />
+                  <i x-show="!row.photo_url" class="fa-solid fa-screwdriver-wrench text-3xl text-slate-300"></i>
+                  <span class="absolute top-2 left-2 px-2 py-0.5 rounded bg-emerald-950/80 text-white text-[10px] font-mono" x-text="row.item_id"></span>
+                  <span class="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-extrabold shadow-xs"
+                        :class="getConditionBadgeClass(row.condition_status)"
+                        x-text="row.condition_status"></span>
+                </div>
+                <div class="p-4 flex-1 flex flex-col justify-between space-y-2">
+                  <div>
+                    <p class="text-[11px] font-semibold text-emerald-800" x-text="row.location_name"></p>
+                    <h4 class="font-bold text-slate-900 text-sm mt-0.5" x-text="row.item_name"></h4>
+                    <p class="text-xs text-slate-500 truncate" x-text="row.maker_type_spec || '-'"></p>
+                    <p x-show="row.damage_notes" class="text-[11px] text-red-700 bg-red-50 px-2 py-1 rounded-lg mt-1.5 line-clamp-2" x-text="row.damage_notes"></p>
+                  </div>
+                  <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <span class="font-bold text-slate-800">Jumlah: <b class="text-red-700" x-text="(row.qty_total || row.qty_available) + ' ' + (row.unit || 'Unit')"></b></span>
+                    <span class="text-emerald-800 font-bold hover:underline">Kelola &rarr;</span>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- Tampilan Tabel Alat Perbaikan & Rusak -->
+          <div x-show="damagedViewMode === 'table'" class="bg-white border border-slate-200 rounded-2xl overflow-x-auto">
+            <table class="w-full text-sm text-left">
+              <thead class="bg-emerald-950 text-white text-xs uppercase">
+                <tr>
+                  <th class="px-4 py-3">ID</th>
+                  <th class="px-4 py-3">Nama Peralatan</th>
+                  <th class="px-4 py-3">Lokasi</th>
+                  <th class="px-4 py-3">Kondisi</th>
+                  <th class="px-4 py-3">Jumlah</th>
+                  <th class="px-4 py-3">Catatan Kerusakan</th>
+                  <th class="px-4 py-3">Aksi Cepat</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200">
+                <template x-for="row in filteredDamagedEquipment()" :key="row.eq_inv_id">
+                  <tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3 font-mono text-xs font-bold text-emerald-900" x-text="row.item_id"></td>
+                    <td class="px-4 py-3">
+                      <button @click="openDamagedDetailModal(row)" class="font-bold text-slate-900 hover:text-emerald-800 text-left" x-text="row.item_name"></button>
+                      <p class="text-xs text-slate-500" x-text="row.maker_type_spec || '-'"></p>
+                    </td>
+                    <td class="px-4 py-3 text-xs font-medium" x-text="row.location_name"></td>
+                    <td class="px-4 py-3">
+                      <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold"
+                            :class="getConditionBadgeClass(row.condition_status)"
+                            x-text="row.condition_status"></span>
+                    </td>
+                    <td class="px-4 py-3 text-xs font-bold text-slate-800" x-text="(row.qty_total || row.qty_available) + ' ' + (row.unit || 'Unit')"></td>
+                    <td class="px-4 py-3 text-xs text-slate-600 max-w-xs" x-text="row.damage_notes || '-'"></td>
+                    <td class="px-4 py-3 whitespace-nowrap space-x-1">
+                      <button @click="openDamagedDetailModal(row)" class="px-3 py-1.5 rounded-xl bg-silaras-dark text-white text-xs font-bold hover:bg-emerald-900">
+                        Detail & Tindak Lanjut
+                      </button>
+                    </td>
+                  </tr>
+                </template>
+                <tr x-show="filteredDamagedEquipment().length === 0">
+                  <td colspan="7" class="px-4 py-8 text-center text-slate-400 text-xs">Tidak ada peralatan dengan status Rusak Ringan atau Rusak Berat pada filter aktif.</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -2219,22 +2369,69 @@
         </div>
 
         <template x-if="currentInvCategory() === 'Alat'">
-          <div class="grid grid-cols-3 gap-2">
-            <div>
-              <label class="block font-bold mb-1">Tahun</label>
-              <input type="number" x-model="invFormModal.data.acquisition_year" placeholder="2026" class="w-full px-3 py-2 border border-slate-300 rounded-xl" />
+          <div class="space-y-3">
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block font-bold mb-1">Tahun</label>
+                <input type="number" x-model="invFormModal.data.acquisition_year" placeholder="2026" class="w-full px-3 py-2 border border-slate-300 rounded-xl" />
+              </div>
+              <div>
+                <label class="block font-bold mb-1">BMN</label>
+                <select x-model="invFormModal.data.bmn_category" class="w-full px-3 py-2 border border-slate-300 rounded-xl">
+                  <option value="">-- Pilih --</option>
+                  <option value="BM">BM</option>
+                  <option value="Non BM">Non BM</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-bold mb-1">Stok Tersedia *</label>
+                <input type="number" min="0" x-model="invFormModal.data.qty_available" required placeholder="0" class="w-full px-3 py-2 border border-slate-300 rounded-xl" />
+              </div>
             </div>
-            <div>
-              <label class="block font-bold mb-1">BMN</label>
-              <select x-model="invFormModal.data.bmn_category" class="w-full px-3 py-2 border border-slate-300 rounded-xl">
-                <option value="">-- Pilih --</option>
-                <option value="BM">BM</option>
-                <option value="Non BM">Non BM</option>
-              </select>
-            </div>
-            <div>
-              <label class="block font-bold mb-1">Stok Tersedia *</label>
-              <input type="number" min="0" x-model="invFormModal.data.qty_available" required placeholder="0" class="w-full px-3 py-2 border border-slate-300 rounded-xl" />
+
+            <!-- Pilihan Kondisi & Pemisahan Stok Alat -->
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Status Kondisi Alat *</label>
+                  <select x-model="invFormModal.data.condition_status"
+                          @change="if (invFormModal.is_edit && invFormModal.data.condition_status !== invFormModal.data.original_condition_status && !invFormModal.data.split_qty) { invFormModal.data.split_qty = invFormModal.data.qty_available || 1; }"
+                          class="w-full px-3 py-2 border border-slate-300 bg-white rounded-xl font-semibold">
+                    <option value="Baik">Baik (Siap Pakai)</option>
+                    <option value="Rusak Ringan">Rusak Ringan (Perlu Perbaikan)</option>
+                    <option value="Rusak Berat">Rusak Berat (Usulan Penghapusan)</option>
+                  </select>
+                </div>
+
+                <!-- Input Jumlah Pemisahan Stok saat Edit jika kondisi diubah -->
+                <div x-show="invFormModal.is_edit && invFormModal.data.condition_status !== invFormModal.data.original_condition_status">
+                  <label class="block font-bold text-amber-900 mb-1">
+                    Jumlah Unit Dipisahkan *
+                    <span class="font-normal text-slate-500" x-text="'(Maks: ' + (invFormModal.data.max_split_qty || invFormModal.data.qty_available || 0) + ')'"></span>
+                  </label>
+                  <input type="number"
+                         min="1"
+                         :max="invFormModal.data.max_split_qty || invFormModal.data.qty_available || 1"
+                         x-model.number="invFormModal.data.split_qty"
+                         required
+                         class="w-full px-3 py-2 border border-amber-400 bg-amber-50/50 rounded-xl font-bold text-amber-950" />
+                </div>
+              </div>
+
+              <p x-show="invFormModal.is_edit && invFormModal.data.condition_status !== invFormModal.data.original_condition_status"
+                 class="text-[11px] text-amber-800 leading-relaxed">
+                <i class="fa-solid fa-code-branch mr-1"></i>
+                Jika jumlah yang dipisahkan lebih kecil dari total stok (<b x-text="invFormModal.data.max_split_qty"></b>), sisa unit akan tetap bertahan pada kondisi <b x-text="invFormModal.data.original_condition_status"></b>, sedangkan unit yang dipisahkan dipindahkan ke status <b x-text="invFormModal.data.condition_status"></b>.
+              </p>
+
+              <div x-show="invFormModal.data.condition_status !== 'Baik'">
+                <label class="block font-bold text-red-800 mb-1">Catatan Kerusakan / Rencana Perbaikan *</label>
+                <textarea rows="2"
+                          x-model="invFormModal.data.damage_notes"
+                          :required="invFormModal.data.condition_status !== 'Baik'"
+                          placeholder="Jelaskan detail kerusakan komponen, gejala, atau tindak lanjut perbaikan..."
+                          class="w-full px-3 py-2 border border-red-200 bg-white rounded-xl"></textarea>
+              </div>
             </div>
           </div>
         </template>
@@ -2482,6 +2679,110 @@
     </div>
   </div>
 
+  <!-- MODAL AKSES CEPAT ALAT PERBAIKAN & RUSAK (DETAIL, FOTO FULLSCREEN, UBAH KONDISI, & BA PENGHAPUSAN ASET) -->
+  <div x-show="damagedDetailModal.open" x-cloak class="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 my-8">
+      <div class="flex justify-between items-start border-b border-slate-100 pb-3">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded" x-text="damagedDetailModal.item?.item_id"></span>
+            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold"
+                  :class="getConditionBadgeClass(damagedDetailModal.item?.condition_status)"
+                  x-text="damagedDetailModal.item?.condition_status"></span>
+          </div>
+          <h3 class="text-lg font-bold text-slate-900 mt-1.5" x-text="damagedDetailModal.item?.item_name"></h3>
+        </div>
+        <button @click="damagedDetailModal.open = false" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <!-- Pratinjau Foto + Akses Fullscreen -->
+      <div x-show="damagedDetailModal.item?.photo_url"
+           @click="openImagePreview(damagedDetailModal.item?.photo_url, damagedDetailModal.item?.item_name + ' (' + damagedDetailModal.item?.item_id + ')')"
+           title="Klik untuk melihat foto layar penuh"
+           class="relative group w-full h-52 bg-slate-100 rounded-xl overflow-hidden border cursor-zoom-in">
+        <img :src="normalizeDriveImgUrl(damagedDetailModal.item?.photo_url)" class="w-full h-full object-contain transition group-hover:scale-[1.02]" />
+        <span class="absolute bottom-2 right-2 px-3 py-1.5 rounded-lg bg-slate-900/80 text-white text-xs font-semibold flex items-center gap-1.5 shadow">
+          <i class="fa-solid fa-up-right-and-down-left-from-center"></i> Foto Fullscreen
+        </span>
+      </div>
+
+      <!-- Detail Informasi Aset -->
+      <div class="grid sm:grid-cols-2 gap-3 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
+        <div><span class="text-slate-500">Lokasi Laboratorium:</span><p class="font-bold text-slate-900" x-text="damagedDetailModal.item?.location_name || '-'"></p></div>
+        <div><span class="text-slate-500">Maker / Type / Spesifikasi:</span><p class="font-bold text-slate-900" x-text="damagedDetailModal.item?.maker_type_spec || '-'"></p></div>
+        <div><span class="text-slate-500">Tahun / Kategori BMN:</span><p class="font-bold text-slate-900" x-text="(damagedDetailModal.item?.acquisition_year || '-') + ' • ' + (damagedDetailModal.item?.bmn_category || '-')"></p></div>
+        <div><span class="text-slate-500">Total Unit pada Status Ini:</span><p class="font-bold text-red-700" x-text="(damagedDetailModal.item?.qty_total || damagedDetailModal.item?.qty_available || 0) + ' ' + (damagedDetailModal.item?.unit || 'Unit')"></p></div>
+        <div class="sm:col-span-2">
+          <span class="text-slate-500">Catatan Kerusakan / Riwayat Perbaikan:</span>
+          <p class="font-semibold text-slate-800 mt-0.5" x-text="damagedDetailModal.item?.damage_notes || 'Belum ada catatan kerusakan.'"></p>
+        </div>
+      </div>
+
+      <!-- Panel Aksi Cepat Ubah Kondisi (Perbaikan Selesai -> Baik / Naik Status Rusak Berat) -->
+      <div x-show="canEdit('inv_alat') || canEdit('alat_rusak')" class="p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-3 text-xs">
+        <p class="font-bold text-emerald-950 flex items-center gap-1.5">
+          <i class="fa-solid fa-sliders text-emerald-700"></i> Ubah Status Kondisi & Pemisahan Unit
+        </p>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Ubah Kondisi Menjadi *</label>
+            <select x-model="damagedDetailModal.nextCondition" class="w-full px-3 py-2 border border-slate-300 bg-white rounded-xl font-semibold">
+              <option value="Baik">Baik (Selesai Diperbaiki & Siap Pakai)</option>
+              <option value="Rusak Ringan">Rusak Ringan (Dalam Perbaikan)</option>
+              <option value="Rusak Berat">Rusak Berat (Tidak Layak / Penghapusan)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">
+              Jumlah Unit Diproses *
+              <span class="font-normal text-slate-500" x-text="'(Maks: ' + (damagedDetailModal.item?.qty_total || damagedDetailModal.item?.qty_available || 0) + ')'"></span>
+            </label>
+            <input type="number"
+                   min="1"
+                   :max="damagedDetailModal.item?.qty_total || damagedDetailModal.item?.qty_available || 1"
+                   x-model.number="damagedDetailModal.processQty"
+                   class="w-full px-3 py-2 border border-slate-300 bg-white rounded-xl font-bold" />
+          </div>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Catatan Tindak Lanjut / Hasil Perbaikan</label>
+          <input type="text"
+                 x-model="damagedDetailModal.notes"
+                 placeholder="Contoh: Komponen sensor telah diganti dan dikalibrasi ulang..."
+                 class="w-full px-3 py-2 border border-slate-300 bg-white rounded-xl" />
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <!-- Tombol Berita Acara Penghapusan Aset (Muncul untuk Rusak Berat / Usulan Penghapusan) -->
+          <button type="button"
+                  @click="generateAssetDisposalBA(damagedDetailModal.item)"
+                  class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs">
+            <i class="fa-solid fa-file-word"></i> Cetak BA Penghapusan Aset (.doc)
+          </button>
+
+          <div class="flex items-center gap-2 ml-auto">
+            <button type="button" @click="damagedDetailModal.open = false" class="px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-600 font-semibold">
+              Tutup
+            </button>
+            <button type="button" @click="submitQuickConditionUpdate()" class="px-4 py-2 rounded-xl bg-silaras-dark hover:bg-emerald-900 text-white font-bold">
+              <i class="fa-solid fa-check mr-1"></i> Simpan Perubahan Kondisi
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div x-show="!(canEdit('inv_alat') || canEdit('alat_rusak'))" class="flex justify-end gap-2 pt-2">
+        <button type="button"
+                @click="generateAssetDisposalBA(damagedDetailModal.item)"
+                class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5">
+          <i class="fa-solid fa-file-word"></i> Cetak BA Penghapusan Aset (.doc)
+        </button>
+        <button type="button" @click="damagedDetailModal.open = false" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 font-semibold text-xs">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL FULLSCREEN PREVIEW FOTO -->
   <div x-show="imagePreviewModal.open"
        x-cloak
@@ -2555,6 +2856,14 @@
         invFormModal: { open: false, is_edit: false, data: {} },
         invFormSuggestions: [],
 
+        // State Menu Alat Perbaikan & Rusak
+        damagedEquipmentList: [],
+        damagedLocationFilter: 'ALL',
+        damagedConditionFilter: 'ALL',
+        damagedSearch: '',
+        damagedViewMode: 'grid',
+        damagedDetailModal: { open: false, item: null, nextCondition: 'Baik', processQty: 1, notes: '' },
+
         // Riwayat isian Maker/Type/Spek & Satuan (localStorage + Master Data)
         savedMakerHistory: [],
         savedUnitHistory: [],
@@ -2594,6 +2903,7 @@
         permissionModules: [
           { key: 'master_data', label: 'Master Data Barang' },
           { key: 'inv_alat', label: 'Inventaris Peralatan' },
+          { key: 'alat_rusak', label: 'Alat Perbaikan & Rusak' },
           { key: 'inv_bahan', label: 'Inventaris Bahan' },
           { key: 'inv_kimia', label: 'Inventaris Bahan Kimia' },
           { key: 'gudang', label: 'Gudang & Stok Pusat' },
@@ -2753,26 +3063,26 @@
           return {
             'Super Admin': build(Object.fromEntries(this.permissionModules.map(m => [m.key, full]))),
             'Admin': build({
-              master_data: full, inv_alat: full, inv_bahan: full, inv_kimia: full,
+              master_data: full, inv_alat: full, alat_rusak: full, inv_bahan: full, inv_kimia: full,
               gudang: viewEdit, pinjam_alat: viewOnly, guna_bahan: viewOnly, booking_ruang: viewOnly,
               verifikasi: viewOnly, laporan: viewOnly, audit: viewOnly, settings: viewEdit
             }),
             'Petugas Gudang': build({
-              master_data: viewEdit, inv_alat: viewOnly, inv_bahan: viewOnly, inv_kimia: viewOnly,
+              master_data: viewEdit, inv_alat: viewOnly, alat_rusak: viewOnly, inv_bahan: viewOnly, inv_kimia: viewOnly,
               gudang: full, laporan: viewOnly
             }),
             'Laboran': build({
-              master_data: viewEdit, inv_alat: full, inv_bahan: full, inv_kimia: full,
+              master_data: viewEdit, inv_alat: full, alat_rusak: full, inv_bahan: full, inv_kimia: full,
               gudang: viewOnly, pinjam_alat: viewOnly, guna_bahan: viewOnly, booking_ruang: viewOnly,
               verifikasi: viewEdit, laporan: viewOnly
             }),
             'Kepala Laboratorium': build({
-              master_data: viewOnly, inv_alat: viewOnly, inv_bahan: viewOnly, inv_kimia: viewOnly,
+              master_data: viewOnly, inv_alat: viewOnly, alat_rusak: viewOnly, inv_bahan: viewOnly, inv_kimia: viewOnly,
               gudang: viewOnly, pinjam_alat: viewOnly, guna_bahan: viewOnly, booking_ruang: viewOnly,
               verifikasi: viewEdit, laporan: viewOnly, audit: viewOnly
             }),
             'User': build({
-              inv_alat: viewOnly, inv_bahan: viewOnly, inv_kimia: viewOnly,
+              inv_alat: viewOnly, alat_rusak: viewOnly, inv_bahan: viewOnly, inv_kimia: viewOnly,
               pinjam_alat: viewEdit, guna_bahan: viewEdit, booking_ruang: viewEdit
             })
           };
@@ -2976,6 +3286,7 @@
             this.bundleLoaded = true;
             this.syncActiveLabContext();
             this.applyLocalInventoryFilter();
+            this.loadDamagedEquipment(false);
           }
         },
 
@@ -3334,7 +3645,8 @@
         menuTitle() {
           const titles = {
             dashboard: 'Dashboard Operasional', master_data: 'Master Data Barang',
-            inv_alat: 'Inventaris Peralatan', inv_bahan: 'Inventaris Bahan', inv_kimia: 'Inventaris Bahan Kimia',
+            inv_alat: 'Inventaris Peralatan', alat_rusak: 'Alat Perbaikan & Rusak',
+            inv_bahan: 'Inventaris Bahan', inv_kimia: 'Inventaris Bahan Kimia',
             gudang: 'Gudang & Stok Pusat', pinjam_alat: 'Peminjaman Peralatan', guna_bahan: 'Penggunaan Bahan & Kimia',
             booking_ruang: 'Penggunaan Ruangan Laboratorium', verifikasi: 'Verifikasi & Persetujuan',
             laporan: 'Laporan & Ekspor Dokumen', audit: 'Audit Trail', settings: 'Pengaturan Pengguna, Lab & Hak Akses'
@@ -3348,6 +3660,9 @@
           if (['inv_alat','inv_bahan','inv_kimia'].includes(menu)) {
             this.invLocationFilter = this.session?.active_lab_id || 'ALL';
             this.applyLocalInventoryFilter();
+          } else if (menu === 'alat_rusak') {
+            this.damagedLocationFilter = this.session?.active_lab_id || 'ALL';
+            this.loadDamagedEquipment();
           } else if (menu === 'audit' && this.auditLogsList.length === 0) {
             this.loadAuditLogs();
           }
@@ -3471,14 +3786,217 @@
         // TAMBAH & EDIT INVENTARIS (ALAT / BAHAN / BAHAN KIMIA)
         // Default kolom isian KOSONG saat Tambah + Live Autocomplete Master Data
         // ===================================================================
+        // ===================================================================
+        // HELPER & LOGIKA MENU ALAT PERBAIKAN & RUSAK + PEMISAHAN STOK
+        // ===================================================================
+        getConditionBadgeClass(cond) {
+          const c = String(cond || 'Baik').trim();
+          if (c === 'Rusak Berat') return 'bg-red-600 text-white';
+          if (c === 'Rusak Ringan') return 'bg-amber-400 text-amber-950';
+          return 'bg-emerald-600 text-white';
+        },
+
+        damagedCount() {
+          const allAlat = this.invCache['Alat'] || [];
+          const activeLab = this.session?.active_lab_id;
+          return allAlat.filter(r => {
+            const cond = String(r.condition_status || 'Baik').trim();
+            if (!['Rusak Ringan', 'Rusak Berat'].includes(cond)) return false;
+            if (activeLab && activeLab !== 'ALL' && activeLab !== 'GUDANG' && r.location_id !== activeLab) return false;
+            return true;
+          }).length;
+        },
+
+        async loadDamagedEquipment(forceServer = false) {
+          const fromCache = (this.invCache['Alat'] || []).filter(r =>
+            ['Rusak Ringan', 'Rusak Berat'].includes(String(r.condition_status || '').trim())
+          );
+          this.damagedEquipmentList = fromCache;
+          if (forceServer) {
+            await this.loadWorkspaceBundle(false);
+            this.damagedEquipmentList = (this.invCache['Alat'] || []).filter(r =>
+              ['Rusak Ringan', 'Rusak Berat'].includes(String(r.condition_status || '').trim())
+            );
+          }
+        },
+
+        filteredDamagedEquipment() {
+          const kw = String(this.damagedSearch || '').toLowerCase().trim();
+          const loc = this.damagedLocationFilter || 'ALL';
+          const condFilter = this.damagedConditionFilter || 'ALL';
+          const list = (this.damagedEquipmentList || []).filter(r => {
+            if (loc !== 'ALL' && r.location_id !== loc) return false;
+            if (condFilter !== 'ALL' && (r.condition_status || '') !== condFilter) return false;
+            if (kw &&
+                !String(r.item_name || '').toLowerCase().includes(kw) &&
+                !String(r.item_id || '').toLowerCase().includes(kw) &&
+                !String(r.damage_notes || '').toLowerCase().includes(kw)) {
+              return false;
+            }
+            return true;
+          });
+          return this.sortByItemName(list, 'asc');
+        },
+
+        openDamagedDetailModal(row) {
+          const totalQty = Number(row.qty_total || row.qty_available || 1);
+          this.damagedDetailModal = {
+            open: true,
+            item: { ...row },
+            nextCondition: row.condition_status === 'Rusak Ringan' ? 'Baik' : (row.condition_status || 'Rusak Berat'),
+            processQty: totalQty,
+            notes: row.damage_notes || ''
+          };
+        },
+
+        async submitQuickConditionUpdate() {
+          const item = this.damagedDetailModal.item;
+          if (!item) return;
+          const totalQty = Number(item.qty_total || item.qty_available || 1);
+          const procQty = Number(this.damagedDetailModal.processQty || 0);
+          if (procQty <= 0 || procQty > totalQty) {
+            this.showToast('Jumlah unit diproses harus antara 1 s.d. ' + totalQty + '.', 'error');
+            return;
+          }
+          const nextCond = this.damagedDetailModal.nextCondition;
+          const notes = String(this.damagedDetailModal.notes || '').trim();
+
+          if (procQty < totalQty) {
+            // Pemisahan stok: kurangi record rusak saat ini, buat/gabungkan record baru pada kondisi tujuan
+            const remainingQty = totalQty - procQty;
+            const updateOldPayload = {
+              ...item,
+              is_edit: true,
+              qty_available: remainingQty,
+              qty_total: remainingQty,
+              photo_base64: ''
+            };
+            const createSplitPayload = {
+              ...item,
+              eq_inv_id: '',
+              is_edit: false,
+              condition_status: nextCond,
+              damage_notes: nextCond === 'Baik' ? '' : notes,
+              qty_available: procQty,
+              qty_total: procQty,
+              qty_borrowed: 0,
+              photo_base64: ''
+            };
+            await this.runGas('apiSaveInventoryRecord', this.session.token, 'Alat', updateOldPayload);
+            const resSplit = await this.runGas('apiSaveInventoryRecord', this.session.token, 'Alat', createSplitPayload);
+            if (resSplit && resSplit.success) {
+              this.damagedDetailModal.open = false;
+              this.showToast(procQty + ' unit dipisahkan ke status ' + nextCond + '.');
+              await this.loadWorkspaceBundle(false);
+              this.loadDamagedEquipment(false);
+            }
+          } else {
+            const payload = {
+              ...item,
+              is_edit: true,
+              condition_status: nextCond,
+              damage_notes: nextCond === 'Baik' ? '' : notes,
+              photo_base64: ''
+            };
+            const res = await this.runGas('apiSaveInventoryRecord', this.session.token, 'Alat', payload);
+            if (res && res.success) {
+              this.damagedDetailModal.open = false;
+              this.showToast('Status kondisi alat diperbarui menjadi ' + nextCond + '.');
+              await this.loadWorkspaceBundle(false);
+              this.loadDamagedEquipment(false);
+            }
+          }
+        },
+
+        generateAssetDisposalBA(item) {
+          if (!item) return;
+          const todayStr = this.formatDateIndonesian(new Date().toISOString().slice(0, 10));
+          const qtyUnit = (item.qty_total || item.qty_available || 1) + ' ' + (item.unit || 'Unit');
+          const labName = item.location_name || 'Laboratorium Fakultas Pertanian UNSIL';
+          const picName = this.session?.full_name || 'Kepala Laboratorium / Laboran';
+          const picNip = this.session?.nim_nip || '..........................';
+
+          const docHtml = `
+            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+            <head><meta charset='utf-8'><title>BA Penghapusan Aset - ${item.item_id}</title>
+            <style>
+              body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.5; margin: 2cm; }
+              .header { text-align: center; border-bottom: 3px double #000; padding-bottom: 10px; margin-bottom: 20px; }
+              .header h3, .header h4, .header p { margin: 2px 0; }
+              .title { text-align: center; font-weight: bold; text-decoration: underline; margin: 18px 0 4px 0; font-size: 13pt; }
+              .nomor { text-align: center; margin-bottom: 18px; }
+              table.detail { width: 100%; border-collapse: collapse; margin: 14px 0; }
+              table.detail th, table.detail td { border: 1px solid #000; padding: 6px 8px; text-align: left; font-size: 11pt; }
+              table.ttd { width: 100%; margin-top: 36px; border: none; }
+              table.ttd td { width: 50%; text-align: center; vertical-align: top; }
+            </style></head>
+            <body>
+              <div class="header">
+                <h4>KEMENTERIAN PENDIDIKAN TINGGI, SAINS, DAN TEKNOLOGI</h4>
+                <h3>UNIVERSITAS SILIWANGI</h3>
+                <h3>FAKULTAS PERTANIAN</h3>
+                <p style="font-size:10pt;">Jalan Siliwangi No. 24 Tasikmalaya 46115 | Sistem Informasi Laboratorium (SILARAS)</p>
+              </div>
+              <div class="title">BERITA ACARA PEMERIKSAAN &amp; USULAN PENGHAPUSAN ASET PERALATAN</div>
+              <div class="nomor">Nomor: ......./UN58.05/LL/BA-HAPUS/${new Date().getFullYear()}</div>
+              <p>Pada hari ini, <b>${todayStr}</b>, telah dilakukan pemeriksaan fisik terhadap peralatan inventaris pada <b>${labName}</b> Fakultas Pertanian Universitas Siliwangi dengan rincian sebagai berikut:</p>
+              <table class="detail">
+                <thead>
+                  <tr style="background:#f2f2f2;">
+                    <th>Kode Barang</th>
+                    <th>Nama Peralatan</th>
+                    <th>Merk / Tipe / Spek</th>
+                    <th>Tahun / BMN</th>
+                    <th>Jumlah</th>
+                    <th>Kondisi &amp; Keterangan Kerusakan</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>${item.item_id || '-'}</td>
+                    <td>${item.item_name || '-'}</td>
+                    <td>${item.maker_type_spec || '-'}</td>
+                    <td>${(item.acquisition_year || '-') + ' / ' + (item.bmn_category || '-')}</td>
+                    <td>${qtyUnit}</td>
+                    <td><b>${item.condition_status || 'Rusak Berat'}</b><br/>${item.damage_notes || 'Tidak dapat digunakan/diperbaiki secara ekonomis.'}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>Berdasarkan hasil pemeriksaan teknis di laboratorium, peralatan tersebut dinyatakan dalam kondisi <b>${item.condition_status || 'Rusak Berat'}</b> dan tidak layak digunakan untuk kegiatan praktikum maupun penelitian, sehingga diusulkan untuk diproses lebih lanjut sesuai ketentuan pengelolaan Barang Milik Negara (BMN) / aset universitas.</p>
+              <p>Demikian Berita Acara ini dibuat dengan sebenar-benarnya untuk dipergunakan sebagaimana mestinya.</p>
+              <table class="ttd">
+                <tr>
+                  <td>Mengetahui,<br/>Kepala ${labName}<br/><br/><br/><br/>( ............................................ )<br/>NIP. ....................................</td>
+                  <td>Tasikmalaya, ${todayStr}<br/>Petugas Pemeriksa / Laboran,<br/><br/><br/><br/><b>( ${picName} )</b><br/>NIP/NIM. ${picNip}</td>
+                </tr>
+              </table>
+            </body></html>`;
+
+          const blob = new Blob(['﻿', docHtml], { type: 'application/msword' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'BA_Penghapusan_Aset_' + (item.item_id || 'ALAT') + '.doc';
+          link.click();
+          URL.revokeObjectURL(url);
+          this.showToast('Dokumen BA Penghapusan Aset (.doc) berhasil diunduh.');
+        },
+
         openInvFormModal(row) {
           this.invFormSuggestions = [];
           if (row) {
+            const currentCond = row.condition_status || 'Baik';
+            const currentQty = Number(row.qty_available ?? row.qty_total ?? 1);
             this.invFormModal = {
               open: true,
               is_edit: true,
               data: {
                 ...row,
+                condition_status: currentCond,
+                original_condition_status: currentCond,
+                max_split_qty: currentQty,
+                split_qty: currentQty,
+                damage_notes: row.damage_notes || '',
                 is_public_catalog: row.is_public_catalog === undefined || row.is_public_catalog === null || row.is_public_catalog === ''
                   ? true
                   : (row.is_public_catalog === true || String(row.is_public_catalog).toUpperCase() === 'TRUE'),
@@ -3500,6 +4018,9 @@
                 unit: '',
                 acquisition_year: '',
                 bmn_category: '',
+                condition_status: 'Baik',
+                original_condition_status: 'Baik',
+                damage_notes: '',
                 batch_lot: '',
                 expiry_date: '',
                 cas_number: '',
@@ -3561,8 +4082,54 @@
 
         async submitInventoryForm() {
           this.recordInputHistory(this.invFormModal.data.maker_type_spec, this.invFormModal.data.unit);
-          const payload = { ...this.invFormModal.data, is_edit: this.invFormModal.is_edit };
-          const res = await this.runGas('apiSaveInventoryRecord', this.session.token, this.currentInvCategory(), payload);
+          const cat = this.currentInvCategory();
+          const d = this.invFormModal.data;
+
+          // Penanganan Pemisahan Stok Alat saat Edit jika Status Kondisi berubah
+          if (cat === 'Alat' && this.invFormModal.is_edit && d.condition_status !== d.original_condition_status) {
+            const totalQty = Number(d.max_split_qty ?? d.qty_available ?? 1);
+            const splitQty = Number(d.split_qty || 0);
+            if (splitQty <= 0 || splitQty > totalQty) {
+              this.showToast('Jumlah unit dipisahkan harus antara 1 s.d. ' + totalQty + '.', 'error');
+              return;
+            }
+            if (splitQty < totalQty) {
+              const remainingQty = totalQty - splitQty;
+              const keepPayload = {
+                ...d,
+                is_edit: true,
+                condition_status: d.original_condition_status,
+                qty_available: remainingQty,
+                qty_total: remainingQty
+              };
+              const splitPayload = {
+                ...d,
+                eq_inv_id: '',
+                is_edit: false,
+                condition_status: d.condition_status,
+                damage_notes: d.condition_status === 'Baik' ? '' : (d.damage_notes || ''),
+                qty_available: splitQty,
+                qty_total: splitQty,
+                qty_borrowed: 0
+              };
+              await this.runGas('apiSaveInventoryRecord', this.session.token, 'Alat', keepPayload);
+              const resSplit = await this.runGas('apiSaveInventoryRecord', this.session.token, 'Alat', splitPayload);
+              if (resSplit && resSplit.success) {
+                this.invFormModal.open = false;
+                this.invFormSuggestions = [];
+                this.showToast(splitQty + ' unit dipisahkan ke kondisi ' + d.condition_status + '.');
+                this.loadWorkspaceBundle(true);
+              }
+              return;
+            }
+          }
+
+          const payload = {
+            ...d,
+            damage_notes: (cat === 'Alat' && d.condition_status === 'Baik') ? '' : (d.damage_notes || ''),
+            is_edit: this.invFormModal.is_edit
+          };
+          const res = await this.runGas('apiSaveInventoryRecord', this.session.token, cat, payload);
           if (res.success) {
             this.invFormModal.open = false;
             this.invFormSuggestions = [];
