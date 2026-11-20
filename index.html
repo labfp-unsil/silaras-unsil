@@ -1533,7 +1533,11 @@
                 <template x-for="m in filteredMasterItems()" :key="m.item_id">
                   <tr class="hover:bg-slate-50">
                     <td class="px-3 py-2">
-                      <img x-show="m.photo_url" :src="normalizeDriveImgUrl(m.photo_url)" class="w-9 h-9 rounded object-cover border" />
+                      <img x-show="m.photo_url"
+                           :src="normalizeDriveImgUrl(m.photo_url)"
+                           @click.stop="openImagePreview(m.photo_url, m.item_name + ' (' + m.item_id + ')')"
+                           title="Klik untuk memperbesar foto"
+                           class="w-10 h-10 rounded-lg object-cover border border-slate-200 cursor-zoom-in hover:ring-2 hover:ring-emerald-600 transition" />
                       <span x-show="!m.photo_url" class="text-slate-400">-</span>
                     </td>
                     <td class="px-3 py-2 font-mono font-bold text-emerald-800" x-text="m.item_id"></td>
@@ -1796,8 +1800,14 @@
         <button @click="whDetailModal.open = false" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
 
-      <div x-show="whDetailModal.item?.photo_url" class="w-full h-52 bg-slate-100 rounded-xl overflow-hidden border">
-        <img :src="normalizeDriveImgUrl(whDetailModal.item?.photo_url)" class="w-full h-full object-contain" />
+      <div x-show="whDetailModal.item?.photo_url"
+           @click="openImagePreview(whDetailModal.item?.photo_url, whDetailModal.item?.item_name + ' (' + whDetailModal.item?.item_id + ')')"
+           title="Klik untuk melihat foto layar penuh"
+           class="relative group w-full h-52 bg-slate-100 rounded-xl overflow-hidden border cursor-zoom-in">
+        <img :src="normalizeDriveImgUrl(whDetailModal.item?.photo_url)" class="w-full h-full object-contain transition group-hover:scale-[1.02]" />
+        <span class="absolute bottom-2 right-2 px-2.5 py-1 rounded-lg bg-slate-900/75 text-white text-[11px] font-semibold flex items-center gap-1.5 shadow">
+          <i class="fa-solid fa-up-right-and-down-left-from-center"></i> Perbesar Foto
+        </span>
       </div>
 
       <div class="grid grid-cols-2 gap-2.5 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
@@ -2005,7 +2015,15 @@
         </div>
         <button @click="invDetailModal.open = false" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <img x-show="invDetailModal.item?.photo_url" :src="normalizeDriveImgUrl(invDetailModal.item?.photo_url)" class="w-full h-48 object-cover rounded-xl border" />
+      <div x-show="invDetailModal.item?.photo_url"
+           @click="openImagePreview(invDetailModal.item?.photo_url, invDetailModal.item?.item_name + ' (' + invDetailModal.item?.item_id + ')')"
+           title="Klik untuk melihat foto layar penuh"
+           class="relative group w-full h-48 bg-slate-100 rounded-xl overflow-hidden border cursor-zoom-in">
+        <img :src="normalizeDriveImgUrl(invDetailModal.item?.photo_url)" class="w-full h-full object-cover transition group-hover:scale-[1.02]" />
+        <span class="absolute bottom-2 right-2 px-2.5 py-1 rounded-lg bg-slate-900/75 text-white text-[11px] font-semibold flex items-center gap-1.5 shadow">
+          <i class="fa-solid fa-up-right-and-down-left-from-center"></i> Perbesar Foto
+        </span>
+      </div>
       <div class="text-xs space-y-1.5 bg-slate-50 p-4 rounded-xl">
         <p><b>Spesifikasi:</b> <span x-text="invDetailModal.item?.maker_type_spec || '-'"></span></p>
         <p><b>Lokasi:</b> <span x-text="invDetailModal.item?.location_name"></span></p>
@@ -2367,6 +2385,37 @@
     </div>
   </div>
 
+  <!-- MODAL FULLSCREEN PREVIEW FOTO -->
+  <div x-show="imagePreviewModal.open"
+       x-cloak
+       @keydown.escape.window="closeImagePreview()"
+       @click.self="closeImagePreview()"
+       class="fixed inset-0 z-[60] bg-slate-950/90 backdrop-blur-xs flex flex-col items-center justify-center p-4">
+    <div class="w-full max-w-5xl flex items-center justify-between text-white mb-3 px-1">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <i class="fa-solid fa-image text-lime-400"></i>
+        <p class="font-bold text-sm sm:text-base truncate" x-text="imagePreviewModal.title || 'Pratinjau Foto Barang'"></p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <a :href="imagePreviewModal.url" target="_blank" rel="noopener noreferrer"
+           class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition">
+          <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i> Tab Baru
+        </a>
+        <button type="button" @click="closeImagePreview()"
+                class="w-9 h-9 rounded-xl bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow-lg transition"
+                title="Tutup (ESC)">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="relative max-w-5xl max-h-[82vh] w-full flex items-center justify-center overflow-hidden rounded-2xl bg-black/40 border border-white/10 p-2">
+      <img :src="imagePreviewModal.url"
+           :alt="imagePreviewModal.title"
+           class="max-w-full max-h-[78vh] object-contain rounded-xl shadow-2xl select-none" />
+    </div>
+  </div>
+
   <script>
     function silarasApp() {
       return {
@@ -2423,6 +2472,7 @@
         whDetailModal: { open: false, item: null },
         whEditModal: { open: false, data: {} },
         masterFormModal: { open: false, is_edit: false, data: {} },
+        imagePreviewModal: { open: false, url: '', title: '' },
 
         loanForm: { lab_id: '', loan_date: new Date().toISOString().slice(0,10), due_date: new Date().toISOString().slice(0,10), purpose: '', items: [] },
         usageForm: { category: 'Bahan', lab_id: '', usage_date: new Date().toISOString().slice(0,10), purpose: '', items: [] },
@@ -2699,6 +2749,19 @@
             return 'https://drive.google.com/thumbnail?id=' + match[0] + '&sz=w1000';
           }
           return str;
+        },
+
+        openImagePreview(rawUrl, title = 'Pratinjau Foto Barang') {
+          if (!rawUrl) return;
+          this.imagePreviewModal = {
+            open: true,
+            url: this.normalizeDriveImgUrl(rawUrl),
+            title: title
+          };
+        },
+
+        closeImagePreview() {
+          this.imagePreviewModal.open = false;
         },
 
         resetWhInForm(keepCategory = true) {
