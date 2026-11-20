@@ -603,7 +603,7 @@
                   x-model="session.active_lab_id"
                   @change="switchContext()"
                   class="w-full bg-emerald-900 border border-emerald-700 rounded-lg px-2 py-1.5 text-lime-300 text-xs focus:outline-none focus:border-lime-400">
-            <option value="ALL" x-show="(session?.accessible_labs || []).length > 1 || isSuperAdmin()">Lokasi: Semua Lokasi Akses</option>
+            <option value="ALL">Lokasi: Semua Lokasi Akses</option>
             <template x-for="l in session?.accessible_labs || []" :key="l.lab_id">
               <option :value="l.lab_id" x-text="'Lokasi: ' + l.lab_name"></option>
             </template>
@@ -2621,9 +2621,8 @@
         // SINKRONISASI KONTEKS LOKASI AKTIF (active_lab_id) DI SIDEBAR & FILTER
         syncActiveLabContext() {
           if (!this.session) return;
-          const labs = this.session.accessible_labs || [];
           if (!this.session.active_lab_id) {
-            this.session.active_lab_id = labs.length === 1 ? labs[0].lab_id : 'ALL';
+            this.session.active_lab_id = 'ALL';
           }
           this.invLocationFilter = this.session.active_lab_id || 'ALL';
           if (this.session.active_lab_id && this.session.active_lab_id !== 'ALL' && this.session.active_lab_id !== 'GUDANG') {
@@ -3099,8 +3098,9 @@
           if (res.success) {
             this.activeMenu = 'dashboard';
             this.session = res.session;
-            this.syncActiveLabContext();
-            localStorage.setItem('SILARAS_SESSION', JSON.stringify(this.session));
+            this.session.active_lab_id = 'ALL'; // Paksa default ke Semua Lokasi Akses saat login
+			this.syncActiveLabContext();
+			localStorage.setItem('SILARAS_SESSION', JSON.stringify(this.session));
             this.authModal.open = false;
             this.loginForm = { email: '', password: '' };
             this.bookingForm.pic_name = this.session.full_name;
