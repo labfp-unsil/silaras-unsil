@@ -456,7 +456,12 @@
           <input type="email" name="login_email" autocomplete="username" x-model="loginForm.email" required placeholder="nama@unsil.ac.id" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi</label>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-xs font-semibold text-slate-700">Kata Sandi</label>
+            <button type="button" @click="switchAuthMode('forgot')" class="text-xs font-semibold text-emerald-800 hover:text-emerald-950 hover:underline">
+              Lupa Kata Sandi?
+            </button>
+          </div>
           <input type="password" name="login_password" autocomplete="current-password" x-model="loginForm.password" required placeholder="••••••••" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
         </div>
         <button type="submit" class="w-full py-2.5 rounded-xl bg-silaras-dark text-white font-bold text-sm hover:bg-emerald-900 transition">
@@ -471,6 +476,56 @@
           </p>
         </div>
       </form>
+
+      <!-- FORM LUPA KATA SANDI (OTP EMAIL) -->
+      <div x-show="authModal.mode === 'forgot'" class="space-y-4">
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-900">
+          <p class="font-bold mb-0.5"><i class="fa-solid fa-key mr-1"></i> Atur Ulang Kata Sandi</p>
+          <p x-show="forgotForm.step === 1">Masukkan email akun SILARAS Anda untuk menerima kode OTP 6 digit.</p>
+          <p x-show="forgotForm.step === 2">Masukkan kode OTP yang telah dikirim ke <b x-text="forgotForm.email"></b> beserta kata sandi baru.</p>
+        </div>
+
+        <!-- Langkah 1: Minta OTP -->
+        <form x-show="forgotForm.step === 1" @submit.prevent="submitRequestResetOtp()" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Email Terdaftar *</label>
+            <input type="email" x-model="forgotForm.email" required placeholder="nama@unsil.ac.id" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+          </div>
+          <button type="submit" class="w-full py-2.5 rounded-xl bg-silaras-dark text-white font-bold text-sm hover:bg-emerald-900 transition">
+            Kirim Kode OTP ke Email
+          </button>
+        </form>
+
+        <!-- Langkah 2: Verifikasi OTP & Password Baru -->
+        <form x-show="forgotForm.step === 2" @submit.prevent="submitConfirmResetPassword()" class="space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Kode OTP (6 Digit) *</label>
+            <input type="text" maxlength="6" pattern="\d{6}" x-model="forgotForm.otp" required placeholder="123456" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-mono tracking-widest text-center" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi Baru (Min. 6 Karakter) *</label>
+            <input type="password" minlength="6" autocomplete="new-password" x-model="forgotForm.new_password" required placeholder="••••••••" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Konfirmasi Kata Sandi Baru *</label>
+            <input type="password" minlength="6" autocomplete="new-password" x-model="forgotForm.confirm_password" required placeholder="••••••••" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+          </div>
+          <button type="submit" class="w-full py-2.5 rounded-xl bg-silaras-lime text-emerald-950 font-bold text-sm hover:brightness-95 transition">
+            Simpan Kata Sandi Baru
+          </button>
+          <div class="text-center">
+            <button type="button" @click="forgotForm.step = 1; forgotForm.otp = ''" class="text-xs text-slate-500 hover:text-emerald-800 hover:underline">
+              Kirim ulang kode OTP / ganti email
+            </button>
+          </div>
+        </form>
+
+        <div class="pt-2 border-t border-slate-100 text-center">
+          <button type="button" @click="switchAuthMode('login')" class="text-xs font-semibold text-slate-600 hover:text-emerald-900">
+            <i class="fa-solid fa-arrow-left mr-1"></i> Kembali ke halaman Login
+          </button>
+        </div>
+      </div>
 
       <form x-show="authModal.mode === 'register'" @submit.prevent="submitRegister()" autocomplete="off" class="space-y-3">
         <div>
@@ -2099,7 +2154,20 @@
             <option value="suspended">Nonaktif</option>
           </select>
         </div>
-        <button type="submit" class="w-full py-2.5 rounded-xl bg-silaras-dark text-white font-bold">Simpan Pengguna</button>
+        <div class="p-3 bg-amber-50/70 border border-amber-200 rounded-xl space-y-1.5">
+          <label class="block font-bold text-amber-950">
+            <i class="fa-solid fa-key mr-1"></i>
+            <span x-text="userModal.data.user_id ? 'Reset Kata Sandi Pengguna (Opsional)' : 'Kata Sandi Awal Pengguna'"></span>
+          </label>
+          <input type="password"
+                 minlength="6"
+                 autocomplete="new-password"
+                 x-model="userModal.data.new_password"
+                 :placeholder="userModal.data.user_id ? 'Kosongkan jika tidak ingin mengubah kata sandi' : 'Default: SilarasUnsil2026! (jika dikosongkan)'"
+                 class="w-full px-3 py-2 border border-amber-300 bg-white rounded-xl" />
+          <p class="text-[11px] text-amber-800">Minimal 6 karakter. Isi kolom ini untuk mengatur ulang kata sandi pengguna secara langsung.</p>
+        </div>
+		<button type="submit" class="w-full py-2.5 rounded-xl bg-silaras-dark text-white font-bold">Simpan Pengguna</button>
       </form>
     </div>
   </div>
@@ -2195,6 +2263,7 @@
 
         authModal: { open: false, mode: 'login' },
         loginForm: { email: '', password: '' },
+		forgotForm: { step: 1, email: '', otp: '', new_password: '', confirm_password: '' },
         regForm: { full_name: '', nim_nip: '', unit_prodi: '', phone: '', email: '', password: '' },
         profileForm: { full_name: '', nim_nip: '', unit_prodi: '', phone: '' },
 
@@ -2697,30 +2766,27 @@
           return 'bg-[#0284C7] text-white';
         },
 
-        resetRegForm() {
-          this.regForm = {
-            full_name: '',
-            nim_nip: '',
-            unit_prodi: '',
-            phone: '',
-            email: '',
-            password: ''
+        resetForgotForm() {
+          this.forgotForm = {
+            step: 1,
+            email: this.loginForm.email || '',
+            otp: '',
+            new_password: '',
+            confirm_password: ''
           };
         },
 
         openAuthModal(mode) {
-          if (mode === 'register') {
-            this.resetRegForm();
-          }
+          if (mode === 'register') this.resetRegForm();
+          if (mode === 'forgot') this.resetForgotForm();
           this.authModal = { open: true, mode: mode };
         },
 
         switchAuthMode(mode) {
-          if (mode === 'register') {
-            this.resetRegForm();
-          }
-          this.authModal.mode = mode;
-        },
+		  if (mode === 'register') this.resetRegForm();
+		  if (mode === 'forgot') this.resetForgotForm();
+		  this.authModal.mode = mode;
+		},
 
         async submitLogin() {
 			const res = await this.runGas('apiLoginStandard', this.loginForm.email, this.loginForm.password);
@@ -2750,6 +2816,38 @@
             this.showToast(res.message, 'error');
           }
         },
+		
+		async submitRequestResetOtp() {
+			const res = await this.runGas('apiRequestPasswordReset', this.forgotForm.email);
+			if (res && res.success) {
+				this.showToast(res.message);
+				this.forgotForm.step = 2;
+			} else {
+				this.showToast(res?.message || 'Gagal mengirim OTP.', 'error');
+			}
+		},
+
+		async submitConfirmResetPassword() {
+			if (this.forgotForm.new_password !== this.forgotForm.confirm_password) {
+				this.showToast('Konfirmasi kata sandi baru tidak cocok.', 'error');
+				return;
+			}
+			const res = await this.runGas(
+				'apiConfirmPasswordReset',
+				this.forgotForm.email,
+				this.forgotForm.otp,
+				this.forgotForm.new_password
+			);
+			if (res && res.success) {
+				this.showToast(res.message);
+				this.loginForm.email = this.forgotForm.email;
+				this.loginForm.password = '';
+				this.resetForgotForm();
+				this.authModal.mode = 'login';
+			} else {
+				this.showToast(res?.message || 'Gagal mengatur ulang kata sandi.', 'error');
+			}
+		},
 
         async submitCompleteProfile() {
           const res = await this.runGas('apiCompleteProfile', this.session.token, this.profileForm);
@@ -3251,11 +3349,13 @@
         },
 
         openUserModal(u) {
-          this.userModal = {
-            open: true,
-            data: u ? { ...u, roles: [...u.roles], assigned_labs: [...u.assigned_labs] } : { full_name: '', email: '', roles: ['User'], assigned_labs: [], status: 'active' }
-          };
-        },
+			this.userModal = {
+				open: true,
+				data: u
+					? { ...u, roles: [...u.roles], assigned_labs: [...u.assigned_labs], new_password: '' }
+					: { full_name: '', email: '', roles: ['User'], assigned_labs: [], status: 'active', new_password: '' }
+			};
+		},
 
         async submitUserModal() {
           const res = await this.runGas('apiSaveUserAndAccess', this.session.token, this.userModal.data);
