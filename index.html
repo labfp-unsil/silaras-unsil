@@ -3861,7 +3861,7 @@
 
         async switchContext() {
           this.syncActiveLabContext();
-          const res = await this.runGas('apiSwitchContext', this.session.token, this.session.active_role, this.session.active_lab_id);
+          const res = await this.runGas('apiSwitchContext', this.session.token, this.session.active_lab_id, this.session.active_role);
           if (res && res.success) {
             this.session = res.session;
             this.syncActiveLabContext();
