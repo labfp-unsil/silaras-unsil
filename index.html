@@ -4035,22 +4035,19 @@
           this.invFormModal.data.item_id = s.item_id;
           this.invFormModal.data.item_name = s.item_name || '';
           this.invFormModal.data.maker_type_spec = s.maker_type_spec || '';
+          this.invFormModal.data.unit = s.unit || (cat === 'Alat' ? 'Unit' : '');
           this.invFormModal.data.photo_url = s.photo_url || '';
           this.invFormModal.data.photo_base64 = '';
 
           if (cat === 'Alat') {
-            // Biarkan Satuan, Tahun, BMN, dan Stok Tersedia tetap kosong agar diisi manual oleh user
-            this.invFormModal.data.unit = '';
-            this.invFormModal.data.acquisition_year = '';
-            this.invFormModal.data.bmn_category = '';
-            this.invFormModal.data.qty_available = '';
-          } else {
-            this.invFormModal.data.unit = s.unit || '';
-            if (cat === 'Bahan Kimia') {
-              this.invFormModal.data.cas_number = s.cas_number || '';
-              this.invFormModal.data.grade = s.grade || '';
-              this.invFormModal.data.ghs_symbol = s.ghs_symbol || '';
-            }
+            // Ambil Tahun & BMN dari Master Data; jika kosong, fallback dari riwayat inv_equipment item tersebut
+            const existingEq = (this.invCache['Alat'] || []).find(eq => eq.item_id === s.item_id);
+            this.invFormModal.data.acquisition_year = s.acquisition_year || existingEq?.acquisition_year || '';
+            this.invFormModal.data.bmn_category = s.bmn_category || existingEq?.bmn_category || '';
+          } else if (cat === 'Bahan Kimia') {
+            this.invFormModal.data.cas_number = s.cas_number || '';
+            this.invFormModal.data.grade = s.grade || '';
+            this.invFormModal.data.ghs_symbol = s.ghs_symbol || '';
           }
 
           this.invFormSuggestions = [];
@@ -4306,11 +4303,16 @@
         selectWhInSuggestion(s) {
           this.whInForm.item_id = s.item_id;
           this.whInForm.item_name = s.item_name;
-          this.whInForm.maker_type_spec = s.maker_type_spec;
-          this.whInForm.unit = s.unit;
-          this.whInForm.cas_number = s.cas_number;
-          this.whInForm.grade = s.grade;
-          this.whInForm.ghs_symbol = s.ghs_symbol;
+          this.whInForm.maker_type_spec = s.maker_type_spec || '';
+          this.whInForm.unit = s.unit || (this.whInForm.category === 'Alat' ? 'Unit' : '');
+          if (this.whInForm.category === 'Alat') {
+            const existingEq = (this.invCache['Alat'] || []).find(eq => eq.item_id === s.item_id);
+            this.whInForm.acquisition_year = s.acquisition_year || existingEq?.acquisition_year || this.whInForm.acquisition_year;
+            this.whInForm.bmn_category = s.bmn_category || existingEq?.bmn_category || this.whInForm.bmn_category;
+          }
+          this.whInForm.cas_number = s.cas_number || '';
+          this.whInForm.grade = s.grade || '';
+          this.whInForm.ghs_symbol = s.ghs_symbol || '';
           if (s.photo_url && !this.whInForm.photo_base64) {
             this.whInForm.photo_url = s.photo_url;
           }
