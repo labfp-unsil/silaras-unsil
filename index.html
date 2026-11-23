@@ -793,7 +793,7 @@
         <!-- 1. DASHBOARD VIEW -->
         <div x-show="activeMenu === 'dashboard'" class="space-y-6">
           <div x-show="canView('gudang') && canEdit('gudang')" class="grid sm:grid-cols-2 gap-4">
-            <button @click="navigate('gudang'); warehouseTab = 'in'" class="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-r from-emerald-900 to-emerald-800 text-white shadow-md hover:brightness-105 transition text-left">
+            <button @click="navigate('gudang'); warehouseTab = 'in'; resetWhInForm(false)" class="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-r from-emerald-900 to-emerald-800 text-white shadow-md hover:brightness-105 transition text-left">
               <div class="w-12 h-12 rounded-xl bg-lime-400 text-emerald-950 flex items-center justify-center text-xl">
                 <i class="fa-solid fa-box-open"></i>
               </div>
@@ -802,7 +802,7 @@
                 <p class="text-xs text-emerald-200">Catat stok masuk Alat, Bahan, atau Bahan Kimia ke Gudang Pusat</p>
               </div>
             </button>
-            <button @click="navigate('gudang'); warehouseTab = 'out'" class="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-r from-lime-500 to-lime-400 text-emerald-950 shadow-md hover:brightness-95 transition text-left">
+            <button @click="navigate('gudang'); warehouseTab = 'out'; $nextTick(() => initSignaturePad())" class="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-r from-lime-500 to-lime-400 text-emerald-950 shadow-md hover:brightness-95 transition text-left">
               <div class="w-12 h-12 rounded-xl bg-emerald-950 text-lime-400 flex items-center justify-center text-xl">
                 <i class="fa-solid fa-truck-ramp-box"></i>
               </div>
@@ -1104,14 +1104,8 @@
         <div x-show="activeMenu === 'gudang'" class="space-y-5">
           <div class="flex flex-wrap gap-2">
             <button @click="warehouseTab = 'stock'" :class="warehouseTab === 'stock' ? 'bg-silaras-dark text-white' : 'bg-white text-slate-700'" class="px-4 py-2 rounded-xl text-sm font-bold border">Daftar Stok Gudang</button>
-            <button x-show="canEdit('gudang')" @click="warehouseTab = 'in'" :class="warehouseTab === 'in' ? 'bg-silaras-dark text-white' : 'bg-white text-slate-700'" class="px-4 py-2 rounded-xl text-sm font-bold border">+ Barang Masuk Gudang</button>
+            <button x-show="canEdit('gudang')" @click="warehouseTab = 'in'; resetWhInForm(false)" :class="warehouseTab === 'in' ? 'bg-silaras-dark text-white' : 'bg-white text-slate-700'" class="px-4 py-2 rounded-xl text-sm font-bold border">+ Barang Masuk Gudang</button>
             <button x-show="canEdit('gudang')" @click="warehouseTab = 'out'; $nextTick(() => initSignaturePad())" :class="warehouseTab === 'out' ? 'bg-silaras-dark text-white' : 'bg-white text-slate-700'" class="px-4 py-2 rounded-xl text-sm font-bold border">- Barang Keluar Gudang</button>
-            <button @click="warehouseTab = 'log_in'; if (!(warehouseData.transactions || []).length) loadWarehouse()" :class="warehouseTab === 'log_in' ? 'bg-silaras-dark text-white' : 'bg-white text-slate-700'" class="px-4 py-2 rounded-xl text-sm font-bold border">
-              <i class="fa-solid fa-arrow-right-to-bracket mr-1"></i> Log Barang Masuk
-            </button>
-            <button @click="warehouseTab = 'log_out'; if (!(warehouseData.transactions || []).length) loadWarehouse()" :class="warehouseTab === 'log_out' ? 'bg-silaras-dark text-white' : 'bg-white text-slate-700'" class="px-4 py-2 rounded-xl text-sm font-bold border">
-              <i class="fa-solid fa-arrow-right-from-bracket mr-1"></i> Log Barang Keluar
-            </button>
           </div>
 
           <div x-show="warehouseTab === 'stock'" class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
@@ -1235,11 +1229,12 @@
               <div x-show="whInForm.category === 'Alat'" class="grid sm:grid-cols-2 gap-4 p-3 bg-slate-50 rounded-xl">
                 <div>
                   <label class="block text-xs font-bold text-slate-700 mb-1">Tahun Perolehan</label>
-                  <input type="number" x-model="whInForm.acquisition_year" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+                  <input type="number" x-model="whInForm.acquisition_year" placeholder="Contoh: 2026" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
                 </div>
                 <div>
                   <label class="block text-xs font-bold text-slate-700 mb-1">Kategori BMN</label>
                   <select x-model="whInForm.bmn_category" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm">
+                    <option value="">-- Pilih Kategori BMN --</option>
                     <option value="BM">BM (Barang Milik Negara)</option>
                     <option value="Non BM">Non BM</option>
                   </select>
@@ -1249,7 +1244,7 @@
               <div x-show="whInForm.category !== 'Alat'" class="grid sm:grid-cols-2 gap-4 p-3 bg-slate-50 rounded-xl">
                 <div>
                   <label class="block text-xs font-bold text-slate-700 mb-1">Nomor Batch / Lot</label>
-                  <input type="text" x-model="whInForm.batch_lot" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+                  <input type="text" x-model="whInForm.batch_lot" placeholder="Nomor batch / lot" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
                 </div>
                 <div>
                   <label class="block text-xs font-bold text-slate-700 mb-1">Tanggal Kedaluwarsa</label>
@@ -1260,7 +1255,7 @@
               <div x-show="whInForm.category === 'Bahan Kimia'" class="grid sm:grid-cols-3 gap-3 p-3 bg-amber-50/60 rounded-xl">
                 <div>
                   <label class="block text-xs font-bold text-slate-700 mb-1">Nomor CAS</label>
-                  <input type="text" x-model="whInForm.cas_number" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+                  <input type="text" x-model="whInForm.cas_number" placeholder="Contoh: 64-17-5" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
                 </div>
                 <div>
                   <label class="block text-xs font-bold text-slate-700 mb-1">Grade / Model</label>
@@ -1275,7 +1270,7 @@
               <div class="grid sm:grid-cols-2 gap-4 items-center">
                 <div>
                   <label class="block text-xs font-bold text-slate-700 mb-1">Kuantitas Masuk *</label>
-                  <input type="number" step="any" min="0.01" x-model="whInForm.qty" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
+                  <input type="number" step="any" min="0.01" x-model="whInForm.qty" required placeholder="0" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" />
                 </div>
                 <div>
                   <label class="block text-xs font-bold text-slate-700 mb-1">Foto Barang (Upload / Kamera)</label>
@@ -1338,24 +1333,24 @@
             </div>
 
             <div>
-              <p class="text-xs font-bold text-slate-700 mb-2">Klik Barang Gudang untuk Ditambahkan ke Daftar Pengambilan:</p>
-              <div class="grid sm:grid-cols-3 lg:grid-cols-4 gap-3 max-h-60 overflow-y-auto p-2 bg-slate-50 rounded-xl border">
-                <template x-for="st in (warehouseData.stock || []).filter(x => x.qty_available > 0)" :key="st.inv_id">
-                  <div @click="addWhOutItem(st)" class="bg-white border border-slate-200 hover:border-emerald-700 rounded-xl p-2.5 cursor-pointer flex items-center gap-2.5 transition">
-                    <img x-show="st.photo_url" :src="normalizeDriveImgUrl(st.photo_url)" class="w-10 h-10 rounded-lg object-cover" />
-                    <div class="min-w-0">
-                      <p class="text-xs font-bold text-slate-900 truncate" x-text="st.item_name"></p>
-                      <p class="text-[11px] text-emerald-700">Stok: <b x-text="st.qty_available + ' ' + st.unit"></b></p>
-                    </div>
-                  </div>
-                </template>
+              <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <p class="text-xs font-bold text-slate-700">Daftar Barang yang Akan Diambil dari Gudang:</p>
+                <button type="button"
+                        @click="openCatalogPickerModal('ALL', 'GUDANG', 'whOut')"
+                        class="px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-700 text-emerald-900 font-bold text-xs hover:bg-emerald-100 transition">
+                  <i class="fa-solid fa-plus mr-1"></i> Pilih / Tambah Barang dari Stok Gudang
+                </button>
               </div>
+              <p x-show="whOutForm.items.length === 0" class="text-xs text-slate-400 italic bg-slate-50 border border-dashed border-slate-200 rounded-xl p-4 text-center">
+                Belum ada barang dipilih. Klik tombol <b>+ Pilih / Tambah Barang dari Stok Gudang</b> untuk memilih barang dari katalog stok gudang.
+              </p>
             </div>
 
             <div x-show="whOutForm.items.length > 0" class="border border-slate-200 rounded-xl overflow-hidden">
               <table class="w-full text-xs text-left">
                 <thead class="bg-slate-100 font-bold">
                   <tr>
+                    <th class="px-3 py-2">Kategori & ID</th>
                     <th class="px-3 py-2">Barang</th>
                     <th class="px-3 py-2">Sisa Gudang</th>
                     <th class="px-3 py-2">Jumlah Ambil</th>
@@ -1363,12 +1358,13 @@
                   </tr>
                 </thead>
                 <tbody class="divide-y">
-                  <template x-for="(it, idx) in whOutForm.items" :key="idx">
+                  <template x-for="(it, idx) in whOutForm.items" :key="(it.inv_id || it.item_id || 'wh') + '-' + idx">
                     <tr>
+                      <td class="px-3 py-2 font-mono text-[11px] text-emerald-800" x-text="(it.category || '-') + ' • ' + (it.item_id || '-')"></td>
                       <td class="px-3 py-2 font-semibold" x-text="it.item_name"></td>
                       <td class="px-3 py-2" x-text="it.max_qty + ' ' + it.unit"></td>
                       <td class="px-3 py-2">
-                        <input type="number" step="any" min="0.01" :max="it.max_qty" x-model="it.qty" class="w-24 px-2 py-1 border rounded" />
+                        <input type="number" step="any" min="0.01" :max="it.max_qty" x-model.number="it.qty" class="w-24 px-2 py-1 border rounded" />
                       </td>
                       <td class="px-3 py-2">
                         <button type="button" @click="whOutForm.items.splice(idx, 1)" class="text-red-600"><i class="fa-solid fa-trash"></i></button>
@@ -1390,139 +1386,6 @@
             <button type="button" @click="submitWarehouseOut()" class="px-6 py-2.5 rounded-xl bg-silaras-dark text-white font-bold text-sm hover:bg-emerald-900">
               Simpan & Pindahkan Stok ke Laboratorium
             </button>
-          </div>
-
-          <!-- TAB LOG BARANG MASUK -->
-          <div x-show="warehouseTab === 'log_in'" class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h3 class="font-bold text-emerald-950">Log Arus Barang Masuk Gudang</h3>
-                <p class="text-[11px] text-slate-500">Riwayat penerimaan Alat, Bahan, dan Bahan Kimia ke Gudang Pusat.</p>
-              </div>
-              <div class="flex flex-wrap items-center gap-2">
-                <input type="date" x-model="whLogDateFilter" class="px-3 py-1.5 border border-slate-300 rounded-xl text-xs" title="Filter Tanggal Masuk" />
-                <input type="text" x-model="whLogSearch" placeholder="Cari ID transaksi / nama barang / petugas..." class="px-3 py-1.5 border border-slate-300 rounded-xl text-xs w-60" />
-                <button x-show="whLogDateFilter || whLogSearch" type="button" @click="whLogDateFilter = ''; whLogSearch = ''" class="px-2.5 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">Reset</button>
-              </div>
-            </div>
-
-            <div class="overflow-x-auto border border-slate-200 rounded-xl">
-              <table class="w-full text-xs text-left">
-                <thead class="bg-emerald-950 text-white uppercase">
-                  <tr>
-                    <th class="px-3 py-2.5">ID Transaksi</th>
-                    <th class="px-3 py-2.5">Tanggal Masuk</th>
-                    <th class="px-3 py-2.5">Rincian Barang & Kategori</th>
-                    <th class="px-3 py-2.5">Batch / Tahun & BMN</th>
-                    <th class="px-3 py-2.5">Jumlah Masuk</th>
-                    <th class="px-3 py-2.5">Petugas Input</th>
-                    <th class="px-3 py-2.5">Catatan</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-200">
-                  <template x-for="trx in filteredWarehouseLogs('IN')" :key="trx.trx_id">
-                    <tr class="hover:bg-slate-50 align-top">
-                      <td class="px-3 py-2.5 font-mono font-bold text-emerald-900 whitespace-nowrap" x-text="trx.trx_id"></td>
-                      <td class="px-3 py-2.5 whitespace-nowrap font-medium" x-text="trx.trx_date"></td>
-                      <td class="px-3 py-2.5">
-                        <template x-for="it in (trx.items || [])" :key="it.trx_item_id">
-                          <div class="mb-1 last:mb-0">
-                            <span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]" x-text="it.category"></span>
-                            <span class="font-bold text-slate-900 ml-1" x-text="it.item_name"></span>
-                            <span class="text-slate-500 font-mono text-[10px]" x-text="'(' + it.item_id + ')'"></span>
-                          </div>
-                        </template>
-                        <span x-show="!trx.items || trx.items.length === 0" class="text-slate-400 italic">-</span>
-                      </td>
-                      <td class="px-3 py-2.5 text-slate-600">
-                        <template x-for="it in (trx.items || [])" :key="it.trx_item_id">
-                          <div class="mb-1 last:mb-0" x-text="it.category === 'Alat' ? ((it.bmn_category || '-') + ' (' + (it.acquisition_year || '-') + ')') : ('Batch: ' + (it.batch_lot || '-') + (it.expiry_date ? ' | Exp: ' + it.expiry_date : ''))"></div>
-                        </template>
-                      </td>
-                      <td class="px-3 py-2.5 font-bold text-emerald-700 whitespace-nowrap">
-                        <template x-for="it in (trx.items || [])" :key="it.trx_item_id">
-                          <div class="mb-1 last:mb-0" x-text="'+' + it.qty + ' ' + (it.unit || '')"></div>
-                        </template>
-                      </td>
-                      <td class="px-3 py-2.5 text-slate-700" x-text="trx.created_by || '-'"></td>
-                      <td class="px-3 py-2.5 text-slate-500" x-text="trx.notes || '-'"></td>
-                    </tr>
-                  </template>
-                  <tr x-show="filteredWarehouseLogs('IN').length === 0">
-                    <td colspan="7" class="px-4 py-8 text-center text-slate-400">Belum ada riwayat barang masuk gudang pada filter ini.</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- TAB LOG BARANG KELUAR -->
-          <div x-show="warehouseTab === 'log_out'" class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h3 class="font-bold text-emerald-950">Log Arus Barang Keluar Gudang</h3>
-                <p class="text-[11px] text-slate-500">Riwayat distribusi barang dari Gudang Pusat ke Laboratorium tujuan beserta bukti serah terima.</p>
-              </div>
-              <div class="flex flex-wrap items-center gap-2">
-                <input type="date" x-model="whLogDateFilter" class="px-3 py-1.5 border border-slate-300 rounded-xl text-xs" title="Filter Tanggal Keluar" />
-                <input type="text" x-model="whLogSearch" placeholder="Cari ID / pengambil / matkul / lab / barang..." class="px-3 py-1.5 border border-slate-300 rounded-xl text-xs w-64" />
-                <button x-show="whLogDateFilter || whLogSearch" type="button" @click="whLogDateFilter = ''; whLogSearch = ''" class="px-2.5 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">Reset</button>
-              </div>
-            </div>
-
-            <div class="overflow-x-auto border border-slate-200 rounded-xl">
-              <table class="w-full text-xs text-left">
-                <thead class="bg-emerald-950 text-white uppercase">
-                  <tr>
-                    <th class="px-3 py-2.5">ID Transaksi</th>
-                    <th class="px-3 py-2.5">Tanggal</th>
-                    <th class="px-3 py-2.5">Lab Tujuan</th>
-                    <th class="px-3 py-2.5">Pengambil & Mata Kuliah</th>
-                    <th class="px-3 py-2.5">Rincian Barang Keluar</th>
-                    <th class="px-3 py-2.5">Petugas Gudang</th>
-                    <th class="px-3 py-2.5 text-center">TTD Digital</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-200">
-                  <template x-for="trx in filteredWarehouseLogs('OUT')" :key="trx.trx_id">
-                    <tr class="hover:bg-slate-50 align-top">
-                      <td class="px-3 py-2.5 font-mono font-bold text-amber-800 whitespace-nowrap" x-text="trx.trx_id"></td>
-                      <td class="px-3 py-2.5 whitespace-nowrap font-medium" x-text="trx.trx_date"></td>
-                      <td class="px-3 py-2.5 font-bold text-emerald-900" x-text="trx.destination_lab_name || trx.destination_lab_id"></td>
-                      <td class="px-3 py-2.5">
-                        <p class="font-bold text-slate-900" x-text="trx.taker_name || '-'"></p>
-                        <p class="text-[11px] text-slate-500" x-text="trx.course_name || '-'"></p>
-                      </td>
-                      <td class="px-3 py-2.5">
-                        <template x-for="it in (trx.items || [])" :key="it.trx_item_id">
-                          <div class="mb-1 last:mb-0 flex items-center justify-between gap-2 bg-slate-50 px-2 py-1 rounded border border-slate-100">
-                            <span>
-                              <span class="font-semibold text-slate-800" x-text="it.item_name"></span>
-                              <span x-show="it.batch_lot && it.batch_lot !== '-'" class="text-[10px] text-slate-500" x-text="' [Batch: ' + it.batch_lot + ']'"></span>
-                            </span>
-                            <span class="font-bold text-red-700 whitespace-nowrap" x-text="'-' + it.qty + ' ' + (it.unit || '')"></span>
-                          </div>
-                        </template>
-                        <span x-show="!trx.items || trx.items.length === 0" class="text-slate-400 italic">-</span>
-                      </td>
-                      <td class="px-3 py-2.5 text-slate-700" x-text="trx.created_by || '-'"></td>
-                      <td class="px-3 py-2.5 text-center">
-                        <button x-show="trx.signature_url"
-                                type="button"
-                                @click="openImagePreview(trx.signature_url, 'Tanda Tangan Pengambil: ' + (trx.taker_name || '') + ' (' + trx.trx_id + ')')"
-                                class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold hover:bg-emerald-100 inline-flex items-center gap-1">
-                          <i class="fa-solid fa-signature"></i> Lihat TTD
-                        </button>
-                        <span x-show="!trx.signature_url" class="text-slate-400">-</span>
-                      </td>
-                    </tr>
-                  </template>
-                  <tr x-show="filteredWarehouseLogs('OUT').length === 0">
-                    <td colspan="7" class="px-4 py-8 text-center text-slate-400">Belum ada riwayat barang keluar gudang pada filter ini.</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
           </div>
         </div>
 
@@ -1578,9 +1441,10 @@
                 </select>
               </div>
               <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Laboratorium *</label>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Laboratorium / Gudang *</label>
                 <select x-model="usageForm.lab_id" @change="usageForm.items = []" class="w-full px-3 py-2 border rounded-xl text-sm">
-                  <option value="">-- Pilih Lab --</option>
+                  <option value="">-- Pilih Lokasi --</option>
+                  <option value="GUDANG">Gudang Pusat Fakultas Pertanian</option>
                   <template x-for="l in publicData.labs" :key="l.lab_id"><option :value="l.lab_id" x-text="l.lab_name"></option></template>
                 </select>
               </div>
@@ -2544,17 +2408,17 @@
 
                 <!-- Input Jumlah Pemisahan Stok saat Edit jika kondisi diubah -->
                 <div x-show="invFormModal.is_edit && invFormModal.data.condition_status !== invFormModal.data.original_condition_status">
-				  <label class="block font-bold text-amber-900 mb-1">
+                  <label class="block font-bold text-amber-900 mb-1">
                     Jumlah Unit Dipisahkan *
                     <span class="font-normal text-slate-500" x-text="'(Maks: ' + (invFormModal.data.max_split_qty || invFormModal.data.qty_available || 0) + ')'"></span>
-				  </label>
+                  </label>
                   <input type="number"
                          min="1"
-						 :max="invFormModal.data.max_split_qty || invFormModal.data.qty_available || 1"
-						 x-model.number="invFormModal.data.split_qty"
-						 :required="invFormModal.is_edit && invFormModal.data.condition_status !== invFormModal.data.original_condition_status"
-						 class="w-full px-3 py-2 border border-amber-400 bg-amber-50/50 rounded-xl font-bold text-amber-950" />
-				</div>
+                         :max="invFormModal.data.max_split_qty || invFormModal.data.qty_available || 1"
+                         x-model.number="invFormModal.data.split_qty"
+                         :required="invFormModal.is_edit && invFormModal.data.condition_status !== invFormModal.data.original_condition_status"
+                         class="w-full px-3 py-2 border border-amber-400 bg-amber-50/50 rounded-xl font-bold text-amber-950" />
+                </div>
               </div>
 
               <p x-show="invFormModal.is_edit && invFormModal.data.condition_status !== invFormModal.data.original_condition_status"
@@ -2645,21 +2509,39 @@
   <!-- MODAL KATALOG BERGAMBAR (+ PILIH ITEM) -->
   <div x-show="catalogPickerModal.open" x-cloak class="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4">
-      <div class="flex justify-between items-center">
-        <h3 class="font-bold text-emerald-950">Pilih <span x-text="catalogPickerModal.category"></span> Tersedia di Laboratorium</h3>
-        <button @click="catalogPickerModal.open = false" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button>
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <div>
+          <h3 class="font-bold text-emerald-950">
+            Pilih <span x-text="catalogPickerModal.category === 'ALL' ? 'Barang Stok Gudang' : catalogPickerModal.category"></span> Tersedia
+          </h3>
+          <p class="text-[11px] text-slate-500">Cari nama, kategori, atau ID barang, tentukan jumlah, lalu klik Tambahkan.</p>
+        </div>
+        <button @click="catalogPickerModal.open = false" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
-      <input type="text" x-model="catalogPickerModal.search" placeholder="Cari nama atau ID..." class="w-full px-3 py-2 border rounded-xl text-sm" />
-      <div class="grid sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto">
-        <template x-for="c in filteredPickerCatalog()" :key="c.inv_id || c.item_id">
-          <div class="border rounded-xl p-3 flex items-center justify-between gap-2">
-            <div class="min-w-0">
-              <p class="font-bold text-xs text-slate-900 truncate" x-text="c.item_name"></p>
-              <p class="text-[11px] text-emerald-700">Tersedia: <b x-text="c.qty_available + ' ' + c.unit"></b></p>
+      <input type="text" x-model="catalogPickerModal.search" placeholder="Cari nama, kategori, spesifikasi, atau ID barang..." class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-700" />
+      <div x-show="filteredPickerCatalog().length === 0" class="py-8 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+        Tidak ada stok barang tersedia yang sesuai pada lokasi ini.
+      </div>
+      <div x-show="filteredPickerCatalog().length > 0" class="grid sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-1">
+        <template x-for="(c, idx) in filteredPickerCatalog()" :key="(c.inv_id || c.item_id || 'item') + '-' + idx">
+          <div class="border border-slate-200 rounded-xl p-3 flex items-center justify-between gap-2.5 bg-slate-50/40 hover:border-emerald-600 transition">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <img x-show="c.photo_url" :src="normalizeDriveImgUrl(c.photo_url)" class="w-11 h-11 rounded-lg object-cover border shrink-0" />
+              <div x-show="!c.photo_url" class="w-11 h-11 rounded-lg bg-slate-200/70 flex items-center justify-center shrink-0 text-slate-400">
+                <i class="fa-solid fa-box"></i>
+              </div>
+              <div class="min-w-0">
+                <span x-show="(catalogPickerModal.category === 'ALL' && c.category) || c.item_id"
+                      class="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800"
+                      x-text="(catalogPickerModal.category === 'ALL' && c.category ? c.category + ' • ' : '') + (c.item_id || '')"></span>
+                <p class="font-bold text-xs text-slate-900 truncate mt-0.5" x-text="c.item_name"></p>
+                <p x-show="c.maker_type_spec" class="text-[10px] text-slate-500 truncate" x-text="c.maker_type_spec"></p>
+                <p class="text-[11px] text-emerald-700">Tersedia: <b x-text="c.qty_available + ' ' + c.unit"></b></p>
+              </div>
             </div>
-            <div class="flex items-center gap-1">
-              <input type="number" step="any" min="0.01" :max="c.qty_available" x-model="c.pickQty" class="w-16 px-2 py-1 border rounded text-xs" />
-              <button type="button" @click="confirmPickItem(c)" class="px-2.5 py-1 bg-silaras-dark text-white rounded text-xs font-bold">Tambahkan</button>
+            <div class="flex items-center gap-1 shrink-0">
+              <input type="number" step="any" min="0.01" :max="c.qty_available" x-model.number="c.pickQty" class="w-16 px-2 py-1 border border-slate-300 rounded-lg text-xs bg-white" />
+              <button type="button" @click="confirmPickItem(c)" class="px-2.5 py-1.5 bg-silaras-dark hover:bg-emerald-900 text-white rounded-lg text-xs font-bold">Tambahkan</button>
             </div>
           </div>
         </template>
@@ -2968,7 +2850,7 @@
         publicData: { labs: [], catalog: [], schedules: [] },
         publicCatalogSearch: '',
         publicCatalogView: 'grid',
-		publicCatalogPage: 1,
+        publicCatalogPage: 1,
         publicCatalogPerPage: 12, // 3 baris x 4 kolom = 12 item per halaman
         pubFilterLab: '',
         pubFilterType: '',
@@ -3013,9 +2895,7 @@
         whViewMode: 'grid',
         whStockSearch: '',
         whSortOrder: 'asc',
-        whLogSearch: '',
-        whLogDateFilter: '',
-        whInForm: { category: 'Alat', trx_date: new Date().toISOString().slice(0,10), item_id: '', item_name: '', maker_type_spec: '', unit: 'Unit', acquisition_year: 2026, bmn_category: 'Non BM', batch_lot: '', expiry_date: '', cas_number: '', grade: '', ghs_symbol: '', qty: 1, photo_base64: '', photo_url: '' },
+        whInForm: { category: 'Alat', trx_date: new Date().toISOString().slice(0,10), item_id: '', item_name: '', maker_type_spec: '', unit: '', acquisition_year: '', bmn_category: '', batch_lot: '', expiry_date: '', cas_number: '', grade: '', ghs_symbol: '', qty: '', photo_base64: '', photo_url: '' },
         whInSuggestions: [],
         whOutForm: { taker_name: '', course_name: '', destination_lab_id: '', items: [] },
 
@@ -3388,15 +3268,15 @@
             item_id: '',
             item_name: '',
             maker_type_spec: '',
-            unit: cat === 'Alat' ? 'Unit' : '',
-            acquisition_year: 2026,
-            bmn_category: 'Non BM',
+            unit: '',
+            acquisition_year: '',
+            bmn_category: '',
             batch_lot: '',
             expiry_date: '',
             cas_number: '',
             grade: '',
             ghs_symbol: '',
-            qty: 1,
+            qty: '',
             photo_base64: '',
             photo_url: ''
           };
@@ -3534,46 +3414,43 @@
             this.dashData = res.dashboard;
             this.masterItemsList = res.masterItems || [];
             this.invCache = {
-			  'Alat': (res.invAlat || []).map(r => ({
-				...r,
-				condition_status: r.condition_status || r.condition || 'Baik',
-				damage_notes: r.damage_notes || r.maintenance_notes || ''
-			  })),
+              'Alat': (res.invAlat || []).map(r => ({
+                ...r,
+                condition_status: r.condition_status || r.condition || 'Baik',
+                damage_notes: r.damage_notes || r.maintenance_notes || ''
+              })),
               'Bahan': res.invBahan || [],
               'Bahan Kimia': res.invKimia || []
             };
             this.warehouseData = res.warehouse || this.warehouseData;
             this.adminData = res.admin || this.adminData;
-            if (this.adminData.role_permissions) {
-              this.initPermissionMatrix(this.adminData.role_permissions);
+            if (res.admin?.role_permissions) {
+              this.initPermissionMatrix(res.admin.role_permissions);
             }
             this.bundleLoaded = true;
-            if (['inv_alat','inv_bahan','inv_kimia'].includes(this.activeMenu)) {
-              this.inventoryList = this.invCache[this.currentInvCategory()] || [];
-            }
-            this.syncDamagedEquipmentFromCache();
+            this.syncActiveLabContext();
+            this.applyLocalInventoryFilter();
+            this.loadDamagedEquipment(false);
           }
         },
 
-        // ===================================================================
-        // HELPER KATALOG PERALATAN PUBLIK & PAGINATION
-        // ===================================================================
+        applyLocalInventoryFilter() {
+          if (!['inv_alat','inv_bahan','inv_kimia'].includes(this.activeMenu)) return;
+          const cat = this.currentInvCategory();
+          const raw = this.invCache[cat] || [];
+          this.inventoryList = (this.invLocationFilter === 'ALL')
+            ? raw
+            : raw.filter(r => r.location_id === this.invLocationFilter);
+        },
+
         filteredPublicCatalog() {
-          const q = (this.publicCatalogSearch || '').toLowerCase().trim();
-          const list = (this.publicData.catalog || []).filter(item => {
-            if (!q) return true;
-            return (
-              String(item.item_name || '').toLowerCase().includes(q) ||
-              String(item.maker_type_spec || '').toLowerCase().includes(q) ||
-              String(item.laboratories || '').toLowerCase().includes(q)
-            );
-          });
-          // Urutkan otomatis berdasarkan paling sering dipinjam (borrow_count), lalu abjad
-          return [...list].sort((a, b) => {
-            const countDiff = Number(b.borrow_count || 0) - Number(a.borrow_count || 0);
-            if (countDiff !== 0) return countDiff;
-            return String(a.item_name || '').localeCompare(String(b.item_name || ''), 'id', { sensitivity: 'base' });
-          });
+          const kw = this.publicCatalogSearch.toLowerCase();
+          return (this.publicData.catalog || []).filter(c =>
+            !kw ||
+            c.item_name.toLowerCase().includes(kw) ||
+            (c.maker_type_spec || '').toLowerCase().includes(kw) ||
+            c.laboratories.toLowerCase().includes(kw)
+          );
         },
 
         publicCatalogTotalPages() {
@@ -3582,24 +3459,22 @@
         },
 
         paginatedPublicCatalog() {
+          const all = this.filteredPublicCatalog();
           const totalPages = this.publicCatalogTotalPages();
           if (this.publicCatalogPage > totalPages) {
             this.publicCatalogPage = totalPages;
           }
-          if (this.publicCatalogPage < 1) {
-            this.publicCatalogPage = 1;
-          }
           const start = (this.publicCatalogPage - 1) * this.publicCatalogPerPage;
-          return this.filteredPublicCatalog().slice(start, start + this.publicCatalogPerPage);
+          return all.slice(start, start + this.publicCatalogPerPage);
         },
 
         goToPublicCatalogPage(page) {
-          const total = this.publicCatalogTotalPages();
-          const target = Math.min(Math.max(1, Number(page) || 1), total);
+          const totalPages = this.publicCatalogTotalPages();
+          const target = Math.min(Math.max(1, Number(page)), totalPages);
           this.publicCatalogPage = target;
-          const el = document.getElementById('katalog-publik');
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          const section = document.getElementById('katalog-publik');
+          if (section) {
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
         },
 
@@ -3609,98 +3484,62 @@
           if (total <= 7) {
             return Array.from({ length: total }, (_, i) => i + 1);
           }
-          if (current <= 4) {
-            return [1, 2, 3, 4, 5, '...', total];
+          const pages = [1];
+          if (current > 3) pages.push('...');
+          const start = Math.max(2, current - 1);
+          const end = Math.min(total - 1, current + 1);
+          for (let i = start; i <= end; i++) {
+            pages.push(i);
           }
-          if (current >= total - 3) {
-            return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
-          }
-          return [1, '...', current - 1, current, current + 1, '...', total];
+          if (current < total - 2) pages.push('...');
+          pages.push(total);
+          return pages;
         },
 
         filteredPublicSchedules() {
           return (this.publicData.schedules || []).filter(s => {
-            if (s.status !== 'Terkonfirmasi') return false;
             if (this.pubFilterLab && s.lab_id !== this.pubFilterLab) return false;
             if (this.pubFilterType && s.activity_type !== this.pubFilterType) return false;
             if (this.pubFilterDate && s.booking_date !== this.pubFilterDate) return false;
-            if (this.pubFilterSearch) {
-              const q = this.pubFilterSearch.toLowerCase();
-              return (s.activity_title || '').toLowerCase().includes(q) || (s.lab_name || '').toLowerCase().includes(q);
-            }
+            if (this.pubFilterSearch && !s.activity_title.toLowerCase().includes(this.pubFilterSearch.toLowerCase())) return false;
             return true;
           });
         },
 
-        getCalendarEvents() {
+        toLocalIsoDate(d) {
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${y}-${m}-${day}`;
+        },
+
+        getCalendarSchedules() {
           return (this.publicData.schedules || []).filter(s => {
             if (this.pubFilterLab && s.lab_id !== this.pubFilterLab) return false;
             return true;
           });
         },
 
-        getSelectedDateEvents() {
-          return this.getCalendarEvents()
-            .filter(s => s.booking_date === this.selectedCalendarDate)
-            .sort((a, b) => String(a.start_time || '').localeCompare(String(b.start_time || '')));
-        },
-
-        getCalendarPeriodLabel() {
-          const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-          const d = this.parseIsoDate(this.calendarAnchorDate);
-          if (this.calendarMode === 'day') {
-            return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-          }
-          if (this.calendarMode === 'week') {
-            const start = new Date(d);
-            start.setDate(d.getDate() - d.getDay());
-            const end = new Date(start);
-            end.setDate(start.getDate() + 6);
-            return `${start.getDate()} ${months[start.getMonth()].slice(0,3)} - ${end.getDate()} ${months[end.getMonth()].slice(0,3)} ${end.getFullYear()}`;
-          }
-          return `${months[d.getMonth()]} ${d.getFullYear()}`;
-        },
-
-        shiftCalendarPeriod(delta) {
-          const d = this.parseIsoDate(this.calendarAnchorDate);
-          if (this.calendarMode === 'day') {
-            d.setDate(d.getDate() + delta);
-            this.selectedCalendarDate = this.toIsoDate(d);
-          } else if (this.calendarMode === 'week') {
-            d.setDate(d.getDate() + (delta * 7));
-          } else {
-            d.setDate(1);
-            d.setMonth(d.getMonth() + delta);
-          }
-          this.calendarAnchorDate = this.toIsoDate(d);
-        },
-
-        resetCalendarToday() {
-          const today = new Date().toISOString().slice(0, 10);
-          this.calendarAnchorDate = today;
-          this.selectedCalendarDate = today;
-        },
-
         getCalendarGridCells() {
-          const anchor = this.parseIsoDate(this.calendarAnchorDate);
-          const todayStr = new Date().toISOString().slice(0, 10);
-          const events = this.getCalendarEvents();
+          const anchor = new Date(this.calendarAnchorDate + 'T00:00:00');
+          const todayStr = this.toLocalIsoDate(new Date());
+          const allSchedules = this.getCalendarSchedules();
           const cells = [];
 
           if (this.calendarMode === 'week') {
-            const start = new Date(anchor);
-            start.setDate(anchor.getDate() - anchor.getDay());
+            const startOfWeek = new Date(anchor);
+            startOfWeek.setDate(anchor.getDate() - anchor.getDay());
             for (let i = 0; i < 7; i++) {
-              const cur = new Date(start);
-              cur.setDate(start.getDate() + i);
-              const dateStr = this.toIsoDate(cur);
+              const d = new Date(startOfWeek);
+              d.setDate(startOfWeek.getDate() + i);
+              const dateStr = this.toLocalIsoDate(d);
               cells.push({
                 key: 'w-' + dateStr,
                 isEmpty: false,
-                dayNumber: cur.getDate(),
-                dateStr,
+                dateStr: dateStr,
+                dayNumber: d.getDate(),
                 isToday: dateStr === todayStr,
-                events: events.filter(e => e.booking_date === dateStr)
+                events: allSchedules.filter(s => s.booking_date === dateStr)
               });
             }
             return cells;
@@ -3708,35 +3547,79 @@
 
           const year = anchor.getFullYear();
           const month = anchor.getMonth();
-          const firstDay = new Date(year, month, 1);
-          const startWeekday = firstDay.getDay();
+          const firstDayWeekday = new Date(year, month, 1).getDay();
           const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-          for (let b = 0; b < startWeekday; b++) {
-            cells.push({ key: 'empty-pre-' + b, isEmpty: true, events: [] });
+          for (let pad = 0; pad < firstDayWeekday; pad++) {
+            cells.push({ key: 'pad-' + pad, isEmpty: true });
           }
+
           for (let day = 1; day <= daysInMonth; day++) {
-            const cur = new Date(year, month, day);
-            const dateStr = this.toIsoDate(cur);
+            const d = new Date(year, month, day);
+            const dateStr = this.toLocalIsoDate(d);
             cells.push({
               key: 'm-' + dateStr,
               isEmpty: false,
+              dateStr: dateStr,
               dayNumber: day,
-              dateStr,
               isToday: dateStr === todayStr,
-              events: events.filter(e => e.booking_date === dateStr)
+              events: allSchedules.filter(s => s.booking_date === dateStr)
             });
-          }
-          const trailing = (7 - (cells.length % 7)) % 7;
-          for (let t = 0; t < trailing; t++) {
-            cells.push({ key: 'empty-post-' + t, isEmpty: true, events: [] });
           }
           return cells;
         },
 
+        getSelectedDateEvents() {
+          return this.getCalendarSchedules().filter(s => s.booking_date === this.selectedCalendarDate);
+        },
+
+        getCalendarPeriodLabel() {
+          const anchor = new Date(this.calendarAnchorDate + 'T00:00:00');
+          const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+          if (this.calendarMode === 'day') {
+            return this.selectedCalendarDate;
+          }
+          return months[anchor.getMonth()] + ' ' + anchor.getFullYear();
+        },
+
+        shiftCalendarPeriod(delta) {
+          const anchor = new Date(this.calendarAnchorDate + 'T00:00:00');
+          if (this.calendarMode === 'day') {
+            anchor.setDate(anchor.getDate() + delta);
+          } else if (this.calendarMode === 'week') {
+            anchor.setDate(anchor.getDate() + (delta * 7));
+          } else {
+            anchor.setMonth(anchor.getMonth() + delta);
+          }
+          const nextIso = this.toLocalIsoDate(anchor);
+          this.calendarAnchorDate = nextIso;
+          this.selectedCalendarDate = nextIso;
+        },
+
+        resetCalendarToday() {
+          const todayIso = this.toLocalIsoDate(new Date());
+          this.calendarAnchorDate = todayIso;
+          this.selectedCalendarDate = todayIso;
+        },
+
+        formatDateIndonesian(isoStr) {
+          if (!isoStr) return '-';
+          const d = new Date(isoStr + 'T00:00:00');
+          const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+          const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+          return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+        },
+
+        formatShortEventPill(ev) {
+          const start = String(ev.start_time || '').slice(0, 5);
+          if (ev.status === 'Proses Pengajuan') return `${start} PROSES`;
+          const label = String(ev.activity_type || 'KEGIATAN').toUpperCase();
+          return `${start} ${label}`;
+        },
+
         getEventBadgeClass(ev) {
           if (ev.status === 'Proses Pengajuan') {
-            return 'bg-amber-100 text-amber-900 border border-amber-300';
+            return 'bg-amber-50 text-amber-800 border border-amber-300';
           }
           if (ev.activity_type === 'Praktikum') {
             return 'bg-[#064E3B] text-white';
@@ -3749,7 +3632,7 @@
 
         getEventCardClass(ev) {
           if (ev.status === 'Proses Pengajuan') {
-            return 'bg-amber-50 border border-amber-300 text-amber-950';
+            return 'bg-amber-50 text-amber-950 border border-amber-300';
           }
           if (ev.activity_type === 'Praktikum') {
             return 'bg-[#064E3B] text-white';
@@ -3758,31 +3641,6 @@
             return 'bg-[#84CC16] text-emerald-950';
           }
           return 'bg-[#0284C7] text-white';
-        },
-
-        formatShortEventPill(ev) {
-          const jam = String(ev.start_time || '').slice(0, 5);
-          const label = ev.status === 'Proses Pengajuan' ? 'Proses Pengajuan' : ev.activity_title;
-          return `${jam} ${label}`;
-        },
-
-        parseIsoDate(isoStr) {
-          const [y, m, d] = String(isoStr || new Date().toISOString().slice(0,10)).split('-').map(Number);
-          return new Date(y, (m || 1) - 1, d || 1);
-        },
-
-        toIsoDate(dateObj) {
-          const y = dateObj.getFullYear();
-          const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-          const d = String(dateObj.getDate()).padStart(2, '0');
-          return `${y}-${m}-${d}`;
-        },
-
-        formatDateIndonesian(isoStr) {
-          const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
-          const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-          const d = this.parseIsoDate(isoStr);
-          return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
         },
 
         openAuthModal(mode) {
@@ -3794,18 +3652,20 @@
           this.authModal.mode = mode;
           if (mode === 'register') {
             this.regForm = { full_name: '', nim_nip: '', unit_prodi: '', phone: '', email: '', password: '' };
+          } else if (mode === 'login') {
+            this.loginForm = { email: '', password: '' };
           } else if (mode === 'forgot') {
-            this.forgotForm = { step: 1, email: this.loginForm.email || '', otp: '', new_password: '', confirm_password: '' };
+            this.forgotForm = { step: 1, email: '', otp: '', new_password: '', confirm_password: '' };
           }
         },
 
         async submitRequestResetOtp() {
           const res = await this.runGas('apiRequestPasswordResetOtp', this.forgotForm.email);
           if (res && res.success) {
-            this.showToast(res.message);
             this.forgotForm.step = 2;
-          } else if (res) {
-            this.showToast(res.message, 'error');
+            this.showToast(res.message);
+          } else {
+            this.showToast(res?.message || 'Gagal mengirim kode OTP.', 'error');
           }
         },
 
@@ -3815,18 +3675,16 @@
             return;
           }
           const res = await this.runGas(
-            'apiConfirmPasswordResetOtp',
+            'apiConfirmPasswordResetWithOtp',
             this.forgotForm.email,
             this.forgotForm.otp,
             this.forgotForm.new_password
           );
           if (res && res.success) {
             this.showToast(res.message);
-            this.loginForm.email = this.forgotForm.email;
-            this.loginForm.password = '';
             this.switchAuthMode('login');
-          } else if (res) {
-            this.showToast(res.message, 'error');
+          } else {
+            this.showToast(res?.message || 'Gagal mengatur ulang kata sandi.', 'error');
           }
         },
 
@@ -3837,88 +3695,64 @@
             this.syncActiveLabContext();
             localStorage.setItem('SILARAS_SESSION', JSON.stringify(this.session));
             this.authModal.open = false;
+            this.profileForm.full_name = this.session.full_name || '';
+            this.bookingForm.pic_name = this.session.full_name || '';
+            this.bookingForm.unit_prodi = this.session.unit_prodi || '';
             this.showToast('Selamat datang, ' + this.session.full_name);
             this.loadWorkspaceBundle(false);
-          } else if (res) {
-            this.showToast(res.message, 'error');
+          } else {
+            this.showToast(res?.message || 'Login gagal', 'error');
           }
         },
 
         async submitRegister() {
-          const res = await this.runGas('apiRegisterSelfService', this.regForm);
+          const res = await this.runGas('apiSelfRegister', this.regForm);
           if (res && res.success) {
             this.showToast(res.message);
-            this.regForm = { full_name: '', nim_nip: '', unit_prodi: '', phone: '', email: '', password: '' };
-            this.authModal.mode = 'login';
-          } else if (res) {
-            this.showToast(res.message, 'error');
+            this.switchAuthMode('login');
+          } else {
+            this.showToast(res?.message || 'Pendaftaran gagal', 'error');
           }
         },
 
         async submitCompleteProfile() {
           const res = await this.runGas('apiCompleteUserProfile', this.session.token, this.profileForm);
           if (res && res.success) {
-            this.session.needs_profile_completion = false;
-            this.session.full_name = this.profileForm.full_name;
+            this.session = res.session;
+            this.syncActiveLabContext();
             localStorage.setItem('SILARAS_SESSION', JSON.stringify(this.session));
-            this.showToast(res.message);
+            this.showToast('Profil berhasil dilengkapi.');
+          } else {
+            this.showToast(res?.message || 'Gagal menyimpan profil', 'error');
           }
         },
 
-        async logout() {
-          if (this.session?.token) await this.runGas('apiLogout', this.session.token);
-          this.session = null;
-          this.activeMenu = 'dashboard';
-          this.bundleLoaded = false;
-          localStorage.removeItem('SILARAS_SESSION');
-          this.loadPublicHome();
-        },
-
         async switchContext() {
-          this.syncActiveLabContext();
           const res = await this.runGas('apiSwitchContext', this.session.token, this.session.active_role, this.session.active_lab_id);
           if (res && res.success) {
-            this.session.permissions = res.permissions;
+            this.session = res.session;
+            this.syncActiveLabContext();
             localStorage.setItem('SILARAS_SESSION', JSON.stringify(this.session));
+            this.applyLocalInventoryFilter();
+            if (!this.canView(this.activeMenu)) this.activeMenu = 'dashboard';
             this.refreshActiveView();
           }
         },
 
-        isSuperAdmin() {
-          return this.session?.active_role === 'Super Admin' || (this.session?.roles || []).includes('Super Admin');
-        },
-        hasRole(r) {
-          return this.session?.active_role === r || this.isSuperAdmin();
-        },
-        canView(mod) {
-          return Boolean(this.session?.permissions?.[mod]?.view);
-        },
-        canEdit(mod) {
-          return Boolean(this.session?.permissions?.[mod]?.edit);
-        },
-        canDelete(mod) {
-          return Boolean(this.session?.permissions?.[mod]?.delete);
+        logout() {
+          this.session = null;
+          this.activeMenu = 'dashboard';
+          this.bundleLoaded = false;
+          this.invCache = { Alat: [], Bahan: [], 'Bahan Kimia': [] };
+          localStorage.removeItem('SILARAS_SESSION');
+          this.loadPublicHome();
         },
 
-        menuTitle() {
-          const map = {
-            dashboard: 'Dashboard Utama',
-            master_data: 'Master Data Barang Terpusat',
-            inv_alat: 'Inventaris Peralatan Laboratorium',
-            alat_rusak: 'Alat Perbaikan & Rusak (Pemeliharaan / Penghapusan)',
-            inv_bahan: 'Inventaris Bahan Habis Pakai',
-            inv_kimia: 'Inventaris Bahan Kimia & B3',
-            gudang: 'Gudang Pusat & Manajemen Stok',
-            pinjam_alat: 'Peminjaman Peralatan',
-            guna_bahan: 'Penggunaan Bahan & Bahan Kimia',
-            booking_ruang: 'Penggunaan Ruangan Laboratorium',
-            verifikasi: 'Verifikasi & Persetujuan Berjenjang',
-            laporan: 'Laporan & Ekspor Dokumen',
-            audit: 'Audit Trail Sistem',
-            settings: 'Pengaturan Pengguna, Lab & Hak Akses'
-          };
-          return map[this.activeMenu] || 'SILARAS';
-        },
+        hasRole(role) { return (this.session?.roles || []).includes(role); },
+        isSuperAdmin() { return this.session?.active_role === 'Super Admin' || this.hasRole('Super Admin'); },
+        canView(mod) { return this.isSuperAdmin() || Boolean(this.session?.permissions?.[mod]?.view); },
+        canEdit(mod) { return this.isSuperAdmin() || Boolean(this.session?.permissions?.[mod]?.edit); },
+        canDelete(mod) { return this.isSuperAdmin() || Boolean(this.session?.permissions?.[mod]?.delete); },
 
         navigate(menu) {
           this.activeMenu = menu;
@@ -3926,121 +3760,140 @@
           this.refreshActiveView();
         },
 
+        menuTitle() {
+          const map = {
+            dashboard: 'Dashboard Utama',
+            master_data: 'Master Data Barang Terpusat',
+            inv_alat: 'Inventaris Peralatan',
+            alat_rusak: 'Alat Perbaikan & Rusak',
+            inv_bahan: 'Inventaris Bahan',
+            inv_kimia: 'Inventaris Bahan Kimia',
+            gudang: 'Gudang & Manajemen Stok',
+            pinjam_alat: 'Peminjaman Peralatan',
+            guna_bahan: 'Penggunaan Bahan & Kimia',
+            booking_ruang: 'Penggunaan Ruangan Laboratorium',
+            verifikasi: 'Verifikasi & Persetujuan',
+            laporan: 'Laporan & Ekspor',
+            audit: 'Audit Trail Sistem',
+            settings: 'Pengguna, Lab & Hak Akses'
+          };
+          return map[this.activeMenu] || 'SILARAS';
+        },
+
         refreshActiveView() {
           if (!this.bundleLoaded) {
             this.loadWorkspaceBundle(false);
+            return;
+          }
+          if (['inv_alat','inv_bahan','inv_kimia'].includes(this.activeMenu)) {
+            this.applyLocalInventoryFilter();
+            this.loadWorkspaceBundle(true);
+          } else if (this.activeMenu === 'alat_rusak') {
+            this.loadDamagedEquipment(false);
+            this.loadWorkspaceBundle(true);
+          } else if (this.activeMenu === 'audit') {
+            this.loadAuditLogs();
           } else {
             this.loadWorkspaceBundle(true);
           }
-          if (this.activeMenu === 'dashboard') this.loadDashboard();
-          if (['inv_alat','inv_bahan','inv_kimia'].includes(this.activeMenu)) {
-            this.inventoryList = this.invCache[this.currentInvCategory()] || [];
-            this.loadInventory();
-          }
-          if (this.activeMenu === 'alat_rusak') {
-            this.syncDamagedEquipmentFromCache();
-            this.loadDamagedEquipment(false);
-          }
-          if (this.activeMenu === 'gudang') this.loadWarehouse();
-          if (this.activeMenu === 'master_data') this.loadMasterData();
-          if (this.activeMenu === 'audit') this.loadAuditLogs();
-          if (this.activeMenu === 'settings') this.loadAdminData();
         },
 
-        async loadDashboard() {
-          const res = await this.runGasSilent('apiGetDashboardData', this.session.token);
-          if (res && res.success) this.dashData = res;
-        },
+        async loadDashboard() { this.loadWorkspaceBundle(false); },
 
         currentInvCategory() {
+          if (this.activeMenu === 'inv_alat') return 'Alat';
           if (this.activeMenu === 'inv_bahan') return 'Bahan';
-          if (this.activeMenu === 'inv_kimia') return 'Bahan Kimia';
-          return 'Alat';
+          return 'Bahan Kimia';
         },
 
         async loadInventory() {
           const cat = this.currentInvCategory();
-          const res = await this.runGasSilent('apiGetInventory', this.session.token, cat, this.invLocationFilter);
-          if (res && res.success) {
-            const rows = (res.items || []).map(r => cat === 'Alat' ? ({
-              ...r,
-              condition_status: r.condition_status || r.condition || 'Baik',
-              damage_notes: r.damage_notes || r.maintenance_notes || ''
-            }) : r);
-            this.inventoryList = rows;
-            this.invCache[cat] = rows;
-            if (cat === 'Alat') this.syncDamagedEquipmentFromCache();
-          }
-        },
-
-        filteredInventory() {
-          const q = this.invSearch.toLowerCase();
-          const filtered = (this.inventoryList || []).filter(r => {
-            if (!q) return true;
-            return (r.item_name || '').toLowerCase().includes(q) || (r.item_id || '').toLowerCase().includes(q) || (r.maker_type_spec || '').toLowerCase().includes(q);
-          });
-          return this.sortByItemName(filtered, this.invSortOrder);
-        },
-
-        // ===================================================================
-        // LOGIKA ALAT PERBAIKAN & RUSAK + BERITA ACARA PENGHAPUSAN ASET
-        // ===================================================================
-        getConditionBadgeClass(condition) {
-          const c = String(condition || 'Baik');
-          if (c === 'Rusak Berat') return 'bg-red-600 text-white';
-          if (c === 'Rusak Ringan') return 'bg-amber-400 text-amber-950';
-          return 'bg-emerald-600 text-white';
-        },
-
-        syncDamagedEquipmentFromCache() {
-          const allAlat = this.invCache['Alat'] || [];
-          this.damagedEquipmentList = allAlat.filter(r => {
-            const cond = String(r.condition_status || r.condition || 'Baik');
-            return cond === 'Rusak Ringan' || cond === 'Rusak Berat';
-          });
-        },
-
-        async loadDamagedEquipment(showSpinner = false) {
-          const runner = showSpinner ? this.runGas.bind(this) : this.runGasSilent.bind(this);
-          const res = await runner('apiGetInventory', this.session.token, 'Alat', 'ALL');
+          const res = await this.runGas('apiGetInventoryList', this.session.token, cat, this.invLocationFilter);
           if (res && res.success) {
             const normalized = (res.items || []).map(r => ({
               ...r,
               condition_status: r.condition_status || r.condition || 'Baik',
               damage_notes: r.damage_notes || r.maintenance_notes || ''
             }));
-            this.invCache['Alat'] = normalized;
-            if (this.activeMenu === 'inv_alat') {
-              this.inventoryList = normalized;
-            }
-            this.syncDamagedEquipmentFromCache();
+            this.invCache[cat] = normalized;
+            this.inventoryList = normalized;
+            if (cat === 'Alat') this.loadDamagedEquipment(false);
           }
         },
 
+        filteredInventory() {
+          const kw = this.invSearch.toLowerCase();
+          const filtered = (this.inventoryList || []).filter(r =>
+            !kw ||
+            r.item_name.toLowerCase().includes(kw) ||
+            r.item_id.toLowerCase().includes(kw) ||
+            (r.maker_type_spec || '').toLowerCase().includes(kw)
+          );
+          return this.sortByItemName(filtered, this.invSortOrder);
+        },
+
+        // ===================================================================
+        // MANAJEMEN ALAT PERBAIKAN & RUSAK (CONDITION STATUS & PEMISAHAN STOK)
+        // ===================================================================
+        getConditionBadgeClass(status) {
+          if (status === 'Rusak Ringan') {
+            return 'bg-amber-100 text-amber-900 border border-amber-300';
+          }
+          if (status === 'Rusak Berat') {
+            return 'bg-red-100 text-red-800 border border-red-300';
+          }
+          return 'bg-emerald-100 text-emerald-800 border border-emerald-200';
+        },
+
         damagedCount() {
-          return (this.damagedEquipmentList || []).reduce((acc, r) => acc + Number(r.qty_total || r.qty_available || 0), 0);
+          const activeLoc = this.session?.active_lab_id || 'ALL';
+          return (this.damagedEquipmentList || []).filter(r => {
+            if (activeLoc && activeLoc !== 'ALL' && r.location_id !== activeLoc) return false;
+            return true;
+          }).length;
+        },
+
+        async loadDamagedEquipment(forceRefresh = false) {
+          if (forceRefresh) {
+            const res = await this.runGas('apiGetInventoryList', this.session.token, 'Alat', 'ALL');
+            if (res && res.success) {
+              this.invCache['Alat'] = (res.items || []).map(r => ({
+                ...r,
+                condition_status: r.condition_status || r.condition || 'Baik',
+                damage_notes: r.damage_notes || r.maintenance_notes || ''
+              }));
+            }
+          }
+          const allAlat = this.invCache['Alat'] || [];
+          this.damagedEquipmentList = allAlat.filter(r => {
+            const st = String(r.condition_status || 'Baik').trim();
+            return st === 'Rusak Ringan' || st === 'Rusak Berat';
+          });
+          if (this.session?.active_lab_id) {
+            this.damagedLocationFilter = this.session.active_lab_id;
+          }
         },
 
         filteredDamagedEquipment() {
-          const q = (this.damagedSearch || '').toLowerCase().trim();
-          const loc = this.damagedLocationFilter || this.session?.active_lab_id || 'ALL';
-          const condFilter = this.damagedConditionFilter || 'ALL';
-
+          const kw = this.damagedSearch.toLowerCase().trim();
           const list = (this.damagedEquipmentList || []).filter(r => {
-            if (loc && loc !== 'ALL' && r.location_id !== loc) return false;
-            if (condFilter !== 'ALL' && (r.condition_status || '') !== condFilter) return false;
-            if (!q) return true;
-            return (
-              String(r.item_name || '').toLowerCase().includes(q) ||
-              String(r.item_id || '').toLowerCase().includes(q) ||
-              String(r.location_name || '').toLowerCase().includes(q) ||
-              String(r.damage_notes || '').toLowerCase().includes(q)
-            );
+            if (this.damagedLocationFilter && this.damagedLocationFilter !== 'ALL' && r.location_id !== this.damagedLocationFilter) {
+              return false;
+            }
+            if (this.damagedConditionFilter && this.damagedConditionFilter !== 'ALL' && (r.condition_status || 'Baik') !== this.damagedConditionFilter) {
+              return false;
+            }
+            if (kw) {
+              const hay = `${r.item_name || ''} ${r.item_id || ''} ${r.maker_type_spec || ''} ${r.damage_notes || ''} ${r.location_name || ''}`.toLowerCase();
+              if (!hay.includes(kw)) return false;
+            }
+            return true;
           });
           return this.sortByItemName(list, 'asc');
         },
 
         openDamagedDetailModal(item) {
+          if (!item) return;
           const totalUnit = Number(item.qty_total || item.qty_available || 1);
           this.damagedDetailModal = {
             open: true,
@@ -4054,122 +3907,173 @@
         async submitQuickConditionUpdate() {
           const item = this.damagedDetailModal.item;
           if (!item) return;
-
           const totalUnit = Number(item.qty_total || item.qty_available || 0);
-          const procQty = Number(this.damagedDetailModal.processQty || 0);
-          const nextCond = this.damagedDetailModal.nextCondition;
+          const moveQty = Number(this.damagedDetailModal.processQty || 0);
+          const targetCond = this.damagedDetailModal.nextCondition;
 
-          if (procQty <= 0 || procQty > totalUnit) {
-            this.showToast(`Jumlah unit diproses harus antara 1 sampai ${totalUnit}.`, 'error');
+          if (moveQty <= 0 || moveQty > totalUnit) {
+            this.showToast(`Jumlah unit harus antara 1 sampai ${totalUnit}.`, 'error');
             return;
           }
 
-          if (nextCond !== 'Baik' && !String(this.damagedDetailModal.notes || '').trim()) {
-            this.showToast('Catatan kerusakan / tindak lanjut wajib diisi untuk status rusak.', 'error');
+          // Jika kondisi tidak berubah dan hanya memperbarui catatan kerusakan
+          if (targetCond === item.condition_status) {
+            const payload = {
+              ...item,
+              condition_status: targetCond,
+              damage_notes: this.damagedDetailModal.notes
+            };
+            const res = await this.runGas('apiSaveInventoryItem', this.session.token, 'Alat', payload);
+            if (res && res.success) {
+              this.damagedDetailModal.open = false;
+              this.showToast('Catatan kerusakan peralatan berhasil diperbarui.');
+              await this.loadWorkspaceBundle(false);
+            } else {
+              this.showToast(res?.message || 'Gagal memperbarui data.', 'error');
+            }
             return;
           }
 
-          const payload = {
-            ...item,
-            condition_status: nextCond,
-            original_condition_status: item.condition_status,
-            split_qty: procQty,
-            max_split_qty: totalUnit,
-            damage_notes: nextCond === 'Baik' ? '' : this.damagedDetailModal.notes
-          };
+          // Pemisahan stok sebagian atau seluruhnya ke kondisi baru
+          const remainingQty = totalUnit - moveQty;
+          if (remainingQty > 0) {
+            // 1) Kurangi stok pada baris rusak lama
+            const updateOldPayload = {
+              ...item,
+              qty_available: Math.max(0, Number(item.qty_available || totalUnit) - moveQty),
+              qty_total: remainingQty,
+              condition_status: item.condition_status,
+              damage_notes: item.damage_notes || ''
+            };
+            const resOld = await this.runGas('apiSaveInventoryItem', this.session.token, 'Alat', updateOldPayload);
+            if (!resOld || !resOld.success) {
+              this.showToast(resOld?.message || 'Gagal memisahkan stok asal.', 'error');
+              return;
+            }
 
-          const res = await this.runGas('apiSaveInventoryItem', this.session.token, 'Alat', payload, true);
-          if (res && res.success) {
-            this.showToast(res.message || 'Status kondisi peralatan berhasil diperbarui.');
-            this.damagedDetailModal.open = false;
-            await this.loadDamagedEquipment(false);
-          } else if (res) {
-            this.showToast(res.message || 'Gagal memperbarui kondisi peralatan.', 'error');
+            // 2) Buat entri baru untuk unit yang berpindah status kondisi (mis. Baik setelah diperbaiki)
+            const newSplitPayload = {
+              location_id: item.location_id,
+              item_id: item.item_id,
+              item_name: item.item_name,
+              maker_type_spec: item.maker_type_spec || '',
+              unit: item.unit || 'Unit',
+              acquisition_year: item.acquisition_year || '',
+              bmn_category: item.bmn_category || 'BM',
+              qty_available: moveQty,
+              qty_borrowed: 0,
+              qty_total: moveQty,
+              condition_status: targetCond,
+              damage_notes: targetCond === 'Baik' ? '' : (this.damagedDetailModal.notes || item.damage_notes || ''),
+              photo_url: item.photo_url || ''
+            };
+            const resNew = await this.runGas('apiSaveInventoryItem', this.session.token, 'Alat', newSplitPayload);
+            if (resNew && resNew.success) {
+              this.damagedDetailModal.open = false;
+              this.showToast(`${moveQty} unit berhasil dipindahkan ke status "${targetCond}". Sisa ${remainingQty} unit tetap berstatus "${item.condition_status}".`);
+              await this.loadWorkspaceBundle(false);
+            } else {
+              this.showToast(resNew?.message || 'Gagal membuat entri pemisahan kondisi.', 'error');
+            }
+          } else {
+            // Seluruh unit berpindah kondisi
+            const fullUpdatePayload = {
+              ...item,
+              condition_status: targetCond,
+              damage_notes: targetCond === 'Baik' ? '' : (this.damagedDetailModal.notes || item.damage_notes || '')
+            };
+            const res = await this.runGas('apiSaveInventoryItem', this.session.token, 'Alat', fullUpdatePayload);
+            if (res && res.success) {
+              this.damagedDetailModal.open = false;
+              this.showToast(`Status seluruh unit (${moveQty}) diperbarui menjadi "${targetCond}".`);
+              await this.loadWorkspaceBundle(false);
+            } else {
+              this.showToast(res?.message || 'Gagal memperbarui status kondisi.', 'error');
+            }
           }
         },
 
         generateAssetDisposalBA(item) {
           if (!item) return;
-          const today = new Date();
-          const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-          const tglIndo = `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
-          const qtyUnit = Number(item.qty_total || item.qty_available || 1);
-          const unitName = item.unit || 'Unit';
-          const labName = item.location_name || 'Laboratorium Fakultas Pertanian';
-          const docNo = `BA-HAPUS/${item.item_id || 'ALT'}/${today.getFullYear()}`;
+          const todayStr = this.formatDateIndonesian(this.toLocalIsoDate(new Date()));
+          const qty = item.qty_total || item.qty_available || 1;
+          const unit = item.unit || 'Unit';
+          const officerName = this.session?.full_name || 'Kepala Laboratorium / Laboran';
 
           const htmlDoc = `
-            <html xmlns:o="urn:schemas-microsoft-com:office:office"
-                  xmlns:w="urn:schemas-microsoft-com:office:word"
-                  xmlns="http://www.w3.org/TR/REC-html40">
-            <head><meta charset="utf-8"><title>Berita Acara Usulan Penghapusan Aset</title>
+            <html xmlns:o='urn:schemas-microsoft-com:office:office'
+                  xmlns:w='urn:schemas-microsoft-com:office:word'
+                  xmlns='http://www.w3.org/TR/REC-html40'>
+            <head><meta charset='utf-8'><title>Berita Acara Usulan Penghapusan Aset</title>
             <style>
               body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.5; color: #000; margin: 2cm; }
               .kop { text-align: center; border-bottom: 3px double #000; padding-bottom: 8px; margin-bottom: 18px; }
               .kop h3, .kop h4, .kop p { margin: 2px 0; }
-              .judul { text-align: center; margin: 16px 0; }
-              .judul h4 { text-decoration: underline; margin-bottom: 4px; }
+              .title { text-align: center; font-weight: bold; text-decoration: underline; margin: 16px 0 4px 0; font-size: 13pt; }
+              .nomor { text-align: center; margin-bottom: 18px; }
               table.data { width: 100%; border-collapse: collapse; margin: 14px 0; }
-              table.data th, table.data td { border: 1px solid #000; padding: 6px 8px; font-size: 11pt; }
+              table.data th, table.data td { border: 1px solid #000; padding: 6px 8px; text-align: left; font-size: 11pt; }
               table.data th { background-color: #f2f2f2; }
-              table.ttd { width: 100%; margin-top: 32px; border: none; }
+              table.ttd { width: 100%; margin-top: 36px; border: none; }
               table.ttd td { width: 50%; text-align: center; vertical-align: top; }
             </style>
             </head>
             <body>
               <div class="kop">
                 <h4>KEMENTERIAN PENDIDIKAN TINGGI, SAINS, DAN TEKNOLOGI</h4>
-                <h3>UNIVERSITAS SILIWANGI — FAKULTAS PERTANIAN</h3>
-                <p style="font-size:10pt;">Jalan Siliwangi No. 24 Kota Tasikmalaya 46115 • Sistem Informasi Laboratorium Siliwangi (SILARAS)</p>
+                <h3>UNIVERSITAS SILIWANGI</h3>
+                <h3>FAKULTAS PERTANIAN</h3>
+                <p style="font-size:10pt;">Jalan Siliwangi No. 24 Kotak Pos 164 Tasikmalaya 46115</p>
               </div>
 
-              <div class="judul">
-                <h4>BERITA ACARA PEMERIKSAAN &amp; USULAN PENGHAPUSAN ASET LABORATORIUM</h4>
-                <p>Nomor: ${docNo}</p>
-              </div>
+              <div class="title">BERITA ACARA PEMERIKSAAN &amp; USULAN PENGHAPUSAN ASET LABORATORIUM</div>
+              <div class="nomor">Nomor: ....... /UN58.04/LL/BA/${new Date().getFullYear()}</div>
 
-              <p>Pada hari ini tanggal <b>${tglIndo}</b>, bertempat di <b>${labName}</b> Fakultas Pertanian Universitas Siliwangi, telah dilakukan pemeriksaan fisik terhadap barang inventaris peralatan laboratorium dengan rincian sebagai berikut:</p>
+              <p>Pada hari ini, <b>${todayStr}</b>, bertempat di <b>${item.location_name || 'Laboratorium Fakultas Pertanian'}</b> Universitas Siliwangi, telah dilakukan pemeriksaan kondisi fisik barang inventaris laboratorium dengan rincian sebagai berikut:</p>
 
               <table class="data">
                 <thead>
                   <tr>
-                    <th>No</th>
                     <th>Kode Barang</th>
-                    <th>Nama Peralatan &amp; Spesifikasi</th>
+                    <th>Nama Peralatan</th>
+                    <th>Merk / Tipe / Spesifikasi</th>
                     <th>Tahun / BMN</th>
                     <th>Jumlah</th>
-                    <th>Kondisi &amp; Keterangan Kerusakan</th>
+                    <th>Kondisi</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td style="text-align:center;">1</td>
                     <td>${item.item_id || '-'}</td>
-                    <td><b>${item.item_name || '-'}</b><br/>${item.maker_type_spec || '-'}</td>
-                    <td style="text-align:center;">${item.acquisition_year || '-'} / ${item.bmn_category || '-'}</td>
-                    <td style="text-align:center;">${qtyUnit} ${unitName}</td>
-                    <td><b>${item.condition_status || 'Rusak Berat'}</b><br/>${item.damage_notes || 'Mengalami kerusakan permanen dan tidak ekonomis untuk diperbaiki.'}</td>
+                    <td>${item.item_name || '-'}</td>
+                    <td>${item.maker_type_spec || '-'}</td>
+                    <td>${item.acquisition_year || '-'} / ${item.bmn_category || '-'}</td>
+                    <td>${qty} ${unit}</td>
+                    <td><b>${item.condition_status || 'Rusak Berat'}</b></td>
                   </tr>
                 </tbody>
               </table>
 
-              <p>Berdasarkan hasil pemeriksaan teknis di lapangan, peralatan tersebut dinyatakan dalam kondisi <b>${item.condition_status || 'Rusak Berat'}</b> dan tidak dapat dipergunakan lagi untuk menunjang kegiatan praktikum maupun penelitian, sehingga diusulkan untuk diproses lebih lanjut dalam mekanisme <b>Penghapusan Barang Milik Negara (BMN) / Inventaris</b> sesuai ketentuan yang berlaku.</p>
+              <p><b>Hasil Pemeriksaan &amp; Catatan Kerusakan:</b><br/>
+              ${item.damage_notes || 'Peralatan mengalami kerusakan berat secara teknis dan tidak ekonomis untuk diperbaiki sehingga diusulkan untuk dihapuskan dari daftar inventaris aktif laboratorium.'}</p>
 
-              <p>Demikian Berita Acara ini dibuat dengan sebenarnya untuk dapat dipergunakan sebagaimana mestinya.</p>
+              <p>Demikian Berita Acara ini dibuat dengan sebenarnya untuk dapat dipergunakan sebagai dasar pengajuan usulan penghapusan Barang Milik Negara (BMN) / Aset Fakultas Pertanian Universitas Siliwangi.</p>
 
               <table class="ttd">
                 <tr>
                   <td>
-                    Mengetahui,<br/>Kepala ${labName}
+                    Mengetahui,<br/>
+                    Kepala Laboratorium
                     <br/><br/><br/><br/>
-                    ( .................................................... )<br/>
-                    NIP. ............................................
+                    ( ........................................ )<br/>
+                    NIP. ...................................
                   </td>
                   <td>
-                    Tasikmalaya, ${tglIndo}<br/>Petugas / Laboran Pemeriksa
+                    Tasikmalaya, ${todayStr}<br/>
+                    Petugas Pemeriksa / Laboran
                     <br/><br/><br/><br/>
-                    ( <b>${this.session?.full_name || '....................................................'}</b> )<br/>
-                    NIP/NIK. ......................................
+                    ( <b>${officerName}</b> )<br/>
+                    NIP/NIK. ...............................
                   </td>
                 </tr>
               </table>
@@ -4177,11 +4081,11 @@
             </html>
           `;
 
-          const blob = new Blob(['\ufeff', htmlDoc], { type: 'application/msword;charset=utf-8' });
+          const blob = new Blob(['\ufeff', htmlDoc], { type: 'application/msword' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `BA_Penghapusan_${item.item_id || 'Aset'}_${new Date().toISOString().slice(0,10)}.doc`;
+          a.download = `BA_Penghapusan_Aset_${item.item_id || 'ALAT'}_${this.toLocalIsoDate(new Date())}.doc`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -4189,206 +4093,251 @@
           this.showToast('Dokumen Berita Acara Penghapusan Aset (.doc) berhasil diunduh.');
         },
 
-        // ===================================================================
-        // AUTOCOMPLETE MASTER DATA UNTUK MODAL TAMBAH / EDIT INVENTARIS
-        // ===================================================================
-        searchMasterForInvForm() {
-          const q = (this.invFormModal.data.item_name || '').toLowerCase().trim();
-          const cat = this.currentInvCategory();
-          this.invFormModal.data.item_id = '';
-          if (!q) {
-            this.invFormSuggestions = [];
-            return;
-          }
-          this.invFormSuggestions = (this.masterItemsList || []).filter(m =>
-            m.category === cat &&
-            ((m.item_name || '').toLowerCase().includes(q) || (m.item_id || '').toLowerCase().includes(q))
-          ).slice(0, 10);
+        sortedWarehouseStock() {
+          const kw = this.whStockSearch.toLowerCase().trim();
+          const filtered = (this.warehouseData.stock || []).filter(st =>
+            !kw ||
+            String(st.item_name || '').toLowerCase().includes(kw) ||
+            String(st.item_id || '').toLowerCase().includes(kw) ||
+            String(st.category || '').toLowerCase().includes(kw)
+          );
+          return this.sortByItemName(filtered, this.whSortOrder);
         },
 
-        selectInvFormSuggestion(s) {
-          this.invFormModal.data.item_id = s.item_id;
-          this.invFormModal.data.item_name = s.item_name;
-          this.invFormModal.data.maker_type_spec = s.maker_type_spec || '';
-          this.invFormModal.data.unit = s.unit || this.invFormModal.data.unit || 'Unit';
-          if (s.cas_number) this.invFormModal.data.cas_number = s.cas_number;
-          if (s.grade) this.invFormModal.data.grade = s.grade;
-          if (s.ghs_symbol) this.invFormModal.data.ghs_symbol = s.ghs_symbol;
-          if (!this.invFormModal.data.photo_base64 && s.photo_url) {
-            this.invFormModal.data.photo_url = s.photo_url;
-          }
-          this.invFormSuggestions = [];
-        },
-
-        openInvDetailModal(row) {
-          this.invDetailModal = { open: true, item: { ...row } };
+        openInvDetailModal(item) {
+          this.invDetailModal = { open: true, item };
         },
 
         async toggleEquipmentPublic(item, isPublic) {
           if (!item || !item.item_id) return;
-          const prevState = item.is_public_catalog !== false;
-          item.is_public_catalog = isPublic;
+          if (!this.canEdit('inv_alat')) {
+            this.showToast('Anda tidak memiliki hak akses untuk mengubah visibilitas publik.', 'error');
+            return;
+          }
+          const prevVal = item.is_public_catalog !== false;
+          item.is_public_catalog = Boolean(isPublic);
 
-          const res = await this.runGas('apiToggleEquipmentPublicCatalog', this.session.token, item.item_id, isPublic);
+          const res = await this.runGas('apiTogglePublicCatalog', this.session.token, item.item_id, Boolean(isPublic));
           if (res && res.success) {
-            this.showToast(res.message);
-            // Sinkronkan status publik di cache inventaris & master data lokal
             (this.invCache['Alat'] || []).forEach(r => {
-              if (r.item_id === item.item_id) r.is_public_catalog = isPublic;
+              if (r.item_id === item.item_id) r.is_public_catalog = Boolean(isPublic);
             });
             (this.masterItemsList || []).forEach(m => {
-              if (m.item_id === item.item_id) m.is_public_catalog = isPublic;
+              if (m.item_id === item.item_id) m.is_public_catalog = Boolean(isPublic);
             });
-            this.loadPublicHome();
+            this.showToast(
+              isPublic
+                ? 'Peralatan ditampilkan di Katalog Publik.'
+                : 'Peralatan disembunyikan dari Katalog Publik.'
+            );
           } else {
-            item.is_public_catalog = prevState;
-            if (res) this.showToast(res.message, 'error');
+            item.is_public_catalog = prevVal;
+            this.showToast(res?.message || 'Gagal memperbarui visibilitas publik peralatan.', 'error');
           }
         },
 
-        openInvFormModal(row) {
+        openInvFormModal(item) {
           this.invFormSuggestions = [];
-          const defaultLoc = (this.session?.active_lab_id && this.session.active_lab_id !== 'ALL' && this.session.active_lab_id !== 'GUDANG')
-            ? this.session.active_lab_id
-            : (this.session?.accessible_labs?.[0]?.lab_id || '');
-          const cond = row ? (row.condition_status || row.condition || 'Baik') : 'Baik';
-          const avail = row ? Number(row.qty_available || 0) : '';
-          this.invFormModal = {
-            open: true,
-            is_edit: Boolean(row),
-            data: row
-              ? {
-                  ...row,
-                  photo_base64: '',
-                  condition_status: cond,
-                  original_condition_status: cond,
-                  split_qty: avail || 1,
-                  max_split_qty: avail || 1,
-                  damage_notes: row.damage_notes || ''
-                }
-              : {
-                  location_id: defaultLoc,
-                  item_id: '',
-                  item_name: '',
-                  maker_type_spec: '',
-                  unit: this.currentInvCategory() === 'Alat' ? 'Unit' : '',
-                  qty_available: '',
-                  acquisition_year: 2026,
-                  bmn_category: '',
-                  condition_status: 'Baik',
-                  original_condition_status: 'Baik',
-                  split_qty: 1,
-                  max_split_qty: 1,
-                  damage_notes: '',
-                  photo_base64: '',
-                  photo_url: ''
-                }
-          };
+          if (item) {
+            const initCond = item.condition_status || item.condition || 'Baik';
+            const initQty = Number(item.qty_available || 0);
+            this.invFormModal = {
+              open: true,
+              is_edit: true,
+              data: {
+                ...item,
+                photo_base64: '',
+                condition_status: initCond,
+                original_condition_status: initCond,
+                max_split_qty: initQty,
+                split_qty: initQty,
+                damage_notes: item.damage_notes || item.maintenance_notes || ''
+              }
+            };
+          } else {
+            this.invFormModal = {
+              open: true,
+              is_edit: false,
+              data: {
+                location_id: '',
+                item_id: '',
+                item_name: '',
+                maker_type_spec: '',
+                unit: '',
+                acquisition_year: '',
+                bmn_category: '',
+                qty_available: '',
+                condition_status: 'Baik',
+                original_condition_status: 'Baik',
+                max_split_qty: 0,
+                split_qty: 0,
+                damage_notes: '',
+                batch_lot: '',
+                expiry_date: '',
+                cas_number: '',
+                storage_position: '',
+                photo_url: '',
+                photo_base64: ''
+              }
+            };
+          }
+        },
+
+        searchMasterForInvForm() {
+          const kw = (this.invFormModal.data.item_name || '').toLowerCase().trim();
+          const cat = this.currentInvCategory();
+          if (!kw) {
+            this.invFormSuggestions = [];
+            if (!this.invFormModal.is_edit) this.invFormModal.data.item_id = '';
+            return;
+          }
+          const exact = (this.masterItemsList || []).find(
+            m => m.category === cat && m.item_name.toLowerCase() === kw
+          );
+          if (!exact && !this.invFormModal.is_edit) {
+            this.invFormModal.data.item_id = '';
+          }
+          this.invFormSuggestions = (this.masterItemsList || [])
+            .filter(m =>
+              m.category === cat &&
+              (m.item_name.toLowerCase().includes(kw) || m.item_id.toLowerCase().includes(kw))
+            )
+            .slice(0, 8);
+        },
+
+        selectInvFormSuggestion(m) {
+          this.invFormModal.data.item_id = m.item_id;
+          this.invFormModal.data.item_name = m.item_name;
+          this.invFormModal.data.maker_type_spec = m.maker_type_spec || '';
+          this.invFormModal.data.unit = m.unit || '';
+          if (m.cas_number) this.invFormModal.data.cas_number = m.cas_number;
+          if (m.photo_url) {
+            this.invFormModal.data.photo_url = m.photo_url;
+            this.invFormModal.data.photo_base64 = '';
+          }
+          this.invFormSuggestions = [];
         },
 
         async submitInventoryForm() {
           const cat = this.currentInvCategory();
-          const data = this.invFormModal.data;
+          const data = { ...this.invFormModal.data };
+          this.recordInputHistory(data.maker_type_spec, data.unit);
 
-          if (cat === 'Alat' && this.invFormModal.is_edit && data.condition_status !== data.original_condition_status) {
-            const maxQty = Number(data.max_split_qty || data.qty_available || 0);
+          // Logika Pemisahan Stok Alat saat Edit jika Kondisi diubah untuk sebagian unit
+          if (
+            cat === 'Alat' &&
+            this.invFormModal.is_edit &&
+            data.condition_status &&
+            data.original_condition_status &&
+            data.condition_status !== data.original_condition_status
+          ) {
+            const totalBefore = Number(data.max_split_qty || data.qty_available || 0);
             const splitQty = Number(data.split_qty || 0);
-            if (splitQty <= 0 || splitQty > maxQty) {
-              this.showToast(`Jumlah unit yang dipisahkan harus antara 1 sampai ${maxQty}.`, 'error');
+
+            if (splitQty <= 0 || splitQty > totalBefore) {
+              this.showToast(`Jumlah unit yang dipisahkan harus antara 1 sampai ${totalBefore}.`, 'error');
+              return;
+            }
+
+            if (splitQty < totalBefore) {
+              const remainQty = totalBefore - splitQty;
+              // 1) Pertahankan sisa unit pada baris lama dengan kondisi lama
+              const keepPayload = {
+                ...data,
+                qty_available: remainQty,
+                qty_total: remainQty + Number(data.qty_borrowed || 0),
+                condition_status: data.original_condition_status
+              };
+              const resKeep = await this.runGas('apiSaveInventoryItem', this.session.token, cat, keepPayload);
+              if (!resKeep || !resKeep.success) {
+                this.showToast(resKeep?.message || 'Gagal memperbarui sisa stok kondisi awal.', 'error');
+                return;
+              }
+
+              // 2) Buat entri inventaris baru khusus untuk unit yang dipisahkan ke kondisi baru
+              const splitPayload = {
+                location_id: data.location_id,
+                item_id: data.item_id,
+                item_name: data.item_name,
+                maker_type_spec: data.maker_type_spec || '',
+                unit: data.unit || 'Unit',
+                acquisition_year: data.acquisition_year || '',
+                bmn_category: data.bmn_category || 'BM',
+                qty_available: splitQty,
+                qty_borrowed: 0,
+                qty_total: splitQty,
+                condition_status: data.condition_status,
+                damage_notes: data.condition_status === 'Baik' ? '' : (data.damage_notes || ''),
+                photo_url: data.photo_url || '',
+                photo_base64: data.photo_base64 || ''
+              };
+              const resSplit = await this.runGas('apiSaveInventoryItem', this.session.token, cat, splitPayload);
+              if (resSplit && resSplit.success) {
+                this.invFormModal.open = false;
+                this.showToast(`${splitQty} unit dipisahkan ke "${data.condition_status}". Sisa ${remainQty} unit tetap "${data.original_condition_status}".`);
+                await this.loadWorkspaceBundle(false);
+              } else {
+                this.showToast(resSplit?.message || 'Gagal menyimpan entri pemisahan kondisi.', 'error');
+              }
               return;
             }
           }
 
-          if (cat === 'Alat' && data.condition_status !== 'Baik' && !String(data.damage_notes || '').trim()) {
-            this.showToast('Catatan kerusakan wajib diisi untuk alat dengan kondisi Rusak Ringan / Rusak Berat.', 'error');
-            return;
+          if (cat === 'Alat' && data.condition_status === 'Baik') {
+            data.damage_notes = '';
           }
 
-          this.recordInputHistory(data.maker_type_spec, data.unit);
-          const res = await this.runGas('apiSaveInventoryItem', this.session.token, cat, data, this.invFormModal.is_edit);
+          const res = await this.runGas('apiSaveInventoryItem', this.session.token, cat, data);
           if (res && res.success) {
-            this.showToast(res.message);
             this.invFormModal.open = false;
-            this.invFormSuggestions = [];
-            this.loadWorkspaceBundle(true);
-            this.loadInventory();
-            if (cat === 'Alat') this.loadDamagedEquipment(false);
-          } else if (res) {
-            this.showToast(res.message, 'error');
+            this.showToast('Data inventaris berhasil disimpan.');
+            await this.loadWorkspaceBundle(false);
+          } else {
+            this.showToast(res?.message || 'Gagal menyimpan data.', 'error');
           }
         },
 
-        async deleteInventoryItem(row) {
-          if (!confirm('Yakin menghapus item inventaris ini?')) return;
-          const id = row.eq_inv_id || row.mat_inv_id || row.chem_inv_id;
-          const res = await this.runGas('apiDeleteInventoryItem', this.session.token, this.currentInvCategory(), id);
+        async deleteInventoryItem(item) {
+          if (!item) return;
+          const cat = this.currentInvCategory();
+          const invId = item.eq_inv_id || item.mat_inv_id || item.chem_inv_id || item.inv_id;
+          if (!invId) {
+            this.showToast('ID inventaris tidak valid atau tidak ditemukan.', 'error');
+            return;
+          }
+          if (!confirm(`Hapus permanen "${item.item_name || invId}" dari inventaris ${cat}?`)) return;
+          const res = await this.runGas('apiDeleteInventoryItem', this.session.token, cat, invId);
           if (res && res.success) {
-            this.showToast(res.message);
             this.invDetailModal.open = false;
-            this.loadWorkspaceBundle(true);
-            this.loadInventory();
+            this.showToast('Data inventaris berhasil dihapus.');
+            await this.loadInventory();
+            await this.loadWorkspaceBundle(true);
+          } else {
+            this.showToast(res?.message || 'Gagal menghapus data inventaris.', 'error');
           }
         },
 
         quickRequestFromDetail(item) {
           this.invDetailModal.open = false;
-          if (this.currentInvCategory() === 'Alat') {
+          const cat = this.currentInvCategory();
+          if (cat === 'Alat') {
+            this.activeMenu = 'pinjam_alat';
             this.loanForm.lab_id = item.location_id;
-            this.loanForm.items = [{ item_id: item.item_id, item_name: item.item_name, qty: 1, unit: item.unit || 'Unit' }];
-            this.navigate('pinjam_alat');
+            this.loanForm.items = [{ inv_id: item.eq_inv_id, item_id: item.item_id, item_name: item.item_name, qty: 1, unit: item.unit || 'Unit' }];
           } else {
-            this.usageForm.category = this.currentInvCategory();
+            this.activeMenu = 'guna_bahan';
+            this.usageForm.category = cat;
             this.usageForm.lab_id = item.location_id;
             this.usageForm.items = [{ item_id: item.item_id, item_name: item.item_name, qty: 1, unit: item.unit }];
-            this.navigate('guna_bahan');
           }
         },
 
+        // ===================================================================
+        // GUDANG: DETAIL AKTIF, EDIT, HAPUS, & BARANG MASUK/KELUAR
+        // ===================================================================
         async loadWarehouse() {
-          const res = await this.runGasSilent('apiGetWarehouseData', this.session.token);
-          if (res && res.success) {
-            this.warehouseData = res;
-            if (!this.whOutForm.destination_lab_id && this.session?.active_lab_id && this.session.active_lab_id !== 'ALL' && this.session.active_lab_id !== 'GUDANG') {
-              this.whOutForm.destination_lab_id = this.session.active_lab_id;
-            }
-          }
-        },
-
-        sortedWarehouseStock() {
-          const q = (this.whStockSearch || '').toLowerCase().trim();
-          const list = (this.warehouseData.stock || []).filter(st => {
-            if (!q) return true;
-            return (
-              String(st.item_name || '').toLowerCase().includes(q) ||
-              String(st.item_id || '').toLowerCase().includes(q) ||
-              String(st.category || '').toLowerCase().includes(q) ||
-              String(st.batch_lot || '').toLowerCase().includes(q)
-            );
-          });
-          return this.sortByItemName(list, this.whSortOrder);
-        },
-
-        filteredWarehouseLogs(type) {
-          const q = (this.whLogSearch || '').toLowerCase().trim();
-          const dateFilter = (this.whLogDateFilter || '').trim();
-          return (this.warehouseData.transactions || []).filter(trx => {
-            if (trx.trx_type !== type) return false;
-            if (dateFilter && String(trx.trx_date || '') !== dateFilter) return false;
-            if (!q) return true;
-            const itemNames = (trx.items || [])
-              .map(i => `${i.item_name || ''} ${i.item_id || ''} ${i.category || ''} ${i.batch_lot || ''}`)
-              .join(' ')
-              .toLowerCase();
-            return (
-              String(trx.trx_id || '').toLowerCase().includes(q) ||
-              String(trx.taker_name || '').toLowerCase().includes(q) ||
-              String(trx.course_name || '').toLowerCase().includes(q) ||
-              String(trx.destination_lab_name || '').toLowerCase().includes(q) ||
-              String(trx.created_by || '').toLowerCase().includes(q) ||
-              String(trx.notes || '').toLowerCase().includes(q) ||
-              itemNames.includes(q)
-            );
-          });
+          const res = await this.runGas('apiGetWarehouseData', this.session.token);
+          if (res && res.success) this.warehouseData = res;
         },
 
         openWhDetailModal(st) {
@@ -4401,9 +4350,9 @@
             open: true,
             data: {
               inv_id: st.inv_id,
-              item_id: st.item_id,
-              category: st.category || 'Alat',
+              category: st.category || 'Bahan',
               trx_date: st.entry_date || new Date().toISOString().slice(0, 10),
+              item_id: st.item_id || '',
               item_name: st.item_name || '',
               maker_type_spec: st.maker_type_spec || '',
               unit: st.unit || 'Unit',
@@ -4423,48 +4372,60 @@
           this.recordInputHistory(this.whEditModal.data.maker_type_spec, this.whEditModal.data.unit);
           const res = await this.runGas('apiUpdateWarehouseStockItem', this.session.token, this.whEditModal.data);
           if (res && res.success) {
-            this.showToast(res.message);
             this.whEditModal.open = false;
+            this.showToast('Detail barang stok gudang berhasil diperbarui.');
             this.loadWarehouse();
             this.loadWorkspaceBundle(true);
-          } else if (res) {
-            this.showToast(res.message, 'error');
+          } else {
+            this.showToast(res?.message || 'Gagal memperbarui stok gudang.', 'error');
           }
         },
 
         async deleteWarehouseStockItem(st) {
-          if (!confirm(`Yakin menghapus barang "${st.item_name}" (${st.item_id}) dari stok gudang?`)) return;
+          if (!st || !st.inv_id) {
+            this.showToast('ID stok gudang tidak valid atau tidak ditemukan.', 'error');
+            return;
+          }
+          if (!confirm(`Hapus permanen "${st.item_name}" (${st.item_id || st.inv_id}) dari Stok Gudang?`)) return;
           const res = await this.runGas('apiDeleteWarehouseStockItem', this.session.token, st.inv_id);
           if (res && res.success) {
-            this.showToast(res.message);
             this.whDetailModal.open = false;
-            this.loadWarehouse();
-            this.loadWorkspaceBundle(true);
-          } else if (res) {
-            this.showToast(res.message, 'error');
+            this.showToast('Barang berhasil dihapus dari Stok Gudang.');
+            await this.loadWarehouse();
+            await this.loadWorkspaceBundle(true);
+          } else {
+            this.showToast(res?.message || 'Gagal menghapus barang dari Stok Gudang.', 'error');
           }
         },
 
         searchMasterForWhIn() {
-          const q = (this.whInForm.item_name || '').toLowerCase();
-          this.whInForm.item_id = '';
-          if (!q) { this.whInSuggestions = []; return; }
+          const kw = this.whInForm.item_name.toLowerCase().trim();
+          if (!kw) {
+            this.whInSuggestions = [];
+            this.whInForm.item_id = '';
+            return;
+          }
+          const exact = (this.masterItemsList || []).find(
+            m => m.category === this.whInForm.category && m.item_name.toLowerCase() === kw
+          );
+          if (!exact) this.whInForm.item_id = '';
           this.whInSuggestions = (this.masterItemsList || []).filter(m =>
             m.category === this.whInForm.category &&
-            ((m.item_name || '').toLowerCase().includes(q) || (m.item_id || '').toLowerCase().includes(q))
+            (m.item_name.toLowerCase().includes(kw) || m.item_id.toLowerCase().includes(kw))
           ).slice(0, 8);
         },
 
-        selectWhInSuggestion(s) {
-          this.whInForm.item_id = s.item_id;
-          this.whInForm.item_name = s.item_name;
-          this.whInForm.maker_type_spec = s.maker_type_spec || '';
-          this.whInForm.unit = s.unit || 'Unit';
-          this.whInForm.cas_number = s.cas_number || '';
-          this.whInForm.grade = s.grade || '';
-          this.whInForm.ghs_symbol = s.ghs_symbol || '';
-          if (!this.whInForm.photo_base64 && s.photo_url) {
-            this.whInForm.photo_url = s.photo_url;
+        selectWhInSuggestion(m) {
+          this.whInForm.item_id = m.item_id;
+          this.whInForm.item_name = m.item_name;
+          this.whInForm.maker_type_spec = m.maker_type_spec || '';
+          this.whInForm.unit = m.unit || '';
+          if (m.cas_number) this.whInForm.cas_number = m.cas_number;
+          if (m.grade) this.whInForm.grade = m.grade;
+          if (m.ghs_symbol) this.whInForm.ghs_symbol = m.ghs_symbol;
+          if (m.photo_url) {
+            this.whInForm.photo_url = m.photo_url;
+            this.whInForm.photo_base64 = '';
           }
           this.whInSuggestions = [];
         },
@@ -4473,52 +4434,48 @@
           this.recordInputHistory(this.whInForm.maker_type_spec, this.whInForm.unit);
           const res = await this.runGas('apiRecordWarehouseIn', this.session.token, this.whInForm);
           if (res && res.success) {
-            this.showToast(res.message);
+            this.showToast('Barang masuk gudang berhasil dicatat (' + res.item_id + '). Formulir telah direset.');
             this.resetWhInForm(true);
-            this.loadWorkspaceBundle(true);
             this.loadWarehouse();
-            this.warehouseTab = 'stock';
-          } else if (res) {
-            this.showToast(res.message, 'error');
+            this.loadWorkspaceBundle(true);
+          } else {
+            this.showToast(res?.message || 'Gagal mencatat barang masuk.', 'error');
           }
         },
 
         addWhOutItem(st) {
-          const exists = this.whOutForm.items.find(x => x.inv_id === st.inv_id);
-          if (exists) {
-            this.showToast('Item sudah ada di daftar pengambilan', 'error');
+          if (this.whOutForm.items.some(i => i.inv_id === st.inv_id)) {
+            this.showToast('Item sudah ada di daftar pengambilan.', 'error');
             return;
           }
           this.whOutForm.items.push({
             inv_id: st.inv_id,
             item_id: st.item_id,
+            category: st.category || '',
             item_name: st.item_name,
             unit: st.unit,
-            max_qty: st.qty_available,
+            max_qty: Number(st.qty_available || 0),
             qty: 1
           });
         },
 
         initSignaturePad() {
           const canvas = document.getElementById('whSignatureCanvas');
-          if (!canvas || canvas.dataset.ready) return;
-          canvas.dataset.ready = '1';
+          if (!canvas) return;
           const ctx = canvas.getContext('2d');
-          ctx.strokeStyle = '#064E3B';
           ctx.lineWidth = 2.5;
           ctx.lineCap = 'round';
+          ctx.strokeStyle = '#064E3B';
           let drawing = false;
-          const pos = (e) => {
-            const r = canvas.getBoundingClientRect();
+          const getPos = (e) => {
+            const rect = canvas.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            return { x: (clientX - r.left) * (canvas.width / r.width), y: (clientY - r.top) * (canvas.height / r.height) };
+            return { x: (clientX - rect.left) * (canvas.width / rect.width), y: (clientY - rect.top) * (canvas.height / rect.height) };
           };
-          const start = (e) => { drawing = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); e.preventDefault(); };
-          const move = (e) => { if (!drawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); e.preventDefault(); };
-          const end = () => { drawing = false; };
-          canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move); window.addEventListener('mouseup', end);
-          canvas.addEventListener('touchstart', start); canvas.addEventListener('touchmove', move); window.addEventListener('touchend', end);
+          canvas.onmousedown = canvas.ontouchstart = (e) => { e.preventDefault(); drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+          canvas.onmousemove = canvas.ontouchmove = (e) => { if (!drawing) return; e.preventDefault(); const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+          canvas.onmouseup = canvas.ontouchend = () => { drawing = false; };
         },
 
         clearSignaturePad() {
@@ -4528,7 +4485,7 @@
 
         async submitWarehouseOut() {
           if (!this.whOutForm.taker_name || !this.whOutForm.course_name || !this.whOutForm.destination_lab_id || this.whOutForm.items.length === 0) {
-            this.showToast('Lengkapi data pengambil, mata kuliah, lab tujuan, dan minimal 1 item barang.', 'error');
+            this.showToast('Lengkapi nama pengambil, mata kuliah, lab tujuan, dan minimal 1 item.', 'error');
             return;
           }
           const canvas = document.getElementById('whSignatureCanvas');
@@ -4539,185 +4496,292 @@
             this.showToast(res.message);
             this.whOutForm = { taker_name: '', course_name: '', destination_lab_id: '', items: [] };
             this.clearSignaturePad();
-            this.loadWorkspaceBundle(true);
-            this.loadWarehouse();
             this.warehouseTab = 'stock';
-          } else if (res) {
-            this.showToast(res.message, 'error');
+            this.loadWarehouse();
+            this.loadWorkspaceBundle(true);
+          } else {
+            this.showToast(res?.message || 'Gagal mencatat barang keluar.', 'error');
           }
         },
 
+        // ===================================================================
+        // KATALOG PICKER & LAYANAN TRANSAKSI
+        // ===================================================================
         async openCatalogPickerModal(category, labId, target) {
           if (!labId) {
-            this.showToast('Pilih Laboratorium terlebih dahulu.', 'error');
+            this.showToast('Pilih lokasi laboratorium terlebih dahulu.', 'error');
             return;
           }
-          const res = await this.runGas('apiGetInventory', this.session.token, category, labId);
-          if (res && res.success) {
-            const avail = (res.items || []).filter(i => Number(i.qty_available) > 0).map(i => ({ ...i, pickQty: 1 }));
-            this.catalogPickerModal = { open: true, category, target, search: '', items: avail };
+
+          let rawItems = [];
+          if (labId === 'GUDANG') {
+            if (!(this.warehouseData.stock || []).length) {
+              await this.loadWarehouse();
+            }
+            const stockList = this.warehouseData.stock || [];
+            if (category === 'ALL') {
+              rawItems = stockList.filter(s => Number(s.qty_available || 0) > 0);
+            } else {
+              rawItems = stockList.filter(
+                s => s.category === category && Number(s.qty_available || 0) > 0
+              );
+            }
+          } else {
+            const res = await this.runGas('apiGetInventoryList', this.session.token, category, labId);
+            if (res && res.success) {
+              rawItems = (res.items || []).filter(i => Number(i.qty_available || 0) > 0);
+            }
           }
+
+          const items = rawItems.map(i => {
+            const resolvedInvId = i.eq_inv_id || i.mat_inv_id || i.chem_inv_id || i.inv_id || i.item_id || '';
+            return {
+              ...i,
+              inv_id: resolvedInvId,
+              item_id: i.item_id || resolvedInvId,
+              item_name: i.item_name || 'Tanpa Nama',
+              unit: i.unit || 'Unit',
+              qty_available: Number(i.qty_available || 0),
+              pickQty: 1
+            };
+          });
+
+          this.catalogPickerModal = {
+            open: true,
+            category: category,
+            target: target,
+            search: '',
+            items: items
+          };
         },
 
         filteredPickerCatalog() {
-          const q = (this.catalogPickerModal.search || '').toLowerCase();
-          return (this.catalogPickerModal.items || []).filter(i => (i.item_name || '').toLowerCase().includes(q) || (i.item_id || '').toLowerCase().includes(q));
+          const kw = this.catalogPickerModal.search.toLowerCase().trim();
+          return (this.catalogPickerModal.items || []).filter(c =>
+            !kw ||
+            String(c.item_name || '').toLowerCase().includes(kw) ||
+            String(c.item_id || '').toLowerCase().includes(kw) ||
+            String(c.category || '').toLowerCase().includes(kw) ||
+            String(c.maker_type_spec || '').toLowerCase().includes(kw)
+          );
         },
 
         confirmPickItem(item) {
           const qty = Number(item.pickQty || 1);
-          if (qty <= 0 || qty > Number(item.qty_available)) {
-            this.showToast('Jumlah melebihi stok tersedia.', 'error');
+          const maxAvail = Number(item.qty_available || 0);
+          if (qty <= 0 || qty > maxAvail) {
+            this.showToast('Jumlah tidak valid atau melebihi stok tersedia.', 'error');
             return;
           }
-          const entry = { item_id: item.item_id, item_name: item.item_name, qty, unit: item.unit || 'Unit' };
           const t = this.catalogPickerModal.target;
-          if (t === 'loan') this.loanForm.items.push(entry);
-          if (t === 'usage') this.usageForm.items.push(entry);
-          if (t === 'booking_eq') this.bookingForm.equipment_items.push(entry);
-          if (t === 'booking_mat') this.bookingForm.material_items.push(entry);
-          if (t === 'booking_chem') this.bookingForm.chemical_items.push(entry);
-          this.showToast('Item ditambahkan: ' + item.item_name);
+          if (t === 'whOut') {
+            if (this.whOutForm.items.some(i => i.inv_id === item.inv_id)) {
+              this.showToast('Item sudah ada di daftar pengambilan gudang.', 'error');
+              return;
+            }
+            this.whOutForm.items.push({
+              inv_id: item.inv_id,
+              item_id: item.item_id,
+              category: item.category || '',
+              item_name: item.item_name,
+              unit: item.unit || 'Unit',
+              max_qty: maxAvail,
+              qty: qty
+            });
+          } else if (t === 'loan') {
+            if (this.loanForm.items.some(i => i.inv_id === item.inv_id)) {
+              this.showToast('Alat ini sudah ada di daftar peminjaman.', 'error');
+              return;
+            }
+            this.loanForm.items.push({ inv_id: item.inv_id, item_id: item.item_id, item_name: item.item_name, qty: qty, unit: item.unit || 'Unit' });
+          } else if (t === 'usage') {
+            this.usageForm.items.push({ inv_id: item.inv_id, item_id: item.item_id, item_name: item.item_name, qty: qty, unit: item.unit });
+          } else if (t === 'booking_eq') {
+            this.bookingForm.equipment_items.push({ inv_id: item.inv_id, item_id: item.item_id, item_name: item.item_name, qty: qty });
+          } else if (t === 'booking_mat') {
+            this.bookingForm.material_items.push({ inv_id: item.inv_id, item_id: item.item_id, item_name: item.item_name, qty: qty });
+          } else if (t === 'booking_chem') {
+            this.bookingForm.chemical_items.push({ inv_id: item.inv_id, item_id: item.item_id, item_name: item.item_name, qty: qty });
+          }
+          this.showToast(item.item_name + ' ditambahkan.');
         },
 
         async submitLoan() {
-          if (!this.loanForm.lab_id || !this.loanForm.purpose || this.loanForm.items.length === 0) {
-            this.showToast('Lengkapi formulir dan pilih minimal 1 alat.', 'error');
-            return;
-          }
           const res = await this.runGas('apiSubmitEquipmentLoan', this.session.token, this.loanForm);
           if (res && res.success) {
-            this.showToast(res.message);
+            this.showToast('Permohonan peminjaman alat berhasil diajukan (' + res.loan_id + ').');
             this.loanForm.items = [];
-            this.loadDashboard();
-          } else if (res) this.showToast(res.message, 'error');
+            this.loadWorkspaceBundle(false);
+          } else this.showToast(res?.message || 'Gagal mengajukan peminjaman.', 'error');
         },
 
         async submitUsage() {
-          if (!this.usageForm.lab_id || !this.usageForm.purpose || this.usageForm.items.length === 0) {
-            this.showToast('Lengkapi formulir dan pilih minimal 1 item.', 'error');
-            return;
-          }
           const res = await this.runGas('apiSubmitMaterialUsage', this.session.token, this.usageForm);
           if (res && res.success) {
-            this.showToast(res.message);
+            this.showToast('Permohonan penggunaan bahan berhasil diajukan (' + res.usage_id + ').');
             this.usageForm.items = [];
-            this.loadDashboard();
-          } else if (res) this.showToast(res.message, 'error');
+            this.loadWorkspaceBundle(false);
+          } else this.showToast(res?.message || 'Gagal mengajukan penggunaan bahan.', 'error');
         },
 
         async submitBooking() {
-          if (!this.bookingForm.lab_id || !this.bookingForm.activity_title) {
-            this.showToast('Lengkapi data lokasi dan judul kegiatan.', 'error');
-            return;
-          }
           const res = await this.runGas('apiSubmitLabBooking', this.session.token, this.bookingForm);
           if (res && res.success) {
-            this.showToast(res.message);
-            this.loadDashboard();
-            this.loadPublicHome();
-          } else if (res) this.showToast(res.message, 'error');
+            this.showToast('Pengajuan penggunaan ruangan berhasil dikirim (' + res.booking_id + ').');
+            this.bookingForm.equipment_items = [];
+            this.bookingForm.material_items = [];
+            this.bookingForm.chemical_items = [];
+            this.loadWorkspaceBundle(false);
+          } else this.showToast(res?.message || 'Gagal mengajukan ruangan.', 'error');
         },
 
-        async processStep(entityType, entityId, actionStep) {
-          let reason = '';
-          if (actionStep === 'reject') {
-            reason = prompt('Masukkan alasan penolakan:') || '';
-            if (!reason) return;
+        async processStep(entity, id, action) {
+          let notes = '';
+          if (action === 'reject') {
+            notes = prompt('Masukkan alasan penolakan (wajib):');
+            if (!notes) return;
           }
-          const res = await this.runGas('apiProcessApprovalStep', this.session.token, entityType, entityId, actionStep, reason);
+          const fnMap = {
+            booking: 'apiProcessLabBookingStep',
+            loan: 'apiProcessLoanStep',
+            usage: 'apiProcessUsageStep'
+          };
+          const res = await this.runGas(fnMap[entity], this.session.token, id, action, notes);
           if (res && res.success) {
-            this.showToast(res.message);
-            this.loadWorkspaceBundle(true);
-            this.loadDashboard();
-            this.loadPublicHome();
-          } else if (res) this.showToast(res.message, 'error');
+            this.showToast('Status permohonan diperbarui menjadi: ' + res.status);
+            this.loadWorkspaceBundle(false);
+          } else this.showToast(res?.message || 'Gagal memproses permohonan.', 'error');
         },
 
         async userRequestReturn(loanId) {
-          const res = await this.runGas('apiUserRequestLoanReturn', this.session.token, loanId);
+          const res = await this.runGas('apiRequestLoanReturn', this.session.token, loanId);
           if (res && res.success) {
-            this.showToast(res.message);
-            this.loadDashboard();
+            this.showToast('Pengajuan pengembalian alat telah dikirim ke Laboran.');
+            this.loadWorkspaceBundle(false);
           }
         },
 
         async openReturnAssessmentModal(loan) {
-          const assessments = (loan.items || []).filter(i => i.return_status !== 'returned_good').map(i => {
-            const cond = prompt(`Kondisi pengembalian untuk ${i.item_name} (${i.qty_requested} unit):\nKetik: Baik / Rusak Ringan / Rusak Berat`, 'Baik') || 'Baik';
-            return { loan_item_id: i.loan_item_id, condition: cond, notes: cond === 'Baik' ? 'Kondisi baik' : 'Perlu perbaikan' };
-          });
-          if (assessments.length === 0) return;
-          const res = await this.runGas('apiLaboranConfirmReturn', this.session.token, loan.loan_id, assessments);
+          const assessments = [];
+          for (const it of (loan.items || [])) {
+            if (it.return_status === 'returned_good') continue;
+            const cond = prompt(`Penilaian kondisi untuk "${it.item_name}" (ketik: Baik / Rusak Ringan / Rusak Berat):`, 'Baik');
+            if (!cond) return;
+            const qty = Number(prompt(`Jumlah dikembalikan untuk "${it.item_name}" (maks ${it.qty_requested}):`, it.qty_requested));
+            assessments.push({ loan_item_id: it.loan_item_id, qty_returned: qty, condition: cond, notes: '' });
+          }
+          const res = await this.runGas('apiAssessLoanReturn', this.session.token, loan.loan_id, assessments);
           if (res && res.success) {
-            this.showToast(res.message);
-            this.loadWorkspaceBundle(true);
-            this.loadDashboard();
+            this.showToast('Penilaian pengembalian alat berhasil disimpan.');
+            this.loadWorkspaceBundle(false);
           }
         },
 
+        // ===================================================================
+        // MASTER DATA BARANG (TAMBAH, EDIT, HAPUS, SORT)
+        // ===================================================================
         async loadMasterData() {
-          const res = await this.runGasSilent('apiGetMasterItems', this.session.token);
-          if (res && res.success) this.masterItemsList = res.items || [];
+          const res = await this.runGas('apiGetMasterItems', this.session.token, 'ALL');
+          if (res && res.success) this.masterItemsList = res.items;
         },
 
         filteredMasterItems() {
-          const q = (this.masterSearch || '').toLowerCase().trim();
-          const cat = this.masterCategoryFilter || 'ALL';
-          const list = (this.masterItemsList || []).filter(m => {
-            if (cat !== 'ALL' && m.category !== cat) return false;
-            if (!q) return true;
+          const kw = this.masterSearch.toLowerCase().trim();
+          const filtered = (this.masterItemsList || []).filter(m => {
+            if (this.masterCategoryFilter && this.masterCategoryFilter !== 'ALL' && m.category !== this.masterCategoryFilter) {
+              return false;
+            }
+            if (!kw) return true;
             return (
-              String(m.item_name || '').toLowerCase().includes(q) ||
-              String(m.item_id || '').toLowerCase().includes(q) ||
-              String(m.maker_type_spec || '').toLowerCase().includes(q) ||
-              String(m.cas_number || '').toLowerCase().includes(q)
+              String(m.item_name || '').toLowerCase().includes(kw) ||
+              String(m.item_id || '').toLowerCase().includes(kw) ||
+              String(m.maker_type_spec || '').toLowerCase().includes(kw) ||
+              String(m.cas_number || '').toLowerCase().includes(kw)
             );
           });
-          return this.sortByItemName(list, this.masterSortOrder);
+          return this.sortByItemName(filtered, this.masterSortOrder);
         },
 
-        openMasterFormModal(item) {
-          this.masterFormModal = {
-            open: true,
-            is_edit: Boolean(item),
-            data: item ? { ...item, photo_base64: '' } : { category: 'Alat', item_name: '', maker_type_spec: '', unit: 'Unit', cas_number: '', grade: '', ghs_symbol: '', is_public_catalog: true, photo_base64: '', photo_url: '' }
-          };
+        openMasterFormModal(m) {
+          if (m) {
+            this.masterFormModal = {
+              open: true,
+              is_edit: true,
+              data: {
+                item_id: m.item_id,
+                category: m.category || 'Alat',
+                item_name: m.item_name || '',
+                maker_type_spec: m.maker_type_spec || '',
+                unit: m.unit || 'Unit',
+                cas_number: m.cas_number || '',
+                grade: m.grade || '',
+                ghs_symbol: m.ghs_symbol || '',
+                is_public_catalog: Boolean(m.is_public_catalog),
+                photo_url: m.photo_url || '',
+                photo_base64: ''
+              }
+            };
+          } else {
+            this.masterFormModal = {
+              open: true,
+              is_edit: false,
+              data: {
+                category: 'Alat',
+                item_name: '',
+                maker_type_spec: '',
+                unit: 'Unit',
+                cas_number: '',
+                grade: '',
+                ghs_symbol: '',
+                is_public_catalog: true,
+                photo_url: '',
+                photo_base64: ''
+              }
+            };
+          }
         },
 
         async submitMasterFormModal() {
           this.recordInputHistory(this.masterFormModal.data.maker_type_spec, this.masterFormModal.data.unit);
-          const fn = this.masterFormModal.is_edit ? 'apiUpdateMasterItem' : 'apiAddMasterItem';
+          const fn = this.masterFormModal.is_edit ? 'apiUpdateMasterItem' : 'apiCreateMasterItem';
           const res = await this.runGas(fn, this.session.token, this.masterFormModal.data);
           if (res && res.success) {
-            this.showToast(res.message);
             this.masterFormModal.open = false;
+            this.showToast(
+              this.masterFormModal.is_edit
+                ? 'Master barang berhasil diperbarui (' + (res.item_id || this.masterFormModal.data.item_id) + ').'
+                : 'Master barang ditambahkan: ' + res.item_id
+            );
             this.loadMasterData();
             this.loadWorkspaceBundle(true);
-          } else if (res) {
-            this.showToast(res.message, 'error');
+          } else {
+            this.showToast(res?.message || 'Gagal menyimpan master barang.', 'error');
           }
         },
 
         async deleteMasterItem(m) {
-          if (!confirm(`Hapus Master Data "${m.item_name}" (${m.item_id})?`)) return;
+          if (!m || !m.item_id) {
+            this.showToast('ID master barang tidak valid atau tidak ditemukan.', 'error');
+            return;
+          }
+          if (!confirm(`Hapus permanen "${m.item_name}" (${m.item_id}) dari Master Data Barang?`)) return;
           const res = await this.runGas('apiDeleteMasterItem', this.session.token, m.item_id);
           if (res && res.success) {
-            this.showToast(res.message);
-            this.loadMasterData();
-            this.loadWorkspaceBundle(true);
-          } else if (res) {
-            this.showToast(res.message, 'error');
+            this.showToast('Master barang berhasil dihapus.');
+            await this.loadMasterData();
+            await this.loadWorkspaceBundle(true);
+          } else {
+            this.showToast(res?.message || 'Gagal menghapus master barang.', 'error');
           }
         },
 
         async loadAuditLogs() {
-          const res = await this.runGas('apiGetAuditLogs', this.session.token);
-          if (res && res.success) this.auditLogsList = res.logs || [];
+          const res = await this.runGas('apiGetAuditLogs', this.session.token, {});
+          if (res && res.success) this.auditLogsList = res.logs;
         },
 
-        async loadAdminData() {
-          const res = await this.runGasSilent('apiGetUsersAndLabsAdmin', this.session.token);
+        async loadAdminSettings() {
+          const res = await this.runGas('apiGetUsersAndLabs', this.session.token);
           if (res && res.success) {
             this.adminData = res;
             if (res.role_permissions) {
@@ -4730,21 +4794,46 @@
           this.userModal = {
             open: true,
             data: u
-              ? { ...u, roles: [...(u.roles || [])], assigned_labs: [...(u.assigned_labs || [])], new_password: '' }
-              : { full_name: '', email: '', roles: ['User'], assigned_labs: [], status: 'active', new_password: '' }
+              ? {
+                  user_id: u.user_id,
+                  full_name: u.full_name,
+                  email: u.email,
+                  roles: [...(u.roles || ['User'])],
+                  assigned_labs: [...(u.assigned_labs || [])],
+                  status: u.status,
+                  new_password: ''
+                }
+              : {
+                  full_name: '',
+                  email: '',
+                  roles: ['User'],
+                  assigned_labs: [],
+                  status: 'active',
+                  new_password: ''
+                }
           };
         },
 
         async submitUserModal() {
-          const res = await this.runGas('apiSaveUserAdmin', this.session.token, this.userModal.data);
+          if (this.userModal.data.new_password && String(this.userModal.data.new_password).trim().length < 6) {
+            this.showToast('Kata sandi minimal 6 karakter.', 'error');
+            return;
+          }
+          const res = await this.runGas('apiSaveUserAndRoles', this.session.token, this.userModal.data);
           if (res && res.success) {
-            this.showToast(res.message);
             this.userModal.open = false;
-            this.loadAdminData();
-          } else if (res) this.showToast(res.message, 'error');
+            this.showToast('Pengaturan pengguna berhasil disimpan.');
+            this.loadAdminSettings();
+          } else {
+            this.showToast(res?.message || 'Gagal menyimpan pengguna.', 'error');
+          }
         },
 
         openLabModal(lb) {
+          if (!this.isSuperAdmin()) {
+            this.showToast('Hanya Super Admin yang dapat mengelola Master Lokasi Laboratorium.', 'error');
+            return;
+          }
           if (lb) {
             this.labModal = {
               open: true,
@@ -4775,53 +4864,59 @@
         },
 
         async submitLabModal() {
-          const d = this.labModal.data;
-          if (!d.lab_name.trim() || !d.lab_position.trim() || !d.description.trim() || !d.pic_name.trim()) {
-            this.showToast('Semua kolom master laboratorium wajib diisi.', 'error');
-            return;
-          }
-          const fn = this.labModal.is_edit ? 'apiUpdateLabLocation' : 'apiAddLabLocation';
-          const res = await this.runGas(fn, this.session.token, d);
+          if (!this.isSuperAdmin()) return;
+          const res = await this.runGas('apiSaveLaboratory', this.session.token, this.labModal.data);
           if (res && res.success) {
-            this.showToast(res.message);
             this.labModal.open = false;
-            this.loadAdminData();
+            this.showToast(this.labModal.is_edit ? 'Master lokasi laboratorium berhasil diperbarui.' : 'Laboratorium baru berhasil ditambahkan.');
+            this.loadAdminSettings();
             this.loadPublicHome();
-          } else if (res) {
-            this.showToast(res.message, 'error');
+            this.loadWorkspaceBundle(true);
+          } else {
+            this.showToast(res?.message || 'Gagal menyimpan data laboratorium.', 'error');
           }
         },
 
         async deleteLab(labId) {
-          if (!confirm(`Yakin ingin menghapus laboratorium "${labId}" dari daftar master?`)) return;
-          const res = await this.runGas('apiDeleteLabLocation', this.session.token, labId);
+          if (!this.isSuperAdmin()) return;
+          if (!confirm('Hapus laboratorium ini? Pastikan tidak ada data inventaris yang masih aktif.')) return;
+          const res = await this.runGas('apiDeleteLaboratory', this.session.token, labId);
           if (res && res.success) {
-            this.showToast(res.message);
-            this.loadAdminData();
+            this.showToast('Laboratorium berhasil dihapus.');
+            this.loadAdminSettings();
             this.loadPublicHome();
-          } else if (res) {
-            this.showToast(res.message, 'error');
+            this.loadWorkspaceBundle(true);
+          } else {
+            this.showToast(res?.message || 'Gagal menghapus laboratorium.', 'error');
           }
         },
 
         async exportExcel(reportType) {
           const res = await this.runGas('apiExportReportExcel', this.session.token, reportType, this.session.active_lab_id);
-          if (res && res.success && res.download_url) {
-            window.open(res.download_url, '_blank');
-          } else if (res) this.showToast(res.message, 'error');
+          if (res && res.success) {
+            const a = document.createElement('a');
+            a.href = 'data:' + res.mimeType + ';base64,' + res.base64;
+            a.download = res.fileName;
+            a.click();
+            this.showToast('Laporan Excel berhasil diunduh.');
+          }
         },
 
+        // ===================================================================
+        // KOMPRESI GAMBAR & KAMERA (MENDUKUNG whIn, whEdit, masterForm, invForm)
+        // ===================================================================
         handleImageFile(event, target) {
-          const file = event.target.files[0];
+          const inputEl = event.target;
+          const file = inputEl.files && inputEl.files[0];
           if (!file) return;
           const reader = new FileReader();
           reader.onload = (e) => {
-            this.compressImage(e.target.result, (compressed) => {
+            this.compressDataUrl(e.target.result, (compressed) => {
               if (target === 'whIn') this.whInForm.photo_base64 = compressed;
-              if (target === 'whEdit') this.whEditModal.data.photo_base64 = compressed;
-              if (target === 'masterForm') this.masterFormModal.data.photo_base64 = compressed;
-              if (target === 'invForm') this.invFormModal.data.photo_base64 = compressed;
-              this.showToast('Foto siap diunggah.');
+              else if (target === 'whEdit') this.whEditModal.data.photo_base64 = compressed;
+              else if (target === 'masterForm') this.masterFormModal.data.photo_base64 = compressed;
+              else this.invFormModal.data.photo_base64 = compressed;
+              inputEl.value = '';
             });
           };
           reader.readAsDataURL(file);
@@ -4835,7 +4930,7 @@
             this.cameraModal.stream = stream;
             document.getElementById('silarasCameraVideo').srcObject = stream;
           } catch (e) {
-            this.showToast('Kamera tidak tersedia atau izin ditolak.', 'error');
+            this.showToast('Tidak dapat mengakses kamera perangkat.', 'error');
             this.cameraModal.open = false;
           }
         },
@@ -4848,25 +4943,25 @@
           canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
           const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
           if (this.cameraModal.target === 'whIn') this.whInForm.photo_base64 = dataUrl;
-          if (this.cameraModal.target === 'whEdit') this.whEditModal.data.photo_base64 = dataUrl;
-          if (this.cameraModal.target === 'masterForm') this.masterFormModal.data.photo_base64 = dataUrl;
-          if (this.cameraModal.target === 'invForm') this.invFormModal.data.photo_base64 = dataUrl;
+          else if (this.cameraModal.target === 'whEdit') this.whEditModal.data.photo_base64 = dataUrl;
+          else if (this.cameraModal.target === 'masterForm') this.masterFormModal.data.photo_base64 = dataUrl;
+          else this.invFormModal.data.photo_base64 = dataUrl;
           this.closeCameraModal();
-          this.showToast('Foto kamera berhasil ditangkap.');
         },
 
         closeCameraModal() {
           if (this.cameraModal.stream) {
             this.cameraModal.stream.getTracks().forEach(t => t.stop());
+            this.cameraModal.stream = null;
           }
           this.cameraModal.open = false;
         },
 
-        compressImage(dataUrl, callback) {
+        compressDataUrl(dataUrl, callback) {
           const img = new Image();
           img.onload = () => {
-            const maxW = 900;
-            const scale = img.width > maxW ? maxW / img.width : 1;
+            const maxW = 800;
+            const scale = img.width > maxW ? (maxW / img.width) : 1;
             const canvas = document.createElement('canvas');
             canvas.width = img.width * scale;
             canvas.height = img.height * scale;
