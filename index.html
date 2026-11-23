@@ -4704,13 +4704,35 @@
         },
 
         async searchMasterForWhIn() {
-          const q = this.whInForm.item_name.trim();
-          if (!q) { this.whInSuggestions = []; this.whInForm.item_id = ''; return; }
-          try {
-            const res = await this.runGasSilent('apiSearchMasterItems', this.session.token, q, this.whInForm.category);
-            this.whInSuggestions = res.items || [];
-          } catch (e) {}
-        },
+		  const q = (this.whInForm.item_name || '').toLowerCase().trim();
+		  const cat = String(this.whInForm.category || '').toLowerCase().trim();
+
+		  if (!q) {
+			this.whInSuggestions = [];
+			this.whInForm.item_id = '';
+			return;
+		  }
+
+		  // Pastikan masterItemsList sudah terisi di memori browser (jika belum, ambil sekali saja)
+		  if (!this.masterItemsList || this.masterItemsList.length === 0) {
+			try {
+			  const res = await this.runGasSilent('apiGetMasterItems', this.session.token);
+			  this.masterItemsList = Array.isArray(res) ? res : (res?.items || []);
+			} catch (e) {
+			  console.error('Gagal memuat master data:', e);
+			}
+		  }
+
+		  // Filter langsung di memori browser (Instan / 0 ms)
+		  this.whInSuggestions = (this.masterItemsList || [])
+			.filter(m => String(m.category || '').toLowerCase().trim() === cat)
+			.filter(m =>
+			  String(m.item_name || '').toLowerCase().includes(q) ||
+			  String(m.item_id || '').toLowerCase().includes(q) ||
+			  String(m.maker_type_spec || '').toLowerCase().includes(q)
+			)
+			.slice(0, 15);
+		},
 
         selectWhInSuggestion(s) {
           this.whInForm.item_id = s.item_id;
