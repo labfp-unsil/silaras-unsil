@@ -4027,14 +4027,28 @@
         },
 
         selectInvFormSuggestion(s) {
+          const cat = this.currentInvCategory();
           this.invFormModal.data.item_id = s.item_id;
-          this.invFormModal.data.item_name = s.item_name;
+          this.invFormModal.data.item_name = s.item_name || '';
           this.invFormModal.data.maker_type_spec = s.maker_type_spec || '';
-          this.invFormModal.data.unit = s.unit || (this.currentInvCategory() === 'Alat' ? 'Unit' : '');
-          if (s.cas_number) this.invFormModal.data.cas_number = s.cas_number;
-          if (s.photo_url && !this.invFormModal.data.photo_base64) {
-            this.invFormModal.data.photo_url = s.photo_url;
+          this.invFormModal.data.photo_url = s.photo_url || '';
+          this.invFormModal.data.photo_base64 = '';
+
+          if (cat === 'Alat') {
+            // Biarkan Satuan, Tahun, BMN, dan Stok Tersedia tetap kosong agar diisi manual oleh user
+            this.invFormModal.data.unit = '';
+            this.invFormModal.data.acquisition_year = '';
+            this.invFormModal.data.bmn_category = '';
+            this.invFormModal.data.qty_available = '';
+          } else {
+            this.invFormModal.data.unit = s.unit || '';
+            if (cat === 'Bahan Kimia') {
+              this.invFormModal.data.cas_number = s.cas_number || '';
+              this.invFormModal.data.grade = s.grade || '';
+              this.invFormModal.data.ghs_symbol = s.ghs_symbol || '';
+            }
           }
+
           this.invFormSuggestions = [];
         },
 
@@ -4043,28 +4057,30 @@
         },
 
         openInvFormModal(row) {
-          const defaultLoc = (this.session?.active_lab_id && this.session.active_lab_id !== 'ALL' && this.session.active_lab_id !== 'GUDANG')
-            ? this.session.active_lab_id
-            : (this.session?.accessible_labs?.[0]?.lab_id || '');
           this.invFormSuggestions = [];
-
           if (row) {
-            const curCondition = row.condition_status || 'Baik';
-            const totalStock = Number(row.qty_available || 0);
+            const currentCond = row.condition_status || 'Baik';
+            const currentQty = Number(row.qty_available ?? row.qty_total ?? 1);
             this.invFormModal = {
               open: true,
               is_edit: true,
               data: {
                 ...row,
-                condition_status: curCondition,
-                original_condition_status: curCondition,
-                split_qty: totalStock > 0 ? totalStock : 1,
-                max_split_qty: totalStock,
+                condition_status: currentCond,
+                original_condition_status: currentCond,
+                max_split_qty: currentQty,
+                split_qty: currentQty,
                 damage_notes: row.damage_notes || '',
+                is_public_catalog: row.is_public_catalog === undefined || row.is_public_catalog === null || row.is_public_catalog === ''
+                  ? true
+                  : (row.is_public_catalog === true || String(row.is_public_catalog).toUpperCase() === 'TRUE'),
                 photo_base64: ''
               }
             };
           } else {
+            const defaultLoc = (this.session.active_lab_id && this.session.active_lab_id !== 'ALL' && this.session.active_lab_id !== 'GUDANG')
+              ? this.session.active_lab_id
+              : '';
             this.invFormModal = {
               open: true,
               is_edit: false,
@@ -4073,21 +4089,22 @@
                 item_id: '',
                 item_name: '',
                 maker_type_spec: '',
-                unit: this.currentInvCategory() === 'Alat' ? 'Unit' : '',
-                acquisition_year: 2026,
-                bmn_category: 'Non BM',
+                unit: '',              // Dikosongkan
+                acquisition_year: '',  // Dikosongkan
+                bmn_category: '',      // Dikosongkan
                 condition_status: 'Baik',
                 original_condition_status: 'Baik',
-                split_qty: 1,
-                max_split_qty: 1,
                 damage_notes: '',
-                qty_available: 1,
                 batch_lot: '',
                 expiry_date: '',
                 cas_number: '',
                 storage_position: '',
-                photo_url: '',
-                photo_base64: ''
+                grade: '',
+                ghs_symbol: '',
+                qty_available: '',     // Dikosongkan
+                is_public_catalog: true,
+                photo_base64: '',
+                photo_url: ''
               }
             };
           }
