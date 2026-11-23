@@ -4795,7 +4795,7 @@
             if (!notes) return;
           }
           const fn = type === 'booking' ? 'apiProcessLabBooking' : (type === 'loan' ? 'apiProcessEquipmentLoan' : 'apiProcessMaterialUsage');
-          const res = await this.runGas(fn, this.session.token, id, action, notes);
+          const res = await this.runGas(fn, this.session.token, id, action, notes, this.session.active_role);
           if (res && res.success) {
             this.showToast(res.message);
             this.loadDashboard();
