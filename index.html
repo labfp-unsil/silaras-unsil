@@ -3520,65 +3520,11 @@
         },
 
         runGas(fnName, ...args) {
-          this.loading = true;
-          return new Promise((resolve, reject) => {
-            if (typeof google === 'undefined' || !google.script || !google.script.run) {
-              this.loading = false;
-              reject(new Error('Lingkungan Google Apps Script tidak terdeteksi.'));
-              return;
-            }
-            google.script.run
-              .withSuccessHandler((res) => {
-                this.loading = false;
-                if (res && res.success === false) {
-                  if (this.isSessionExpiredError(res.message) && this.session) {
-                    this.handleSessionExpired(res.message);
-                  }
-                  reject(new Error(res.message || 'Terjadi kesalahan'));
-                } else {
-                  resolve(res);
-                }
-              })
-              .withFailureHandler((err) => {
-                this.loading = false;
-                const msg = err?.message || String(err);
-                if (this.isSessionExpiredError(msg) && this.session) {
-                  this.handleSessionExpired(msg);
-                }
-                reject(new Error(msg));
-              })[fnName](...args);
-          });
+          return this.callGasTransport_(fnName, args, true);
         },
 
         runGasSilent(fnName, ...args) {
-          this.syncing = true;
-          return new Promise((resolve, reject) => {
-            if (typeof google === 'undefined' || !google.script || !google.script.run) {
-              this.syncing = false;
-              reject(new Error('Lingkungan Google Apps Script tidak terdeteksi.'));
-              return;
-            }
-            google.script.run
-              .withSuccessHandler((res) => {
-                this.syncing = false;
-                if (res && res.success === false) {
-                  if (this.isSessionExpiredError(res.message) && this.session) {
-                    this.handleSessionExpired(res.message);
-                  }
-                  reject(new Error(res.message || 'Terjadi kesalahan'));
-                } else {
-                  resolve(res);
-                }
-              })
-              .withFailureHandler((err) => {
-                this.syncing = false;
-                const msg = err?.message || String(err);
-                if (this.isSessionExpiredError(msg) && this.session) {
-                  this.handleSessionExpired(msg);
-                }
-                reject(new Error(msg));
-              })[fnName](...args);
-          });
+          return this.callGasTransport_(fnName, args, false);
         },
 
         async loadPublicHome() {
@@ -3863,21 +3809,25 @@
         },
 
         async submitLogin() {
-          try {
-            const res = await this.runGas('apiLogin', this.loginForm.email, this.loginForm.password);
-            this.session = res.session;
-            this.syncActiveLabContext();
-            localStorage.setItem('SILARAS_SESSION', JSON.stringify(this.session));
-            this.authModal.open = false;
-            this.profileForm.full_name = this.session.full_name;
-            this.bookingForm.pic_name = this.session.full_name;
-            this.bookingForm.unit_prodi = this.session.unit_prodi;
-            this.showToast('Selamat datang di SILARAS, ' + this.session.full_name);
-            await this.loadWorkspaceBundle(false);
-          } catch (e) {
-            this.showToast(e.message, 'error');
-          }
-        },
+		  try {
+			const res = await this.runGas('apiLogin', this.loginForm.email, this.loginForm.password);
+			const sessionObj = (res && res.session) ? res.session : res;
+			if (!sessionObj || !sessionObj.token) {
+			  throw new Error('Respons sesi login tidak valid dari server.');
+			}
+			this.session = sessionObj;
+			this.syncActiveLabContext();
+			localStorage.setItem('SILARAS_SESSION', JSON.stringify(this.session));
+			this.authModal.open = false;
+			this.profileForm.full_name = this.session.full_name;
+			this.bookingForm.pic_name = this.session.full_name;
+			this.bookingForm.unit_prodi = this.session.unit_prodi;
+			this.showToast('Selamat datang di SILARAS, ' + this.session.full_name);
+			await this.loadWorkspaceBundle(false);
+		  } catch (e) {
+			this.showToast(e.message, 'error');
+		  }
+		},
 
         async submitRegister() {
           try {
