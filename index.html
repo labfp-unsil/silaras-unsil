@@ -133,6 +133,12 @@
           </div>
         </template>
       </div>
+	  <div x-show="publicLoading" class="text-center py-8 text-sm text-slate-500">
+		<i class="fa-solid fa-spinner fa-spin mr-2 text-emerald-700"></i>Memuat informasi laboratorium...
+	  </div>
+	  <div x-show="!publicLoading && (publicData.labs || []).length === 0" class="text-center py-8 text-sm text-slate-500 bg-white rounded-2xl border border-slate-200">
+		Belum ada data laboratorium aktif yang ditampilkan.
+	  </div>
     </section>
 
     <!-- KATALOG PERALATAN PUBLIK -->
@@ -3041,6 +3047,7 @@
         promptModal: { open: false, title: '', message: '', placeholder: '', options: [], value: '', resolve: null },
 
         publicData: { labs: [], catalog: [], schedules: [] },
+		publicLoading: true,
         publicCatalogSearch: '',
         publicCatalogView: 'grid',
         publicCatalogPage: 1,
@@ -3584,11 +3591,16 @@
         },
 
         async loadPublicHome() {
-          try {
-            const data = await this.runGas('apiGetPublicHomeData');
-            if (data) this.publicData = data;
-          } catch (e) {}
-        },
+		  this.publicLoading = true;
+		  try {
+			const data = await this.runGasSilent('apiGetPublicHomeData');
+			if (data) this.publicData = data;
+		  } catch (e) {
+			this.showToast('Gagal memuat data publik: ' + (e.message || e), 'error');
+		  } finally {
+			this.publicLoading = false;
+		  }
+		},
 
         filteredPublicCatalog() {
           const q = (this.publicCatalogSearch || '').toLowerCase().trim();
