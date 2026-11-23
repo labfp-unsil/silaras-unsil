@@ -2405,17 +2405,17 @@
 
                 <!-- Input Jumlah Pemisahan Stok saat Edit jika kondisi diubah -->
                 <div x-show="invFormModal.is_edit && invFormModal.data.condition_status !== invFormModal.data.original_condition_status">
-                  <label class="block font-bold text-amber-900 mb-1">
+				  <label class="block font-bold text-amber-900 mb-1">
                     Jumlah Unit Dipisahkan *
                     <span class="font-normal text-slate-500" x-text="'(Maks: ' + (invFormModal.data.max_split_qty || invFormModal.data.qty_available || 0) + ')'"></span>
-                  </label>
+				  </label>
                   <input type="number"
                          min="1"
-                         :max="invFormModal.data.max_split_qty || invFormModal.data.qty_available || 1"
-                         x-model.number="invFormModal.data.split_qty"
-                         required
-                         class="w-full px-3 py-2 border border-amber-400 bg-amber-50/50 rounded-xl font-bold text-amber-950" />
-                </div>
+						 :max="invFormModal.data.max_split_qty || invFormModal.data.qty_available || 1"
+						 x-model.number="invFormModal.data.split_qty"
+						 :required="invFormModal.is_edit && invFormModal.data.condition_status !== invFormModal.data.original_condition_status"
+						 class="w-full px-3 py-2 border border-amber-400 bg-amber-50/50 rounded-xl font-bold text-amber-950" />
+				</div>
               </div>
 
               <p x-show="invFormModal.is_edit && invFormModal.data.condition_status !== invFormModal.data.original_condition_status"
@@ -3393,7 +3393,11 @@
             this.dashData = res.dashboard;
             this.masterItemsList = res.masterItems || [];
             this.invCache = {
-              'Alat': res.invAlat || [],
+			  'Alat': (res.invAlat || []).map(r => ({
+				...r,
+				condition_status: r.condition_status || r.condition || 'Baik',
+				damage_notes: r.damage_notes || r.maintenance_notes || ''
+			  })),
               'Bahan': res.invBahan || [],
               'Bahan Kimia': res.invKimia || []
             };
@@ -4111,42 +4115,46 @@
         },
 
         async submitInventoryForm() {
-          const cat = this.currentInvCategory();
-          const raw = this.invFormModal.data;
+		  if (this.loading) return; // Cegah klik ganda
+	      const cat = this.currentInvCategory();
+	      const raw = this.invFormModal.data;
 
-          if (cat === 'Alat' && this.invFormModal.is_edit && raw.condition_status !== raw.original_condition_status) {
-            const maxQty = Number(raw.max_split_qty || raw.qty_available || 0);
-            const splitQty = Number(raw.split_qty || 0);
-            if (splitQty <= 0 || splitQty > maxQty) {
-              this.showToast(`Jumlah unit yang dipisahkan harus antara 1 sampai ${maxQty}.`, 'error');
-              return;
-            }
-          }
+		  if (!raw.location_id) {
+			this.showToast('Pilih lokasi laboratorium terlebih dahulu.', 'error');
+			return;
+		  }
 
-          // Sesuaikan mapping properti dengan parameter apiSaveInventoryRecord di GAS
-          const dataToSend = {
-            ...raw,
-            is_edit: this.invFormModal.is_edit,
-            selected_condition: raw.condition_status,
-            condition_qty: raw.split_qty,
-            maintenance_notes: raw.damage_notes
-          };
+		  if (cat === 'Alat' && this.invFormModal.is_edit && raw.condition_status !== raw.original_condition_status) {
+		    const maxQty = Number(raw.max_split_qty || raw.qty_available || 0);
+			const splitQty = Number(raw.split_qty || 0);
+			if (splitQty <= 0 || splitQty > maxQty) {
+			  this.showToast(`Jumlah unit yang dipisahkan harus antara 1 sampai ${maxQty}.`, 'error');
+			  return;
+			}
+		  }
 
-          this.recordInputHistory(dataToSend.maker_type_spec, dataToSend.unit);
-  
-          // Panggil nama fungsi backend yang benar: apiSaveInventoryRecord (3 argumen)
-          const res = await this.runGas('apiSaveInventoryRecord', this.session.token, cat, dataToSend);
-  
-          if (res && res.success) {
-            this.invFormModal.open = false;
-            this.invFormSuggestions = [];
-            this.showToast(res.message || 'Data inventaris berhasil disimpan.');
-            this.loadWorkspaceBundle(true);
-            this.loadDamagedEquipment(false);
-          } else {
-            this.showToast(res?.message || 'Gagal menyimpan data inventaris.', 'error');
-          }
-        },
+		  const dataToSend = {
+			...raw,
+			is_edit: this.invFormModal.is_edit,
+			selected_condition: raw.condition_status || 'Baik',
+			condition_qty: raw.split_qty,
+			maintenance_notes: raw.damage_notes || ''
+		  };
+
+		  this.recordInputHistory(dataToSend.maker_type_spec, dataToSend.unit);
+
+		  const res = await this.runGas('apiSaveInventoryRecord', this.session.token, cat, dataToSend);
+
+		  if (res && res.success) {
+			this.invFormModal.open = false;
+			this.invFormSuggestions = [];
+			this.showToast(res.message || 'Data inventaris berhasil disimpan.');
+			await this.loadWorkspaceBundle(true);
+			await this.loadDamagedEquipment(false);
+		  } else {
+			this.showToast(res?.message || 'Gagal menyimpan data inventaris.', 'error');
+		  }
+		},
 
         async toggleEquipmentPublic(item, isPublic) {
           if (!item || !item.item_id) return;
