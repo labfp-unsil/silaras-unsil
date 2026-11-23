@@ -3539,15 +3539,6 @@
             throw new Error('Gagal terhubung ke server Apps Script (HTTP ' + response.status + ')');
           }
 
-          const res = await response.json();
-          if (res && res.success === false) {
-            const err = new Error(res.message || 'Terjadi kesalahan pada server.');
-            err.code = res.code || '';
-            throw err;
-          }
-          return res ? res.data : null;
-        },
-
         async runGas(method, ...args) {
           this.loading = true;
           try {
