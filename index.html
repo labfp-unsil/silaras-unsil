@@ -3521,9 +3521,19 @@
 
           const response = await fetch(apiUrl, {
             method: 'POST',
+            redirect: 'follow',
+            credentials: 'omit',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({ method, args })
           });
+
+          const rawText = await response.text();
+          let res = null;
+          try {
+            res = JSON.parse(rawText);
+          } catch (parseErr) {
+            throw new Error('Respons server bukan JSON valid. Pastikan Web App GAS sudah di-deploy ulang (New Version) dengan akses "Anyone".');
+          }
 
           if (!response.ok) {
             throw new Error('Gagal terhubung ke server Apps Script (HTTP ' + response.status + ')');
