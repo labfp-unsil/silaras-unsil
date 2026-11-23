@@ -4112,27 +4112,39 @@
 
         async submitInventoryForm() {
           const cat = this.currentInvCategory();
-          const dataToSend = { ...this.invFormModal.data };
+          const raw = this.invFormModal.data;
 
-          if (cat === 'Alat' && this.invFormModal.is_edit && dataToSend.condition_status !== dataToSend.original_condition_status) {
-            const maxQty = Number(dataToSend.max_split_qty || dataToSend.qty_available || 0);
-            const splitQty = Number(dataToSend.split_qty || 0);
+          if (cat === 'Alat' && this.invFormModal.is_edit && raw.condition_status !== raw.original_condition_status) {
+            const maxQty = Number(raw.max_split_qty || raw.qty_available || 0);
+            const splitQty = Number(raw.split_qty || 0);
             if (splitQty <= 0 || splitQty > maxQty) {
               this.showToast(`Jumlah unit yang dipisahkan harus antara 1 sampai ${maxQty}.`, 'error');
               return;
             }
           }
 
+          // Sesuaikan mapping properti dengan parameter apiSaveInventoryRecord di GAS
+          const dataToSend = {
+            ...raw,
+            is_edit: this.invFormModal.is_edit,
+            selected_condition: raw.condition_status,
+            condition_qty: raw.split_qty,
+            maintenance_notes: raw.damage_notes
+          };
+
           this.recordInputHistory(dataToSend.maker_type_spec, dataToSend.unit);
-          const res = await this.runGas('apiSaveInventoryItem', this.session.token, cat, dataToSend, this.invFormModal.is_edit);
-          if (res.success) {
+  
+          // Panggil nama fungsi backend yang benar: apiSaveInventoryRecord (3 argumen)
+          const res = await this.runGas('apiSaveInventoryRecord', this.session.token, cat, dataToSend);
+  
+          if (res && res.success) {
             this.invFormModal.open = false;
             this.invFormSuggestions = [];
             this.showToast(res.message || 'Data inventaris berhasil disimpan.');
             this.loadWorkspaceBundle(true);
             this.loadDamagedEquipment(false);
           } else {
-            this.showToast(res.message || 'Gagal menyimpan data inventaris.', 'error');
+            this.showToast(res?.message || 'Gagal menyimpan data inventaris.', 'error');
           }
         },
 
