@@ -1106,6 +1106,12 @@
             <button @click="warehouseTab = 'stock'" :class="warehouseTab === 'stock' ? 'bg-silaras-dark text-white' : 'bg-white text-slate-700'" class="px-4 py-2 rounded-xl text-sm font-bold border">Daftar Stok Gudang</button>
             <button x-show="canEdit('gudang')" @click="warehouseTab = 'in'; resetWhInForm(false)" :class="warehouseTab === 'in' ? 'bg-silaras-dark text-white' : 'bg-white text-slate-700'" class="px-4 py-2 rounded-xl text-sm font-bold border">+ Barang Masuk Gudang</button>
             <button x-show="canEdit('gudang')" @click="warehouseTab = 'out'; $nextTick(() => initSignaturePad())" :class="warehouseTab === 'out' ? 'bg-silaras-dark text-white' : 'bg-white text-slate-700'" class="px-4 py-2 rounded-xl text-sm font-bold border">- Barang Keluar Gudang</button>
+            <button @click="warehouseTab = 'log_in'" :class="warehouseTab === 'log_in' ? 'bg-silaras-dark text-white' : 'bg-white text-slate-700'" class="px-4 py-2 rounded-xl text-sm font-bold border">
+              <i class="fa-solid fa-arrow-down-to-bracket mr-1"></i> Log Barang Masuk
+            </button>
+            <button @click="warehouseTab = 'log_out'" :class="warehouseTab === 'log_out' ? 'bg-silaras-dark text-white' : 'bg-white text-slate-700'" class="px-4 py-2 rounded-xl text-sm font-bold border">
+              <i class="fa-solid fa-arrow-up-from-bracket mr-1"></i> Log Barang Keluar
+            </button>
           </div>
 
           <div x-show="warehouseTab === 'stock'" class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
@@ -1386,6 +1392,136 @@
             <button type="button" @click="submitWarehouseOut()" class="px-6 py-2.5 rounded-xl bg-silaras-dark text-white font-bold text-sm hover:bg-emerald-900">
               Simpan & Pindahkan Stok ke Laboratorium
             </button>
+          </div>
+
+          <!-- TAB LOG BARANG MASUK GUDANG -->
+          <div x-show="warehouseTab === 'log_in'" class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 class="font-bold text-emerald-950">Log Riwayat Barang Masuk Gudang Pusat</h3>
+                <p class="text-[11px] text-slate-500">Catatan seluruh penerimaan peralatan, bahan, dan bahan kimia ke Gudang Pusat.</p>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <input type="text" x-model="whLogSearch" placeholder="Cari ID transaksi / nama barang / petugas..." class="px-3 py-1.5 border border-slate-300 rounded-xl text-xs w-64" />
+                <button type="button" @click="loadWarehouse()" class="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-700 text-emerald-900 text-xs font-bold hover:bg-emerald-100">
+                  <i class="fa-solid fa-rotate mr-1"></i> Segarkan
+                </button>
+              </div>
+            </div>
+
+            <div class="overflow-x-auto border border-slate-200 rounded-xl">
+              <table class="w-full text-xs text-left">
+                <thead class="bg-emerald-950 text-white uppercase">
+                  <tr>
+                    <th class="px-3 py-2.5">ID Transaksi</th>
+                    <th class="px-3 py-2.5">Tanggal</th>
+                    <th class="px-3 py-2.5">Kategori</th>
+                    <th class="px-3 py-2.5">Kode & Nama Barang</th>
+                    <th class="px-3 py-2.5">Spek / Batch / Tahun-BMN</th>
+                    <th class="px-3 py-2.5">Jumlah Masuk</th>
+                    <th class="px-3 py-2.5">Petugas Pencatat</th>
+                    <th class="px-3 py-2.5">Keterangan</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                  <template x-for="row in flattenedWarehouseInLogs()" :key="row.row_key">
+                    <tr class="hover:bg-slate-50">
+                      <td class="px-3 py-2.5 font-mono font-bold text-emerald-900 whitespace-nowrap" x-text="row.trx_id"></td>
+                      <td class="px-3 py-2.5 whitespace-nowrap" x-text="row.trx_date"></td>
+                      <td class="px-3 py-2.5">
+                        <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]" x-text="row.category"></span>
+                      </td>
+                      <td class="px-3 py-2.5">
+                        <span class="font-mono text-[11px] text-slate-500" x-text="row.item_id"></span>
+                        <div class="font-bold text-slate-900" x-text="row.item_name"></div>
+                      </td>
+                      <td class="px-3 py-2.5 text-slate-600">
+                        <div x-text="row.maker_type_spec || '-'"></div>
+                        <div class="text-[11px] text-slate-500" x-text="row.detail_info"></div>
+                      </td>
+                      <td class="px-3 py-2.5 font-extrabold text-emerald-700 whitespace-nowrap" x-text="'+' + row.qty + ' ' + row.unit"></td>
+                      <td class="px-3 py-2.5 font-medium text-slate-800" x-text="row.created_by || '-'"></td>
+                      <td class="px-3 py-2.5 text-slate-600" x-text="row.notes || '-'"></td>
+                    </tr>
+                  </template>
+                  <tr x-show="flattenedWarehouseInLogs().length === 0">
+                    <td colspan="8" class="px-4 py-8 text-center text-slate-400">Belum ada riwayat transaksi barang masuk gudang.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- TAB LOG BARANG KELUAR GUDANG -->
+          <div x-show="warehouseTab === 'log_out'" class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 class="font-bold text-emerald-950">Log Riwayat Barang Keluar Gudang Pusat</h3>
+                <p class="text-[11px] text-slate-500">Catatan distribusi barang dari Gudang Pusat ke Laboratorium tujuan beserta bukti tanda tangan pengambil.</p>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <input type="text" x-model="whLogSearch" placeholder="Cari ID / pengambil / mata kuliah / lab..." class="px-3 py-1.5 border border-slate-300 rounded-xl text-xs w-64" />
+                <button type="button" @click="loadWarehouse()" class="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-700 text-emerald-900 text-xs font-bold hover:bg-emerald-100">
+                  <i class="fa-solid fa-rotate mr-1"></i> Segarkan
+                </button>
+              </div>
+            </div>
+
+            <div class="overflow-x-auto border border-slate-200 rounded-xl">
+              <table class="w-full text-xs text-left">
+                <thead class="bg-emerald-950 text-white uppercase">
+                  <tr>
+                    <th class="px-3 py-2.5">ID Transaksi</th>
+                    <th class="px-3 py-2.5">Tanggal</th>
+                    <th class="px-3 py-2.5">Lab Tujuan</th>
+                    <th class="px-3 py-2.5">Pengambil & Mata Kuliah</th>
+                    <th class="px-3 py-2.5">Rincian Barang & Jumlah</th>
+                    <th class="px-3 py-2.5 text-center">Tanda Tangan</th>
+                    <th class="px-3 py-2.5">Petugas Gudang</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                  <template x-for="trx in filteredWarehouseOutLogs()" :key="trx.trx_id">
+                    <tr class="hover:bg-slate-50 align-top">
+                      <td class="px-3 py-2.5 font-mono font-bold text-emerald-900 whitespace-nowrap" x-text="trx.trx_id"></td>
+                      <td class="px-3 py-2.5 whitespace-nowrap" x-text="trx.trx_date"></td>
+                      <td class="px-3 py-2.5 font-semibold text-emerald-800" x-text="trx.destination_lab_name"></td>
+                      <td class="px-3 py-2.5">
+                        <div class="font-bold text-slate-900" x-text="trx.taker_name || '-'"></div>
+                        <div class="text-[11px] text-slate-500" x-text="'MK: ' + (trx.course_name || '-')"></div>
+                      </td>
+                      <td class="px-3 py-2.5 space-y-1">
+                        <template x-for="it in trx.items || []" :key="it.trx_item_id">
+                          <div class="flex items-center justify-between gap-2 bg-slate-50 px-2 py-1 rounded border border-slate-200/80">
+                            <span>
+                              <span class="font-mono text-[10px] text-emerald-800 font-bold" x-text="it.item_id"></span>
+                              <span class="font-semibold text-slate-800" x-text="it.item_name"></span>
+                              <span x-show="it.batch_lot && it.batch_lot !== '-'" class="text-[10px] text-slate-500" x-text="'(Batch: ' + it.batch_lot + ')'"></span>
+                            </span>
+                            <span class="font-bold text-red-700 whitespace-nowrap" x-text="'-' + it.qty + ' ' + it.unit"></span>
+                          </div>
+                        </template>
+                      </td>
+                      <td class="px-3 py-2.5 text-center">
+                        <template x-if="trx.signature_url">
+                          <button type="button"
+                                  @click="openImagePreview(trx.signature_url, 'Tanda Tangan Pengambil: ' + trx.taker_name + ' (' + trx.trx_id + ')')"
+                                  class="inline-flex flex-col items-center gap-1 p-1 rounded-lg border border-slate-200 hover:border-emerald-600 bg-white">
+                            <img :src="normalizeDriveImgUrl(trx.signature_url)" class="h-9 w-20 object-contain" />
+                            <span class="text-[9px] text-emerald-700 font-semibold">Perbesar</span>
+                          </button>
+                        </template>
+                        <span x-show="!trx.signature_url" class="text-slate-400">-</span>
+                      </td>
+                      <td class="px-3 py-2.5 text-slate-700" x-text="trx.created_by || '-'"></td>
+                    </tr>
+                  </template>
+                  <tr x-show="filteredWarehouseOutLogs().length === 0">
+                    <td colspan="7" class="px-4 py-8 text-center text-slate-400">Belum ada riwayat transaksi barang keluar gudang.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -2895,6 +3031,7 @@
         whViewMode: 'grid',
         whStockSearch: '',
         whSortOrder: 'asc',
+        whLogSearch: '',
         whInForm: { category: 'Alat', trx_date: new Date().toISOString().slice(0,10), item_id: '', item_name: '', maker_type_spec: '', unit: '', acquisition_year: '', bmn_category: '', batch_lot: '', expiry_date: '', cas_number: '', grade: '', ghs_symbol: '', qty: '', photo_base64: '', photo_url: '' },
         whInSuggestions: [],
         whOutForm: { taker_name: '', course_name: '', destination_lab_id: '', items: [] },
@@ -3105,8 +3242,8 @@
           if (!this.session.active_lab_id) {
             this.session.active_lab_id = 'ALL';
           }
-          this.invLocationFilter = this.session.active_lab_id || 'ALL';
-          if (this.session.active_lab_id && this.session.active_lab_id !== 'ALL' && this.session.active_lab_id !== 'GUDANG') {
+          this.invLocationFilter = this.session.active_lab_id;
+          if (this.session.active_lab_id !== 'ALL' && this.session.active_lab_id !== 'GUDANG') {
             if (!this.loanForm.lab_id) this.loanForm.lab_id = this.session.active_lab_id;
             if (!this.usageForm.lab_id) this.usageForm.lab_id = this.session.active_lab_id;
             if (!this.bookingForm.lab_id) this.bookingForm.lab_id = this.session.active_lab_id;
@@ -3393,64 +3530,34 @@
               return null;
             }
             return resJson.data;
-          } catch (e) {
+          } catch (err) {
             this.syncing = false;
-            if (this.isSessionExpiredError(e?.message)) {
-              this.handleSessionExpired();
-            }
             return null;
           }
         },
 
         async loadPublicHome() {
-          const res = await this.runGas('apiGetPublicHomeDataCached');
-          if (res && res.success) this.publicData = res;
-        },
-
-        async loadWorkspaceBundle(silent = false) {
-          const runner = silent ? this.runGasSilent.bind(this) : this.runGas.bind(this);
-          const res = await runner('apiGetInitialWorkspaceBundle', this.session.token);
+          const res = await this.runGas('apiGetPublicHomeData');
           if (res && res.success) {
-            this.dashData = res.dashboard;
-            this.masterItemsList = res.masterItems || [];
-            this.invCache = {
-              'Alat': (res.invAlat || []).map(r => ({
-                ...r,
-                condition_status: r.condition_status || r.condition || 'Baik',
-                damage_notes: r.damage_notes || r.maintenance_notes || ''
-              })),
-              'Bahan': res.invBahan || [],
-              'Bahan Kimia': res.invKimia || []
-            };
-            this.warehouseData = res.warehouse || this.warehouseData;
-            this.adminData = res.admin || this.adminData;
-            if (res.admin?.role_permissions) {
-              this.initPermissionMatrix(res.admin.role_permissions);
-            }
-            this.bundleLoaded = true;
-            this.syncActiveLabContext();
-            this.applyLocalInventoryFilter();
-            this.loadDamagedEquipment(false);
+            this.publicData = res.data;
+            this.publicCatalogPage = 1;
           }
         },
 
-        applyLocalInventoryFilter() {
-          if (!['inv_alat','inv_bahan','inv_kimia'].includes(this.activeMenu)) return;
-          const cat = this.currentInvCategory();
-          const raw = this.invCache[cat] || [];
-          this.inventoryList = (this.invLocationFilter === 'ALL')
-            ? raw
-            : raw.filter(r => r.location_id === this.invLocationFilter);
-        },
-
         filteredPublicCatalog() {
-          const kw = this.publicCatalogSearch.toLowerCase();
-          return (this.publicData.catalog || []).filter(c =>
-            !kw ||
-            c.item_name.toLowerCase().includes(kw) ||
-            (c.maker_type_spec || '').toLowerCase().includes(kw) ||
-            c.laboratories.toLowerCase().includes(kw)
+          const q = this.publicCatalogSearch.toLowerCase().trim();
+          const list = this.publicData.catalog || [];
+          const filtered = !q ? list : list.filter(i =>
+            (i.item_name || '').toLowerCase().includes(q) ||
+            (i.maker_type_spec || '').toLowerCase().includes(q) ||
+            (i.laboratories || '').toLowerCase().includes(q)
           );
+          // Urutkan berdasarkan jumlah peminjaman terbanyak (descending), lalu nama alat A-Z
+          return [...filtered].sort((a, b) => {
+            const countDiff = (Number(b.borrow_count) || 0) - (Number(a.borrow_count) || 0);
+            if (countDiff !== 0) return countDiff;
+            return String(a.item_name || '').localeCompare(String(b.item_name || ''), 'id', { sensitivity: 'base' });
+          });
         },
 
         publicCatalogTotalPages() {
@@ -3459,23 +3566,21 @@
         },
 
         paginatedPublicCatalog() {
-          const all = this.filteredPublicCatalog();
+          const list = this.filteredPublicCatalog();
           const totalPages = this.publicCatalogTotalPages();
           if (this.publicCatalogPage > totalPages) {
             this.publicCatalogPage = totalPages;
           }
           const start = (this.publicCatalogPage - 1) * this.publicCatalogPerPage;
-          return all.slice(start, start + this.publicCatalogPerPage);
+          return list.slice(start, start + this.publicCatalogPerPage);
         },
 
         goToPublicCatalogPage(page) {
-          const totalPages = this.publicCatalogTotalPages();
-          const target = Math.min(Math.max(1, Number(page)), totalPages);
+          const total = this.publicCatalogTotalPages();
+          const target = Math.min(Math.max(1, Number(page) || 1), total);
           this.publicCatalogPage = target;
-          const section = document.getElementById('katalog-publik');
-          if (section) {
-            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
+          const el = document.getElementById('katalog-publik');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         },
 
         getPublicCatalogPageNumbers() {
@@ -3484,62 +3589,92 @@
           if (total <= 7) {
             return Array.from({ length: total }, (_, i) => i + 1);
           }
-          const pages = [1];
-          if (current > 3) pages.push('...');
-          const start = Math.max(2, current - 1);
-          const end = Math.min(total - 1, current + 1);
-          for (let i = start; i <= end; i++) {
-            pages.push(i);
+          if (current <= 4) {
+            return [1, 2, 3, 4, 5, '...', total];
           }
-          if (current < total - 2) pages.push('...');
-          pages.push(total);
-          return pages;
+          if (current >= total - 3) {
+            return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+          }
+          return [1, '...', current - 1, current, current + 1, '...', total];
         },
 
         filteredPublicSchedules() {
           return (this.publicData.schedules || []).filter(s => {
+            if (s.status !== 'Terkonfirmasi') return false;
             if (this.pubFilterLab && s.lab_id !== this.pubFilterLab) return false;
             if (this.pubFilterType && s.activity_type !== this.pubFilterType) return false;
             if (this.pubFilterDate && s.booking_date !== this.pubFilterDate) return false;
-            if (this.pubFilterSearch && !s.activity_title.toLowerCase().includes(this.pubFilterSearch.toLowerCase())) return false;
+            if (this.pubFilterSearch) {
+              const q = this.pubFilterSearch.toLowerCase();
+              const hit = (s.activity_title || '').toLowerCase().includes(q) || (s.pic_display || '').toLowerCase().includes(q);
+              if (!hit) return false;
+            }
             return true;
           });
         },
 
-        toLocalIsoDate(d) {
-          const y = d.getFullYear();
-          const m = String(d.getMonth() + 1).padStart(2, '0');
-          const day = String(d.getDate()).padStart(2, '0');
-          return `${y}-${m}-${day}`;
-        },
-
-        getCalendarSchedules() {
+        getCalendarFilteredEvents() {
           return (this.publicData.schedules || []).filter(s => {
             if (this.pubFilterLab && s.lab_id !== this.pubFilterLab) return false;
             return true;
           });
         },
 
+        getSelectedDateEvents() {
+          return this.getCalendarFilteredEvents().filter(s => s.booking_date === this.selectedCalendarDate);
+        },
+
+        formatShortEventPill(ev) {
+          if (ev.status === 'Proses Pengajuan') return ev.start_time + ' Proses';
+          return ev.start_time + ' ' + (ev.activity_title || ev.activity_type);
+        },
+
+        getEventBadgeClass(ev) {
+          if (ev.status === 'Proses Pengajuan') return 'bg-amber-100 text-amber-900 border border-amber-300';
+          if (ev.activity_type === 'Praktikum') return 'bg-[#064E3B] text-white';
+          if (ev.activity_type === 'Penelitian') return 'bg-[#84CC16] text-emerald-950';
+          return 'bg-[#0284C7] text-white';
+        },
+
+        getEventCardClass(ev) {
+          if (ev.status === 'Proses Pengajuan') return 'bg-amber-50 border border-amber-300 text-amber-950';
+          if (ev.activity_type === 'Praktikum') return 'bg-[#064E3B] text-white';
+          if (ev.activity_type === 'Penelitian') return 'bg-[#84CC16] text-emerald-950';
+          return 'bg-[#0284C7] text-white';
+        },
+
+        parseLocalYMD(ymd) {
+          const [y, m, d] = (ymd || new Date().toISOString().slice(0, 10)).split('-').map(Number);
+          return new Date(y, (m || 1) - 1, d || 1);
+        },
+
+        toLocalYMD(dateObj) {
+          const y = dateObj.getFullYear();
+          const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+          const d = String(dateObj.getDate()).padStart(2, '0');
+          return `${y}-${m}-${d}`;
+        },
+
         getCalendarGridCells() {
-          const anchor = new Date(this.calendarAnchorDate + 'T00:00:00');
-          const todayStr = this.toLocalIsoDate(new Date());
-          const allSchedules = this.getCalendarSchedules();
-          const cells = [];
+          const events = this.getCalendarFilteredEvents();
+          const todayStr = this.toLocalYMD(new Date());
+          const anchor = this.parseLocalYMD(this.calendarAnchorDate);
 
           if (this.calendarMode === 'week') {
             const startOfWeek = new Date(anchor);
             startOfWeek.setDate(anchor.getDate() - anchor.getDay());
+            const cells = [];
             for (let i = 0; i < 7; i++) {
               const d = new Date(startOfWeek);
               d.setDate(startOfWeek.getDate() + i);
-              const dateStr = this.toLocalIsoDate(d);
+              const dateStr = this.toLocalYMD(d);
               cells.push({
-                key: 'w-' + dateStr,
+                key: 'wk-' + dateStr,
                 isEmpty: false,
-                dateStr: dateStr,
+                dateStr,
                 dayNumber: d.getDate(),
                 isToday: dateStr === todayStr,
-                events: allSchedules.filter(s => s.booking_date === dateStr)
+                events: events.filter(e => e.booking_date === dateStr)
               });
             }
             return cells;
@@ -3547,100 +3682,76 @@
 
           const year = anchor.getFullYear();
           const month = anchor.getMonth();
-          const firstDayWeekday = new Date(year, month, 1).getDay();
+          const firstDay = new Date(year, month, 1);
+          const startWeekday = firstDay.getDay();
           const daysInMonth = new Date(year, month + 1, 0).getDate();
+          const cells = [];
 
-          for (let pad = 0; pad < firstDayWeekday; pad++) {
-            cells.push({ key: 'pad-' + pad, isEmpty: true });
+          for (let i = 0; i < startWeekday; i++) {
+            cells.push({ key: 'empty-pre-' + i, isEmpty: true, events: [] });
           }
-
           for (let day = 1; day <= daysInMonth; day++) {
             const d = new Date(year, month, day);
-            const dateStr = this.toLocalIsoDate(d);
+            const dateStr = this.toLocalYMD(d);
             cells.push({
-              key: 'm-' + dateStr,
+              key: 'mo-' + dateStr,
               isEmpty: false,
-              dateStr: dateStr,
+              dateStr,
               dayNumber: day,
               isToday: dateStr === todayStr,
-              events: allSchedules.filter(s => s.booking_date === dateStr)
+              events: events.filter(e => e.booking_date === dateStr)
             });
+          }
+          const remainder = cells.length % 7;
+          if (remainder > 0) {
+            for (let i = 0; i < (7 - remainder); i++) {
+              cells.push({ key: 'empty-post-' + i, isEmpty: true, events: [] });
+            }
           }
           return cells;
         },
 
-        getSelectedDateEvents() {
-          return this.getCalendarSchedules().filter(s => s.booking_date === this.selectedCalendarDate);
-        },
-
         getCalendarPeriodLabel() {
-          const anchor = new Date(this.calendarAnchorDate + 'T00:00:00');
           const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-          if (this.calendarMode === 'day') {
-            return this.selectedCalendarDate;
+          const d = this.parseLocalYMD(this.calendarAnchorDate);
+          if (this.calendarMode === 'day') return this.selectedCalendarDate;
+          if (this.calendarMode === 'week') {
+            const start = new Date(d);
+            start.setDate(d.getDate() - d.getDay());
+            const end = new Date(start);
+            end.setDate(start.getDate() + 6);
+            return `${start.getDate()} - ${end.getDate()} ${months[end.getMonth()]} ${end.getFullYear()}`;
           }
-          return months[anchor.getMonth()] + ' ' + anchor.getFullYear();
+          return `${months[d.getMonth()]} ${d.getFullYear()}`;
         },
 
-        shiftCalendarPeriod(delta) {
-          const anchor = new Date(this.calendarAnchorDate + 'T00:00:00');
-          if (this.calendarMode === 'day') {
-            anchor.setDate(anchor.getDate() + delta);
-          } else if (this.calendarMode === 'week') {
-            anchor.setDate(anchor.getDate() + (delta * 7));
-          } else {
-            anchor.setMonth(anchor.getMonth() + delta);
-          }
-          const nextIso = this.toLocalIsoDate(anchor);
-          this.calendarAnchorDate = nextIso;
-          this.selectedCalendarDate = nextIso;
-        },
-
-        resetCalendarToday() {
-          const todayIso = this.toLocalIsoDate(new Date());
-          this.calendarAnchorDate = todayIso;
-          this.selectedCalendarDate = todayIso;
-        },
-
-        formatDateIndonesian(isoStr) {
-          if (!isoStr) return '-';
-          const d = new Date(isoStr + 'T00:00:00');
+        formatDateIndonesian(ymd) {
           const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
           const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+          const d = this.parseLocalYMD(ymd);
           return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
         },
 
-        formatShortEventPill(ev) {
-          const start = String(ev.start_time || '').slice(0, 5);
-          if (ev.status === 'Proses Pengajuan') return `${start} PROSES`;
-          const label = String(ev.activity_type || 'KEGIATAN').toUpperCase();
-          return `${start} ${label}`;
+        shiftCalendarPeriod(step) {
+          const d = this.parseLocalYMD(this.calendarAnchorDate);
+          if (this.calendarMode === 'day') {
+            d.setDate(d.getDate() + step);
+            this.calendarAnchorDate = this.toLocalYMD(d);
+            this.selectedCalendarDate = this.calendarAnchorDate;
+          } else if (this.calendarMode === 'week') {
+            d.setDate(d.getDate() + (step * 7));
+            this.calendarAnchorDate = this.toLocalYMD(d);
+            this.selectedCalendarDate = this.calendarAnchorDate;
+          } else {
+            d.setMonth(d.getMonth() + step);
+            this.calendarAnchorDate = this.toLocalYMD(d);
+          }
         },
 
-        getEventBadgeClass(ev) {
-          if (ev.status === 'Proses Pengajuan') {
-            return 'bg-amber-50 text-amber-800 border border-amber-300';
-          }
-          if (ev.activity_type === 'Praktikum') {
-            return 'bg-[#064E3B] text-white';
-          }
-          if (ev.activity_type === 'Penelitian') {
-            return 'bg-[#84CC16] text-emerald-950';
-          }
-          return 'bg-[#0284C7] text-white';
-        },
-
-        getEventCardClass(ev) {
-          if (ev.status === 'Proses Pengajuan') {
-            return 'bg-amber-50 text-amber-950 border border-amber-300';
-          }
-          if (ev.activity_type === 'Praktikum') {
-            return 'bg-[#064E3B] text-white';
-          }
-          if (ev.activity_type === 'Penelitian') {
-            return 'bg-[#84CC16] text-emerald-950';
-          }
-          return 'bg-[#0284C7] text-white';
+        resetCalendarToday() {
+          const today = this.toLocalYMD(new Date());
+          this.calendarAnchorDate = today;
+          this.selectedCalendarDate = today;
         },
 
         openAuthModal(mode) {
@@ -3652,44 +3763,62 @@
           this.authModal.mode = mode;
           if (mode === 'register') {
             this.regForm = { full_name: '', nim_nip: '', unit_prodi: '', phone: '', email: '', password: '' };
-          } else if (mode === 'login') {
-            this.loginForm = { email: '', password: '' };
           } else if (mode === 'forgot') {
-            this.forgotForm = { step: 1, email: '', otp: '', new_password: '', confirm_password: '' };
+            this.forgotForm = { step: 1, email: this.loginForm.email || '', otp: '', new_password: '', confirm_password: '' };
           }
         },
 
         async submitRequestResetOtp() {
-          const res = await this.runGas('apiRequestPasswordResetOtp', this.forgotForm.email);
+          if (!this.forgotForm.email) {
+            this.showToast('Masukkan alamat email terlebih dahulu.', 'error');
+            return;
+          }
+          this.loadingText = 'Mengirim kode OTP ke email...';
+          const res = await this.runGas('apiRequestPasswordResetOtp', this.forgotForm.email.trim());
+          this.loadingText = '';
           if (res && res.success) {
             this.forgotForm.step = 2;
-            this.showToast(res.message);
+            this.showToast(res.message || 'Kode OTP 6 digit telah dikirim ke email Anda.');
           } else {
             this.showToast(res?.message || 'Gagal mengirim kode OTP.', 'error');
           }
         },
 
         async submitConfirmResetPassword() {
+          if (!this.forgotForm.otp || this.forgotForm.otp.trim().length !== 6) {
+            this.showToast('Masukkan kode OTP 6 digit yang valid.', 'error');
+            return;
+          }
+          if (!this.forgotForm.new_password || this.forgotForm.new_password.length < 6) {
+            this.showToast('Kata sandi baru minimal 6 karakter.', 'error');
+            return;
+          }
           if (this.forgotForm.new_password !== this.forgotForm.confirm_password) {
             this.showToast('Konfirmasi kata sandi baru tidak cocok.', 'error');
             return;
           }
+          this.loadingText = 'Memverifikasi OTP & memperbarui kata sandi...';
           const res = await this.runGas(
             'apiConfirmPasswordResetWithOtp',
-            this.forgotForm.email,
-            this.forgotForm.otp,
+            this.forgotForm.email.trim(),
+            this.forgotForm.otp.trim(),
             this.forgotForm.new_password
           );
+          this.loadingText = '';
           if (res && res.success) {
-            this.showToast(res.message);
+            this.loginForm.email = this.forgotForm.email.trim();
+            this.loginForm.password = '';
             this.switchAuthMode('login');
+            this.showToast(res.message || 'Kata sandi berhasil diperbarui. Silakan login.');
           } else {
-            this.showToast(res?.message || 'Gagal mengatur ulang kata sandi.', 'error');
+            this.showToast(res?.message || 'Kode OTP tidak valid atau kedaluwarsa.', 'error');
           }
         },
 
         async submitLogin() {
+          this.loadingText = 'Memverifikasi kredensial...';
           const res = await this.runGas('apiLogin', this.loginForm.email, this.loginForm.password);
+          this.loadingText = '';
           if (res && res.success) {
             this.session = res.session;
             this.syncActiveLabContext();
@@ -3706,53 +3835,101 @@
         },
 
         async submitRegister() {
-          const res = await this.runGas('apiSelfRegister', this.regForm);
+          this.loadingText = 'Mendaftarkan akun baru...';
+          const res = await this.runGas('apiRegisterUser', this.regForm);
+          this.loadingText = '';
           if (res && res.success) {
             this.showToast(res.message);
-            this.switchAuthMode('login');
+            this.loginForm.email = this.regForm.email;
+            this.regForm = { full_name: '', nim_nip: '', unit_prodi: '', phone: '', email: '', password: '' };
+            this.authModal.mode = 'login';
           } else {
             this.showToast(res?.message || 'Pendaftaran gagal', 'error');
           }
         },
 
         async submitCompleteProfile() {
-          const res = await this.runGas('apiCompleteUserProfile', this.session.token, this.profileForm);
+          const res = await this.runGas('apiCompleteProfile', this.session.token, this.profileForm);
           if (res && res.success) {
-            this.session = res.session;
-            this.syncActiveLabContext();
+            this.session.needs_profile_completion = false;
+            this.session.full_name = this.profileForm.full_name;
+            this.session.unit_prodi = this.profileForm.unit_prodi;
             localStorage.setItem('SILARAS_SESSION', JSON.stringify(this.session));
-            this.showToast('Profil berhasil dilengkapi.');
-          } else {
-            this.showToast(res?.message || 'Gagal menyimpan profil', 'error');
+            this.showToast('Profil berhasil dilengkapi');
           }
         },
 
         async switchContext() {
+          this.syncActiveLabContext();
           const res = await this.runGas('apiSwitchContext', this.session.token, this.session.active_role, this.session.active_lab_id);
           if (res && res.success) {
             this.session = res.session;
             this.syncActiveLabContext();
             localStorage.setItem('SILARAS_SESSION', JSON.stringify(this.session));
-            this.applyLocalInventoryFilter();
-            if (!this.canView(this.activeMenu)) this.activeMenu = 'dashboard';
+            this.showToast('Konteks diperbarui: ' + this.session.active_role + ' (' + this.getActiveLabLabel() + ')');
+            this.loadWorkspaceBundle(true);
             this.refreshActiveView();
           }
         },
 
         logout() {
+          localStorage.removeItem('SILARAS_SESSION');
           this.session = null;
           this.activeMenu = 'dashboard';
           this.bundleLoaded = false;
-          this.invCache = { Alat: [], Bahan: [], 'Bahan Kimia': [] };
-          localStorage.removeItem('SILARAS_SESSION');
           this.loadPublicHome();
         },
 
-        hasRole(role) { return (this.session?.roles || []).includes(role); },
-        isSuperAdmin() { return this.session?.active_role === 'Super Admin' || this.hasRole('Super Admin'); },
-        canView(mod) { return this.isSuperAdmin() || Boolean(this.session?.permissions?.[mod]?.view); },
-        canEdit(mod) { return this.isSuperAdmin() || Boolean(this.session?.permissions?.[mod]?.edit); },
-        canDelete(mod) { return this.isSuperAdmin() || Boolean(this.session?.permissions?.[mod]?.delete); },
+        isSuperAdmin() {
+          return this.session?.active_role === 'Super Admin' || (this.session?.roles || []).includes('Super Admin');
+        },
+        hasRole(r) {
+          return this.session?.active_role === r || this.isSuperAdmin();
+        },
+        canView(mod) {
+          if (this.isSuperAdmin()) return true;
+          const activeRole = this.session?.active_role;
+          if (activeRole && this.rolePermissionsMatrix?.[activeRole]?.[mod]) {
+            return Boolean(this.rolePermissionsMatrix[activeRole][mod].view);
+          }
+          return Boolean(this.session?.permissions?.[mod]?.view);
+        },
+        canEdit(mod) {
+          if (this.isSuperAdmin()) return true;
+          const activeRole = this.session?.active_role;
+          if (activeRole && this.rolePermissionsMatrix?.[activeRole]?.[mod]) {
+            return Boolean(this.rolePermissionsMatrix[activeRole][mod].edit);
+          }
+          return Boolean(this.session?.permissions?.[mod]?.edit);
+        },
+        canDelete(mod) {
+          if (this.isSuperAdmin()) return true;
+          const activeRole = this.session?.active_role;
+          if (activeRole && this.rolePermissionsMatrix?.[activeRole]?.[mod]) {
+            return Boolean(this.rolePermissionsMatrix[activeRole][mod].delete);
+          }
+          return Boolean(this.session?.permissions?.[mod]?.delete);
+        },
+
+        menuTitle() {
+          const map = {
+            dashboard: 'Dashboard Utama',
+            master_data: 'Master Data Barang',
+            inv_alat: 'Inventaris Peralatan',
+            alat_rusak: 'Alat Perbaikan & Rusak',
+            inv_bahan: 'Inventaris Bahan',
+            inv_kimia: 'Inventaris Bahan Kimia',
+            gudang: 'Gudang & Manajemen Stok',
+            pinjam_alat: 'Peminjaman Peralatan',
+            guna_bahan: 'Penggunaan Bahan & Bahan Kimia',
+            booking_ruang: 'Penggunaan Ruangan Laboratorium',
+            verifikasi: 'Verifikasi & Persetujuan Transaksi',
+            laporan: 'Laporan & Ekspor',
+            audit: 'Audit Trail Sistem',
+            settings: 'Pengaturan Pengguna, Lab & Hak Akses'
+          };
+          return map[this.activeMenu] || 'SILARAS';
+        },
 
         navigate(menu) {
           this.activeMenu = menu;
@@ -3760,320 +3937,314 @@
           this.refreshActiveView();
         },
 
-        menuTitle() {
-          const map = {
-            dashboard: 'Dashboard Utama',
-            master_data: 'Master Data Barang Terpusat',
-            inv_alat: 'Inventaris Peralatan',
-            alat_rusak: 'Alat Perbaikan & Rusak',
-            inv_bahan: 'Inventaris Bahan',
-            inv_kimia: 'Inventaris Bahan Kimia',
-            gudang: 'Gudang & Manajemen Stok',
-            pinjam_alat: 'Peminjaman Peralatan',
-            guna_bahan: 'Penggunaan Bahan & Kimia',
-            booking_ruang: 'Penggunaan Ruangan Laboratorium',
-            verifikasi: 'Verifikasi & Persetujuan',
-            laporan: 'Laporan & Ekspor',
-            audit: 'Audit Trail Sistem',
-            settings: 'Pengguna, Lab & Hak Akses'
-          };
-          return map[this.activeMenu] || 'SILARAS';
+        async loadWorkspaceBundle(silent = false) {
+          if (!this.session?.token) return;
+          const callFn = silent ? this.runGasSilent.bind(this) : this.runGas.bind(this);
+          const res = await callFn('apiGetWorkspaceBundle', this.session.token);
+          if (res && res.success && res.data) {
+            const b = res.data;
+            if (b.dashboard) this.dashData = b.dashboard;
+            if (b.inventory) {
+              this.invCache = {
+                Alat: b.inventory.Alat || [],
+                Bahan: b.inventory.Bahan || [],
+                'Bahan Kimia': b.inventory['Bahan Kimia'] || []
+              };
+              if (['inv_alat', 'inv_bahan', 'inv_kimia'].includes(this.activeMenu)) {
+                this.inventoryList = this.invCache[this.currentInvCategory()] || [];
+              }
+            }
+            if (b.warehouse) this.warehouseData = b.warehouse;
+            if (b.master_items) this.masterItemsList = b.master_items;
+            if (b.admin) {
+              this.adminData = b.admin;
+              if (b.admin.role_permissions) {
+                this.initPermissionMatrix(b.admin.role_permissions);
+              }
+            }
+            if (b.audit_logs) this.auditLogsList = b.audit_logs;
+            this.bundleLoaded = true;
+          }
         },
 
-        refreshActiveView() {
-          if (!this.bundleLoaded) {
-            this.loadWorkspaceBundle(false);
-            return;
-          }
-          if (['inv_alat','inv_bahan','inv_kimia'].includes(this.activeMenu)) {
-            this.applyLocalInventoryFilter();
-            this.loadWorkspaceBundle(true);
+        async refreshActiveView() {
+          if (this.activeMenu === 'dashboard') {
+            if (!this.bundleLoaded) await this.loadWorkspaceBundle(false);
+            else this.loadWorkspaceBundle(true);
+          } else if (['inv_alat', 'inv_bahan', 'inv_kimia'].includes(this.activeMenu)) {
+            const cat = this.currentInvCategory();
+            if (this.bundleLoaded && (this.invCache[cat] || []).length > 0 && (this.invLocationFilter === 'ALL' || !this.invLocationFilter)) {
+              this.inventoryList = this.invCache[cat];
+              this.loadInventory(true);
+            } else {
+              await this.loadInventory(false);
+            }
           } else if (this.activeMenu === 'alat_rusak') {
-            this.loadDamagedEquipment(false);
-            this.loadWorkspaceBundle(true);
+            await this.loadDamagedEquipment(false);
+          } else if (this.activeMenu === 'gudang') {
+            if (this.bundleLoaded && (this.warehouseData.stock || []).length > 0) {
+              this.loadWarehouse(true);
+            } else {
+              await this.loadWarehouse(false);
+            }
+          } else if (this.activeMenu === 'master_data') {
+            if (this.bundleLoaded && (this.masterItemsList || []).length > 0) {
+              this.loadMasterItems(true);
+            } else {
+              await this.loadMasterItems(false);
+            }
           } else if (this.activeMenu === 'audit') {
-            this.loadAuditLogs();
-          } else {
-            this.loadWorkspaceBundle(true);
+            if (this.bundleLoaded && (this.auditLogsList || []).length > 0) {
+              this.loadAuditLogs(true);
+            } else {
+              await this.loadAuditLogs(false);
+            }
+          } else if (this.activeMenu === 'settings') {
+            if (this.bundleLoaded && (this.adminData.labs || []).length > 0) {
+              this.loadAdminSettings(true);
+            } else {
+              await this.loadAdminSettings(false);
+            }
+          } else if (['pinjam_alat', 'guna_bahan', 'booking_ruang', 'verifikasi'].includes(this.activeMenu)) {
+            if (!this.bundleLoaded) await this.loadWorkspaceBundle(false);
+            else this.loadWorkspaceBundle(true);
           }
         },
 
-        async loadDashboard() { this.loadWorkspaceBundle(false); },
+        async loadDashboard(silent = false) {
+          const callFn = silent ? this.runGasSilent.bind(this) : this.runGas.bind(this);
+          const res = await callFn('apiGetDashboardSummary', this.session.token);
+          if (res && res.success) this.dashData = res.data;
+        },
 
         currentInvCategory() {
-          if (this.activeMenu === 'inv_alat') return 'Alat';
           if (this.activeMenu === 'inv_bahan') return 'Bahan';
-          return 'Bahan Kimia';
+          if (this.activeMenu === 'inv_kimia') return 'Bahan Kimia';
+          return 'Alat';
         },
 
-        async loadInventory() {
+        async loadInventory(silent = false) {
           const cat = this.currentInvCategory();
-          const res = await this.runGas('apiGetInventoryList', this.session.token, cat, this.invLocationFilter);
+          const callFn = silent ? this.runGasSilent.bind(this) : this.runGas.bind(this);
+          const res = await callFn('apiGetInventoryList', this.session.token, cat, this.invLocationFilter);
           if (res && res.success) {
-            const normalized = (res.items || []).map(r => ({
-              ...r,
-              condition_status: r.condition_status || r.condition || 'Baik',
-              damage_notes: r.damage_notes || r.maintenance_notes || ''
-            }));
-            this.invCache[cat] = normalized;
-            this.inventoryList = normalized;
-            if (cat === 'Alat') this.loadDamagedEquipment(false);
+            this.inventoryList = res.data;
+            if (this.invLocationFilter === 'ALL' || !this.invLocationFilter) {
+              this.invCache[cat] = res.data;
+            }
           }
         },
 
         filteredInventory() {
-          const kw = this.invSearch.toLowerCase();
-          const filtered = (this.inventoryList || []).filter(r =>
-            !kw ||
-            r.item_name.toLowerCase().includes(kw) ||
-            r.item_id.toLowerCase().includes(kw) ||
-            (r.maker_type_spec || '').toLowerCase().includes(kw)
-          );
-          return this.sortByItemName(filtered, this.invSortOrder);
+          const q = this.invSearch.toLowerCase().trim();
+          const activeLoc = this.invLocationFilter || this.session?.active_lab_id || 'ALL';
+          const list = (this.inventoryList || []).filter(r => {
+            if (activeLoc && activeLoc !== 'ALL' && r.location_id !== activeLoc) return false;
+            if (!q) return true;
+            return (r.item_name || '').toLowerCase().includes(q) || (r.item_id || '').toLowerCase().includes(q);
+          });
+          return this.sortByItemName(list, this.invSortOrder);
         },
 
         // ===================================================================
-        // MANAJEMEN ALAT PERBAIKAN & RUSAK (CONDITION STATUS & PEMISAHAN STOK)
+        // HELPER & METHOD MENU ALAT PERBAIKAN & RUSAK
         // ===================================================================
         getConditionBadgeClass(status) {
-          if (status === 'Rusak Ringan') {
-            return 'bg-amber-100 text-amber-900 border border-amber-300';
-          }
-          if (status === 'Rusak Berat') {
-            return 'bg-red-100 text-red-800 border border-red-300';
-          }
-          return 'bg-emerald-100 text-emerald-800 border border-emerald-200';
+          const s = String(status || 'Baik').trim();
+          if (s === 'Rusak Berat') return 'bg-red-600 text-white';
+          if (s === 'Rusak Ringan') return 'bg-amber-500 text-white';
+          return 'bg-emerald-600 text-white';
         },
 
         damagedCount() {
+          const src = (this.damagedEquipmentList && this.damagedEquipmentList.length > 0)
+            ? this.damagedEquipmentList
+            : (this.invCache['Alat'] || []);
           const activeLoc = this.session?.active_lab_id || 'ALL';
-          return (this.damagedEquipmentList || []).filter(r => {
-            if (activeLoc && activeLoc !== 'ALL' && r.location_id !== activeLoc) return false;
-            return true;
-          }).length;
+          return src
+            .filter(r => {
+              const cond = String(r.condition_status || 'Baik').trim();
+              if (cond === 'Baik' || !cond) return false;
+              if (activeLoc && activeLoc !== 'ALL' && r.location_id !== activeLoc) return false;
+              return true;
+            })
+            .reduce((sum, r) => sum + Number(r.qty_total || r.qty_available || 0), 0);
         },
 
-        async loadDamagedEquipment(forceRefresh = false) {
-          if (forceRefresh) {
-            const res = await this.runGas('apiGetInventoryList', this.session.token, 'Alat', 'ALL');
-            if (res && res.success) {
-              this.invCache['Alat'] = (res.items || []).map(r => ({
-                ...r,
-                condition_status: r.condition_status || r.condition || 'Baik',
-                damage_notes: r.damage_notes || r.maintenance_notes || ''
-              }));
-            }
+        async loadDamagedEquipment(forceServer = false) {
+          const cachedAlat = this.invCache['Alat'] || [];
+          if (!forceServer && cachedAlat.length > 0) {
+            this.damagedEquipmentList = cachedAlat.filter(r => {
+              const cond = String(r.condition_status || 'Baik').trim();
+              return cond === 'Rusak Ringan' || cond === 'Rusak Berat';
+            });
           }
-          const allAlat = this.invCache['Alat'] || [];
-          this.damagedEquipmentList = allAlat.filter(r => {
-            const st = String(r.condition_status || 'Baik').trim();
-            return st === 'Rusak Ringan' || st === 'Rusak Berat';
-          });
-          if (this.session?.active_lab_id) {
-            this.damagedLocationFilter = this.session.active_lab_id;
+          const res = await this.runGas('apiGetInventoryList', this.session.token, 'Alat', 'ALL');
+          if (res && res.success) {
+            this.invCache['Alat'] = res.data || [];
+            this.damagedEquipmentList = (res.data || []).filter(r => {
+              const cond = String(r.condition_status || 'Baik').trim();
+              return cond === 'Rusak Ringan' || cond === 'Rusak Berat';
+            });
           }
         },
 
         filteredDamagedEquipment() {
-          const kw = this.damagedSearch.toLowerCase().trim();
-          const list = (this.damagedEquipmentList || []).filter(r => {
-            if (this.damagedLocationFilter && this.damagedLocationFilter !== 'ALL' && r.location_id !== this.damagedLocationFilter) {
-              return false;
-            }
-            if (this.damagedConditionFilter && this.damagedConditionFilter !== 'ALL' && (r.condition_status || 'Baik') !== this.damagedConditionFilter) {
-              return false;
-            }
-            if (kw) {
-              const hay = `${r.item_name || ''} ${r.item_id || ''} ${r.maker_type_spec || ''} ${r.damage_notes || ''} ${r.location_name || ''}`.toLowerCase();
-              if (!hay.includes(kw)) return false;
+          const activeLoc = this.damagedLocationFilter || this.session?.active_lab_id || 'ALL';
+          const condFilter = this.damagedConditionFilter || 'ALL';
+          const q = (this.damagedSearch || '').toLowerCase().trim();
+
+          const filtered = (this.damagedEquipmentList || []).filter(r => {
+            const cond = String(r.condition_status || 'Baik').trim();
+            if (cond !== 'Rusak Ringan' && cond !== 'Rusak Berat') return false;
+            if (activeLoc && activeLoc !== 'ALL' && r.location_id !== activeLoc) return false;
+            if (condFilter !== 'ALL' && cond !== condFilter) return false;
+            if (q) {
+              const hit =
+                (r.item_name || '').toLowerCase().includes(q) ||
+                (r.item_id || '').toLowerCase().includes(q) ||
+                (r.maker_type_spec || '').toLowerCase().includes(q) ||
+                (r.damage_notes || '').toLowerCase().includes(q);
+              if (!hit) return false;
             }
             return true;
           });
-          return this.sortByItemName(list, 'asc');
+          return this.sortByItemName(filtered, 'asc');
         },
 
-        openDamagedDetailModal(item) {
-          if (!item) return;
-          const totalUnit = Number(item.qty_total || item.qty_available || 1);
+        openDamagedDetailModal(row) {
+          if (!row) return;
+          const totalQty = Number(row.qty_total || row.qty_available || 1);
           this.damagedDetailModal = {
             open: true,
-            item: { ...item },
-            nextCondition: item.condition_status === 'Rusak Berat' ? 'Rusak Berat' : 'Baik',
-            processQty: totalUnit,
-            notes: item.damage_notes || ''
+            item: { ...row },
+            nextCondition: row.condition_status === 'Rusak Ringan' ? 'Baik' : (row.condition_status || 'Baik'),
+            processQty: totalQty,
+            notes: row.damage_notes || ''
           };
         },
 
         async submitQuickConditionUpdate() {
           const item = this.damagedDetailModal.item;
           if (!item) return;
-          const totalUnit = Number(item.qty_total || item.qty_available || 0);
-          const moveQty = Number(this.damagedDetailModal.processQty || 0);
-          const targetCond = this.damagedDetailModal.nextCondition;
+          const maxQty = Number(item.qty_total || item.qty_available || 0);
+          const procQty = Number(this.damagedDetailModal.processQty || 0);
+          const nextCond = this.damagedDetailModal.nextCondition;
 
-          if (moveQty <= 0 || moveQty > totalUnit) {
-            this.showToast(`Jumlah unit harus antara 1 sampai ${totalUnit}.`, 'error');
+          if (procQty < 1 || procQty > maxQty) {
+            this.showToast('Jumlah unit harus antara 1 sampai ' + maxQty + '.', 'error');
+            return;
+          }
+          if (nextCond !== 'Baik' && !String(this.damagedDetailModal.notes || '').trim()) {
+            this.showToast('Catatan kerusakan wajib diisi untuk kondisi ' + nextCond + '.', 'error');
             return;
           }
 
-          // Jika kondisi tidak berubah dan hanya memperbarui catatan kerusakan
-          if (targetCond === item.condition_status) {
-            const payload = {
-              ...item,
-              condition_status: targetCond,
-              damage_notes: this.damagedDetailModal.notes
-            };
-            const res = await this.runGas('apiSaveInventoryItem', this.session.token, 'Alat', payload);
-            if (res && res.success) {
-              this.damagedDetailModal.open = false;
-              this.showToast('Catatan kerusakan peralatan berhasil diperbarui.');
-              await this.loadWorkspaceBundle(false);
-            } else {
-              this.showToast(res?.message || 'Gagal memperbarui data.', 'error');
-            }
-            return;
-          }
+          const payload = {
+            ...item,
+            condition_status: nextCond,
+            original_condition_status: item.condition_status || 'Rusak Ringan',
+            split_qty: procQty,
+            damage_notes: nextCond === 'Baik' ? '' : String(this.damagedDetailModal.notes || '').trim()
+          };
 
-          // Pemisahan stok sebagian atau seluruhnya ke kondisi baru
-          const remainingQty = totalUnit - moveQty;
-          if (remainingQty > 0) {
-            // 1) Kurangi stok pada baris rusak lama
-            const updateOldPayload = {
-              ...item,
-              qty_available: Math.max(0, Number(item.qty_available || totalUnit) - moveQty),
-              qty_total: remainingQty,
-              condition_status: item.condition_status,
-              damage_notes: item.damage_notes || ''
-            };
-            const resOld = await this.runGas('apiSaveInventoryItem', this.session.token, 'Alat', updateOldPayload);
-            if (!resOld || !resOld.success) {
-              this.showToast(resOld?.message || 'Gagal memisahkan stok asal.', 'error');
-              return;
-            }
-
-            // 2) Buat entri baru untuk unit yang berpindah status kondisi (mis. Baik setelah diperbaiki)
-            const newSplitPayload = {
-              location_id: item.location_id,
-              item_id: item.item_id,
-              item_name: item.item_name,
-              maker_type_spec: item.maker_type_spec || '',
-              unit: item.unit || 'Unit',
-              acquisition_year: item.acquisition_year || '',
-              bmn_category: item.bmn_category || 'BM',
-              qty_available: moveQty,
-              qty_borrowed: 0,
-              qty_total: moveQty,
-              condition_status: targetCond,
-              damage_notes: targetCond === 'Baik' ? '' : (this.damagedDetailModal.notes || item.damage_notes || ''),
-              photo_url: item.photo_url || ''
-            };
-            const resNew = await this.runGas('apiSaveInventoryItem', this.session.token, 'Alat', newSplitPayload);
-            if (resNew && resNew.success) {
-              this.damagedDetailModal.open = false;
-              this.showToast(`${moveQty} unit berhasil dipindahkan ke status "${targetCond}". Sisa ${remainingQty} unit tetap berstatus "${item.condition_status}".`);
-              await this.loadWorkspaceBundle(false);
-            } else {
-              this.showToast(resNew?.message || 'Gagal membuat entri pemisahan kondisi.', 'error');
-            }
-          } else {
-            // Seluruh unit berpindah kondisi
-            const fullUpdatePayload = {
-              ...item,
-              condition_status: targetCond,
-              damage_notes: targetCond === 'Baik' ? '' : (this.damagedDetailModal.notes || item.damage_notes || '')
-            };
-            const res = await this.runGas('apiSaveInventoryItem', this.session.token, 'Alat', fullUpdatePayload);
-            if (res && res.success) {
-              this.damagedDetailModal.open = false;
-              this.showToast(`Status seluruh unit (${moveQty}) diperbarui menjadi "${targetCond}".`);
-              await this.loadWorkspaceBundle(false);
-            } else {
-              this.showToast(res?.message || 'Gagal memperbarui status kondisi.', 'error');
-            }
+          const res = await this.runGas('apiSaveInventoryItem', this.session.token, 'Alat', payload);
+          if (res && res.success) {
+            this.showToast(res.message || 'Status kondisi peralatan berhasil diperbarui.');
+            this.damagedDetailModal.open = false;
+            await this.loadDamagedEquipment(true);
+            await this.loadWorkspaceBundle(true);
           }
         },
 
         generateAssetDisposalBA(item) {
           if (!item) return;
-          const todayStr = this.formatDateIndonesian(this.toLocalIsoDate(new Date()));
-          const qty = item.qty_total || item.qty_available || 1;
+          const today = new Date().toLocaleDateString('id-ID', {
+            day: 'numeric', month: 'long', year: 'numeric'
+          });
+          const qty = Number(item.qty_total || item.qty_available || 1);
           const unit = item.unit || 'Unit';
-          const officerName = this.session?.full_name || 'Kepala Laboratorium / Laboran';
+          const labName = item.location_name || 'Laboratorium Fakultas Pertanian';
+          const picName = this.session?.full_name || 'Kepala Laboratorium / Laboran';
 
           const htmlDoc = `
             <html xmlns:o='urn:schemas-microsoft-com:office:office'
                   xmlns:w='urn:schemas-microsoft-com:office:word'
                   xmlns='http://www.w3.org/TR/REC-html40'>
-            <head><meta charset='utf-8'><title>Berita Acara Usulan Penghapusan Aset</title>
-            <style>
-              body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.5; color: #000; margin: 2cm; }
-              .kop { text-align: center; border-bottom: 3px double #000; padding-bottom: 8px; margin-bottom: 18px; }
-              .kop h3, .kop h4, .kop p { margin: 2px 0; }
-              .title { text-align: center; font-weight: bold; text-decoration: underline; margin: 16px 0 4px 0; font-size: 13pt; }
-              .nomor { text-align: center; margin-bottom: 18px; }
-              table.data { width: 100%; border-collapse: collapse; margin: 14px 0; }
-              table.data th, table.data td { border: 1px solid #000; padding: 6px 8px; text-align: left; font-size: 11pt; }
-              table.data th { background-color: #f2f2f2; }
-              table.ttd { width: 100%; margin-top: 36px; border: none; }
-              table.ttd td { width: 50%; text-align: center; vertical-align: top; }
-            </style>
-            </head>
-            <body>
-              <div class="kop">
-                <h4>KEMENTERIAN PENDIDIKAN TINGGI, SAINS, DAN TEKNOLOGI</h4>
-                <h3>UNIVERSITAS SILIWANGI</h3>
-                <h3>FAKULTAS PERTANIAN</h3>
-                <p style="font-size:10pt;">Jalan Siliwangi No. 24 Kotak Pos 164 Tasikmalaya 46115</p>
+            <head><meta charset='utf-8'><title>Berita Acara Penghapusan Aset</title></head>
+            <body style="font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.5; margin: 2cm;">
+              <div style="text-align: center; border-bottom: 3px double #000; padding-bottom: 10px; margin-bottom: 20px;">
+                <p style="margin:0; font-size: 13pt; font-weight: bold;">KEMENTERIAN PENDIDIKAN TINGGI, SAINS, DAN TEKNOLOGI</p>
+                <p style="margin:0; font-size: 14pt; font-weight: bold;">UNIVERSITAS SILIWANGI</p>
+                <p style="margin:0; font-size: 13pt; font-weight: bold;">FAKULTAS PERTANIAN</p>
+                <p style="margin:0; font-size: 10pt;">Jalan Siliwangi Nomor 24 Kotak Pos 164 Tasikmalaya 46115</p>
               </div>
 
-              <div class="title">BERITA ACARA PEMERIKSAAN &amp; USULAN PENGHAPUSAN ASET LABORATORIUM</div>
-              <div class="nomor">Nomor: ....... /UN58.04/LL/BA/${new Date().getFullYear()}</div>
+              <div style="text-align: center; margin-bottom: 20px;">
+                <h3 style="margin:0; text-decoration: underline;">BERITA ACARA PEMERIKSAAN &amp; USULAN PENGHAPUSAN ASET</h3>
+                <p style="margin:4px 0 0 0;">Nomor: ....... /UN58.05/LK/${new Date().getFullYear()}</p>
+              </div>
 
-              <p>Pada hari ini, <b>${todayStr}</b>, bertempat di <b>${item.location_name || 'Laboratorium Fakultas Pertanian'}</b> Universitas Siliwangi, telah dilakukan pemeriksaan kondisi fisik barang inventaris laboratorium dengan rincian sebagai berikut:</p>
+              <p style="text-align: justify;">
+                Pada hari ini, tanggal <b>${today}</b>, bertempat di <b>${labName}</b> Fakultas Pertanian Universitas Siliwangi,
+                telah dilakukan pemeriksaan kondisi fisik barang inventaris laboratorium dengan rincian sebagai berikut:
+              </p>
 
-              <table class="data">
-                <thead>
-                  <tr>
-                    <th>Kode Barang</th>
-                    <th>Nama Peralatan</th>
-                    <th>Merk / Tipe / Spesifikasi</th>
-                    <th>Tahun / BMN</th>
-                    <th>Jumlah</th>
-                    <th>Kondisi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>${item.item_id || '-'}</td>
-                    <td>${item.item_name || '-'}</td>
-                    <td>${item.maker_type_spec || '-'}</td>
-                    <td>${item.acquisition_year || '-'} / ${item.bmn_category || '-'}</td>
-                    <td>${qty} ${unit}</td>
-                    <td><b>${item.condition_status || 'Rusak Berat'}</b></td>
-                  </tr>
-                </tbody>
+              <table border="1" cellspacing="0" cellpadding="6" style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 11pt;">
+                <tr style="background-color: #f0f0f0; font-weight: bold;">
+                  <td style="width: 35%;">Kode Barang (ID SILARAS)</td>
+                  <td>${item.item_id || '-'}</td>
+                </tr>
+                <tr>
+                  <td>Nama Peralatan</td>
+                  <td><b>${item.item_name || '-'}</b></td>
+                </tr>
+                <tr>
+                  <td>Merk / Tipe / Spesifikasi</td>
+                  <td>${item.maker_type_spec || '-'}</td>
+                </tr>
+                <tr>
+                  <td>Tahun Perolehan / Kategori BMN</td>
+                  <td>${item.acquisition_year || '-'} / ${item.bmn_category || '-'}</td>
+                </tr>
+                <tr>
+                  <td>Lokasi Penyimpanan</td>
+                  <td>${labName}</td>
+                </tr>
+                <tr>
+                  <td>Jumlah Unit</td>
+                  <td>${qty} ${unit}</td>
+                </tr>
+                <tr>
+                  <td>Status Kondisi Terakhir</td>
+                  <td><b>${item.condition_status || 'Rusak Berat'}</b></td>
+                </tr>
+                <tr>
+                  <td>Keterangan Kerusakan</td>
+                  <td>${item.damage_notes || 'Mengalami kerusakan teknis berat sehingga tidak dapat difungsikan kembali untuk kegiatan praktikum maupun penelitian.'}</td>
+                </tr>
               </table>
 
-              <p><b>Hasil Pemeriksaan &amp; Catatan Kerusakan:</b><br/>
-              ${item.damage_notes || 'Peralatan mengalami kerusakan berat secara teknis dan tidak ekonomis untuk diperbaiki sehingga diusulkan untuk dihapuskan dari daftar inventaris aktif laboratorium.'}</p>
+              <p style="text-align: justify;">
+                Berdasarkan hasil pemeriksaan teknis tersebut, peralatan dimaksud dinyatakan dalam kondisi <b>${item.condition_status || 'Rusak Berat'}</b>
+                dan tidak ekonomis untuk diperbaiki, sehingga diusulkan untuk diproses lebih lanjut dalam daftar usulan penghapusan barang inventaris / BMN.
+              </p>
 
-              <p>Demikian Berita Acara ini dibuat dengan sebenarnya untuk dapat dipergunakan sebagai dasar pengajuan usulan penghapusan Barang Milik Negara (BMN) / Aset Fakultas Pertanian Universitas Siliwangi.</p>
+              <p style="text-align: justify;">
+                Demikian Berita Acara ini dibuat dengan sebenarnya untuk dapat dipergunakan sebagaimana mestinya.
+              </p>
 
-              <table class="ttd">
+              <table style="width: 100%; margin-top: 40px; text-align: center;">
                 <tr>
-                  <td>
-                    Mengetahui,<br/>
-                    Kepala Laboratorium
-                    <br/><br/><br/><br/>
-                    ( ........................................ )<br/>
-                    NIP. ...................................
+                  <td style="width: 50%;">
+                    Mengetahui,<br>Kepala ${labName}
+                    <br><br><br><br>
+                    <b>( ........................................ )</b><br>NIP.
                   </td>
-                  <td>
-                    Tasikmalaya, ${todayStr}<br/>
-                    Petugas Pemeriksa / Laboran
-                    <br/><br/><br/><br/>
-                    ( <b>${officerName}</b> )<br/>
-                    NIP/NIK. ...............................
+                  <td style="width: 50%;">
+                    Tasikmalaya, ${today}<br>Petugas Pemeriksa / Laboran
+                    <br><br><br><br>
+                    <b><u>${picName}</u></b><br>NIP/NIK.
                   </td>
                 </tr>
               </table>
@@ -4085,7 +4256,7 @@
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `BA_Penghapusan_Aset_${item.item_id || 'ALAT'}_${this.toLocalIsoDate(new Date())}.doc`;
+          a.download = `BA_Penghapusan_Aset_${item.item_id || 'ALAT'}_${new Date().toISOString().slice(0, 10)}.doc`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -4093,227 +4264,160 @@
           this.showToast('Dokumen Berita Acara Penghapusan Aset (.doc) berhasil diunduh.');
         },
 
-        sortedWarehouseStock() {
-          const kw = this.whStockSearch.toLowerCase().trim();
-          const filtered = (this.warehouseData.stock || []).filter(st =>
-            !kw ||
-            String(st.item_name || '').toLowerCase().includes(kw) ||
-            String(st.item_id || '').toLowerCase().includes(kw) ||
-            String(st.category || '').toLowerCase().includes(kw)
-          );
-          return this.sortByItemName(filtered, this.whSortOrder);
+        openInvDetailModal(row) {
+          this.invDetailModal = { open: true, item: row };
         },
 
-        openInvDetailModal(item) {
-          this.invDetailModal = { open: true, item };
-        },
-
-        async toggleEquipmentPublic(item, isPublic) {
+        async toggleEquipmentPublic(item, isChecked) {
           if (!item || !item.item_id) return;
-          if (!this.canEdit('inv_alat')) {
-            this.showToast('Anda tidak memiliki hak akses untuk mengubah visibilitas publik.', 'error');
-            return;
-          }
           const prevVal = item.is_public_catalog !== false;
-          item.is_public_catalog = Boolean(isPublic);
+          item.is_public_catalog = isChecked;
 
-          const res = await this.runGas('apiTogglePublicCatalog', this.session.token, item.item_id, Boolean(isPublic));
+          const res = await this.runGas(
+            'apiToggleEquipmentPublicCatalog',
+            this.session.token,
+            item.item_id,
+            Boolean(isChecked)
+          );
+
           if (res && res.success) {
+            (this.inventoryList || []).forEach(r => {
+              if (r.item_id === item.item_id) r.is_public_catalog = Boolean(isChecked);
+            });
             (this.invCache['Alat'] || []).forEach(r => {
-              if (r.item_id === item.item_id) r.is_public_catalog = Boolean(isPublic);
+              if (r.item_id === item.item_id) r.is_public_catalog = Boolean(isChecked);
             });
-            (this.masterItemsList || []).forEach(m => {
-              if (m.item_id === item.item_id) m.is_public_catalog = Boolean(isPublic);
-            });
-            this.showToast(
-              isPublic
-                ? 'Peralatan ditampilkan di Katalog Publik.'
-                : 'Peralatan disembunyikan dari Katalog Publik.'
-            );
+            this.showToast(res.message || (isChecked ? 'Alat ditampilkan di Katalog Publik.' : 'Alat disembunyikan dari Katalog Publik.'));
+            this.loadPublicHome();
           } else {
             item.is_public_catalog = prevVal;
-            this.showToast(res?.message || 'Gagal memperbarui visibilitas publik peralatan.', 'error');
           }
         },
 
-        openInvFormModal(item) {
+        openInvFormModal(row) {
           this.invFormSuggestions = [];
-          if (item) {
-            const initCond = item.condition_status || item.condition || 'Baik';
-            const initQty = Number(item.qty_available || 0);
-            this.invFormModal = {
-              open: true,
-              is_edit: true,
-              data: {
-                ...item,
-                photo_base64: '',
-                condition_status: initCond,
-                original_condition_status: initCond,
-                max_split_qty: initQty,
-                split_qty: initQty,
-                damage_notes: item.damage_notes || item.maintenance_notes || ''
-              }
-            };
-          } else {
-            this.invFormModal = {
-              open: true,
-              is_edit: false,
-              data: {
-                location_id: '',
-                item_id: '',
-                item_name: '',
-                maker_type_spec: '',
-                unit: '',
-                acquisition_year: '',
-                bmn_category: '',
-                qty_available: '',
-                condition_status: 'Baik',
-                original_condition_status: 'Baik',
-                max_split_qty: 0,
-                split_qty: 0,
-                damage_notes: '',
-                batch_lot: '',
-                expiry_date: '',
-                cas_number: '',
-                storage_position: '',
-                photo_url: '',
-                photo_base64: ''
-              }
-            };
+          const defaultLoc = (this.invLocationFilter && this.invLocationFilter !== 'ALL' && this.invLocationFilter !== 'GUDANG')
+            ? this.invLocationFilter
+            : (this.session?.accessible_labs?.[0]?.lab_id || '');
+          const origCond = row?.condition_status || 'Baik';
+          const origTotal = Number(row?.qty_total || row?.qty_available || 0);
+          this.invFormModal = {
+            open: true,
+            is_edit: !!row,
+            data: row
+              ? {
+                  ...row,
+                  photo_base64: '',
+                  condition_status: origCond,
+                  original_condition_status: origCond,
+                  max_split_qty: origTotal,
+                  split_qty: origTotal,
+                  damage_notes: row.damage_notes || ''
+                }
+              : {
+                  location_id: defaultLoc,
+                  item_id: '',
+                  item_name: '',
+                  maker_type_spec: '',
+                  unit: '',
+                  qty_available: 0,
+                  condition_status: 'Baik',
+                  original_condition_status: 'Baik',
+                  max_split_qty: 0,
+                  split_qty: 0,
+                  damage_notes: '',
+                  photo_base64: '',
+                  photo_url: ''
+                }
+          };
+          if (!this.masterItemsList || this.masterItemsList.length === 0) {
+            this.loadMasterItems(true);
           }
         },
 
-        searchMasterForInvForm() {
-          const kw = (this.invFormModal.data.item_name || '').toLowerCase().trim();
+        // LIVE AUTOCOMPLETE MASTER DATA SAAT INPUT INVENTARIS (ALAT / BAHAN / BAHAN KIMIA)
+        async searchMasterForInvForm() {
+          const q = (this.invFormModal.data.item_name || '').trim();
           const cat = this.currentInvCategory();
-          if (!kw) {
-            this.invFormSuggestions = [];
-            if (!this.invFormModal.is_edit) this.invFormModal.data.item_id = '';
-            return;
-          }
-          const exact = (this.masterItemsList || []).find(
-            m => m.category === cat && m.item_name.toLowerCase() === kw
-          );
-          if (!exact && !this.invFormModal.is_edit) {
+          if (!this.invFormModal.is_edit) {
             this.invFormModal.data.item_id = '';
           }
-          this.invFormSuggestions = (this.masterItemsList || [])
-            .filter(m =>
-              m.category === cat &&
-              (m.item_name.toLowerCase().includes(kw) || m.item_id.toLowerCase().includes(kw))
+          if (q.length < 1) {
+            this.invFormSuggestions = [];
+            return;
+          }
+          const localMatches = (this.masterItemsList || []).filter(m =>
+            m.category === cat &&
+            (
+              (m.item_name || '').toLowerCase().includes(q.toLowerCase()) ||
+              (m.item_id || '').toLowerCase().includes(q.toLowerCase())
             )
-            .slice(0, 8);
+          ).slice(0, 8);
+
+          if (localMatches.length > 0) {
+            this.invFormSuggestions = localMatches;
+            return;
+          }
+          const res = await this.runGasSilent('apiSearchMasterItems', this.session.token, q, cat);
+          if (res && res.success) {
+            this.invFormSuggestions = res.data || [];
+          }
         },
 
-        selectInvFormSuggestion(m) {
-          this.invFormModal.data.item_id = m.item_id;
-          this.invFormModal.data.item_name = m.item_name;
-          this.invFormModal.data.maker_type_spec = m.maker_type_spec || '';
-          this.invFormModal.data.unit = m.unit || '';
-          if (m.cas_number) this.invFormModal.data.cas_number = m.cas_number;
-          if (m.photo_url) {
-            this.invFormModal.data.photo_url = m.photo_url;
-            this.invFormModal.data.photo_base64 = '';
+        selectInvFormSuggestion(s) {
+          this.invFormModal.data.item_id = s.item_id;
+          this.invFormModal.data.item_name = s.item_name;
+          if (s.maker_type_spec) this.invFormModal.data.maker_type_spec = s.maker_type_spec;
+          if (s.unit) this.invFormModal.data.unit = s.unit;
+          if (s.cas_number) this.invFormModal.data.cas_number = s.cas_number;
+          if (s.photo_url && !this.invFormModal.data.photo_base64) {
+            this.invFormModal.data.photo_url = s.photo_url;
           }
           this.invFormSuggestions = [];
         },
 
         async submitInventoryForm() {
           const cat = this.currentInvCategory();
-          const data = { ...this.invFormModal.data };
-          this.recordInputHistory(data.maker_type_spec, data.unit);
+          const raw = this.invFormModal.data || {};
+          const payload = {
+            ...raw,
+            item_id: String(raw.item_id || '').trim(),
+            item_name: String(raw.item_name || '').trim(),
+            maker_type_spec: String(raw.maker_type_spec || '').trim(),
+            unit: String(raw.unit || '').trim(),
+            acquisition_year: String(raw.acquisition_year || '').trim(),
+            bmn_category: String(raw.bmn_category || '').trim(),
+            batch_lot: String(raw.batch_lot || '').trim(),
+            expiry_date: String(raw.expiry_date || '').trim(),
+            cas_number: String(raw.cas_number || '').trim(),
+            storage_position: String(raw.storage_position || '').trim(),
+            condition_status: String(raw.condition_status || 'Baik').trim(),
+            damage_notes: String(raw.damage_notes || '').trim(),
+            photo_base64: raw.photo_base64 || '',
+            photo_url: raw.photo_url || ''
+          };
 
-          // Logika Pemisahan Stok Alat saat Edit jika Kondisi diubah untuk sebagian unit
-          if (
-            cat === 'Alat' &&
-            this.invFormModal.is_edit &&
-            data.condition_status &&
-            data.original_condition_status &&
-            data.condition_status !== data.original_condition_status
-          ) {
-            const totalBefore = Number(data.max_split_qty || data.qty_available || 0);
-            const splitQty = Number(data.split_qty || 0);
-
-            if (splitQty <= 0 || splitQty > totalBefore) {
-              this.showToast(`Jumlah unit yang dipisahkan harus antara 1 sampai ${totalBefore}.`, 'error');
-              return;
-            }
-
-            if (splitQty < totalBefore) {
-              const remainQty = totalBefore - splitQty;
-              // 1) Pertahankan sisa unit pada baris lama dengan kondisi lama
-              const keepPayload = {
-                ...data,
-                qty_available: remainQty,
-                qty_total: remainQty + Number(data.qty_borrowed || 0),
-                condition_status: data.original_condition_status
-              };
-              const resKeep = await this.runGas('apiSaveInventoryItem', this.session.token, cat, keepPayload);
-              if (!resKeep || !resKeep.success) {
-                this.showToast(resKeep?.message || 'Gagal memperbarui sisa stok kondisi awal.', 'error');
-                return;
-              }
-
-              // 2) Buat entri inventaris baru khusus untuk unit yang dipisahkan ke kondisi baru
-              const splitPayload = {
-                location_id: data.location_id,
-                item_id: data.item_id,
-                item_name: data.item_name,
-                maker_type_spec: data.maker_type_spec || '',
-                unit: data.unit || 'Unit',
-                acquisition_year: data.acquisition_year || '',
-                bmn_category: data.bmn_category || 'BM',
-                qty_available: splitQty,
-                qty_borrowed: 0,
-                qty_total: splitQty,
-                condition_status: data.condition_status,
-                damage_notes: data.condition_status === 'Baik' ? '' : (data.damage_notes || ''),
-                photo_url: data.photo_url || '',
-                photo_base64: data.photo_base64 || ''
-              };
-              const resSplit = await this.runGas('apiSaveInventoryItem', this.session.token, cat, splitPayload);
-              if (resSplit && resSplit.success) {
-                this.invFormModal.open = false;
-                this.showToast(`${splitQty} unit dipisahkan ke "${data.condition_status}". Sisa ${remainQty} unit tetap "${data.original_condition_status}".`);
-                await this.loadWorkspaceBundle(false);
-              } else {
-                this.showToast(resSplit?.message || 'Gagal menyimpan entri pemisahan kondisi.', 'error');
-              }
-              return;
-            }
-          }
-
-          if (cat === 'Alat' && data.condition_status === 'Baik') {
-            data.damage_notes = '';
-          }
-
-          const res = await this.runGas('apiSaveInventoryItem', this.session.token, cat, data);
+          this.recordInputHistory(payload.maker_type_spec, payload.unit);
+          const res = await this.runGas('apiSaveInventoryItem', this.session.token, cat, payload);
           if (res && res.success) {
+            this.showToast(res.message);
             this.invFormModal.open = false;
-            this.showToast('Data inventaris berhasil disimpan.');
-            await this.loadWorkspaceBundle(false);
-          } else {
-            this.showToast(res?.message || 'Gagal menyimpan data.', 'error');
+            this.invFormSuggestions = [];
+            await this.loadInventory();
+            await this.loadWorkspaceBundle(true);
           }
         },
 
         async deleteInventoryItem(item) {
-          if (!item) return;
+          if (!confirm('Hapus item inventaris ini?')) return;
           const cat = this.currentInvCategory();
-          const invId = item.eq_inv_id || item.mat_inv_id || item.chem_inv_id || item.inv_id;
-          if (!invId) {
-            this.showToast('ID inventaris tidak valid atau tidak ditemukan.', 'error');
-            return;
-          }
-          if (!confirm(`Hapus permanen "${item.item_name || invId}" dari inventaris ${cat}?`)) return;
-          const res = await this.runGas('apiDeleteInventoryItem', this.session.token, cat, invId);
+          const id = item.eq_inv_id || item.mat_inv_id || item.chem_inv_id;
+          const res = await this.runGas('apiDeleteInventoryItem', this.session.token, cat, id);
           if (res && res.success) {
+            this.showToast(res.message);
             this.invDetailModal.open = false;
-            this.showToast('Data inventaris berhasil dihapus.');
-            await this.loadInventory();
-            await this.loadWorkspaceBundle(true);
-          } else {
-            this.showToast(res?.message || 'Gagal menghapus data inventaris.', 'error');
+            this.loadInventory();
+            this.loadWorkspaceBundle(true);
           }
         },
 
@@ -4321,23 +4425,93 @@
           this.invDetailModal.open = false;
           const cat = this.currentInvCategory();
           if (cat === 'Alat') {
-            this.activeMenu = 'pinjam_alat';
             this.loanForm.lab_id = item.location_id;
-            this.loanForm.items = [{ inv_id: item.eq_inv_id, item_id: item.item_id, item_name: item.item_name, qty: 1, unit: item.unit || 'Unit' }];
+            this.loanForm.items = [{ inv_id: item.eq_inv_id, item_id: item.item_id, item_name: item.item_name, unit: item.unit, qty: 1 }];
+            this.navigate('pinjam_alat');
           } else {
-            this.activeMenu = 'guna_bahan';
             this.usageForm.category = cat;
             this.usageForm.lab_id = item.location_id;
-            this.usageForm.items = [{ item_id: item.item_id, item_name: item.item_name, qty: 1, unit: item.unit }];
+            this.usageForm.items = [{ inv_id: item.mat_inv_id || item.chem_inv_id, item_id: item.item_id, item_name: item.item_name, unit: item.unit, qty: 1 }];
+            this.navigate('guna_bahan');
           }
         },
 
-        // ===================================================================
-        // GUDANG: DETAIL AKTIF, EDIT, HAPUS, & BARANG MASUK/KELUAR
-        // ===================================================================
-        async loadWarehouse() {
-          const res = await this.runGas('apiGetWarehouseData', this.session.token);
-          if (res && res.success) this.warehouseData = res;
+        async loadWarehouse(silent = false) {
+          const callFn = silent ? this.runGasSilent.bind(this) : this.runGas.bind(this);
+          const res = await callFn('apiGetWarehouseData', this.session.token);
+          if (res && res.success) this.warehouseData = res.data;
+        },
+
+        sortedWarehouseStock() {
+          const q = (this.whStockSearch || '').toLowerCase().trim();
+          const list = (this.warehouseData.stock || []).filter(st => {
+            if (!q) return true;
+            return (
+              (st.item_name || '').toLowerCase().includes(q) ||
+              (st.item_id || '').toLowerCase().includes(q) ||
+              (st.category || '').toLowerCase().includes(q) ||
+              (st.maker_type_spec || '').toLowerCase().includes(q)
+            );
+          });
+          return this.sortByItemName(list, this.whSortOrder);
+        },
+
+        flattenedWarehouseInLogs() {
+          const q = (this.whLogSearch || '').toLowerCase().trim();
+          const trxs = (this.warehouseData.transactions || []).filter(t => t.trx_type === 'IN');
+          const rows = [];
+          trxs.forEach(t => {
+            const items = t.items || [];
+            items.forEach((it, idx) => {
+              let detailParts = [];
+              if (it.batch_lot && it.batch_lot !== '-') detailParts.push('Batch: ' + it.batch_lot);
+              if (it.expiry_date && it.expiry_date !== '-') detailParts.push('Exp: ' + it.expiry_date);
+              if (it.acquisition_year && it.acquisition_year !== '-') detailParts.push('Thn: ' + it.acquisition_year);
+              if (it.bmn_category && it.bmn_category !== '-') detailParts.push(it.bmn_category);
+
+              rows.push({
+                row_key: (t.trx_id || 'IN') + '-' + (it.trx_item_id || idx),
+                trx_id: t.trx_id,
+                trx_date: t.trx_date,
+                category: it.category || t.category || '-',
+                item_id: it.item_id || '-',
+                item_name: it.item_name || '-',
+                maker_type_spec: it.maker_type_spec || '-',
+                detail_info: detailParts.join(' | '),
+                qty: it.qty || 0,
+                unit: it.unit || '',
+                created_by: t.created_by || '-',
+                notes: t.notes || '-'
+              });
+            });
+          });
+          if (!q) return rows;
+          return rows.filter(r =>
+            (r.trx_id || '').toLowerCase().includes(q) ||
+            (r.item_id || '').toLowerCase().includes(q) ||
+            (r.item_name || '').toLowerCase().includes(q) ||
+            (r.category || '').toLowerCase().includes(q) ||
+            (r.created_by || '').toLowerCase().includes(q)
+          );
+        },
+
+        filteredWarehouseOutLogs() {
+          const q = (this.whLogSearch || '').toLowerCase().trim();
+          const trxs = (this.warehouseData.transactions || []).filter(t => t.trx_type === 'OUT');
+          if (!q) return trxs;
+          return trxs.filter(t => {
+            const matchHeader =
+              (t.trx_id || '').toLowerCase().includes(q) ||
+              (t.taker_name || '').toLowerCase().includes(q) ||
+              (t.course_name || '').toLowerCase().includes(q) ||
+              (t.destination_lab_name || '').toLowerCase().includes(q) ||
+              (t.created_by || '').toLowerCase().includes(q);
+            if (matchHeader) return true;
+            return (t.items || []).some(it =>
+              (it.item_name || '').toLowerCase().includes(q) ||
+              (it.item_id || '').toLowerCase().includes(q)
+            );
+          });
         },
 
         openWhDetailModal(st) {
@@ -4350,18 +4524,18 @@
             open: true,
             data: {
               inv_id: st.inv_id,
-              category: st.category || 'Bahan',
+              item_id: st.item_id,
+              category: st.category || 'Alat',
               trx_date: st.entry_date || new Date().toISOString().slice(0, 10),
-              item_id: st.item_id || '',
               item_name: st.item_name || '',
               maker_type_spec: st.maker_type_spec || '',
-              unit: st.unit || 'Unit',
-              batch_lot: st.batch_lot || '',
+              unit: st.unit || '',
+              qty_available: st.qty_available || 0,
+              batch_lot: st.batch_lot === '-' ? '' : (st.batch_lot || ''),
               expiry_date: st.expiry_date || '',
               cas_number: st.cas_number || '',
               grade: st.grade || '',
               ghs_symbol: st.ghs_symbol || '',
-              qty_available: st.qty_available || 0,
               photo_url: st.photo_url || '',
               photo_base64: ''
             }
@@ -4370,63 +4544,46 @@
 
         async submitWhEditModal() {
           this.recordInputHistory(this.whEditModal.data.maker_type_spec, this.whEditModal.data.unit);
-          const res = await this.runGas('apiUpdateWarehouseStockItem', this.session.token, this.whEditModal.data);
+          const res = await this.runGas('apiUpdateWarehouseStock', this.session.token, this.whEditModal.data);
           if (res && res.success) {
+            this.showToast(res.message);
             this.whEditModal.open = false;
-            this.showToast('Detail barang stok gudang berhasil diperbarui.');
             this.loadWarehouse();
             this.loadWorkspaceBundle(true);
-          } else {
-            this.showToast(res?.message || 'Gagal memperbarui stok gudang.', 'error');
           }
         },
 
         async deleteWarehouseStockItem(st) {
-          if (!st || !st.inv_id) {
-            this.showToast('ID stok gudang tidak valid atau tidak ditemukan.', 'error');
-            return;
-          }
-          if (!confirm(`Hapus permanen "${st.item_name}" (${st.item_id || st.inv_id}) dari Stok Gudang?`)) return;
-          const res = await this.runGas('apiDeleteWarehouseStockItem', this.session.token, st.inv_id);
+          if (!confirm(`Hapus barang "${st.item_name}" (${st.item_id}) dari Stok Gudang Pusat?`)) return;
+          const res = await this.runGas('apiDeleteWarehouseStock', this.session.token, st.inv_id, st.category);
           if (res && res.success) {
+            this.showToast(res.message);
             this.whDetailModal.open = false;
-            this.showToast('Barang berhasil dihapus dari Stok Gudang.');
-            await this.loadWarehouse();
-            await this.loadWorkspaceBundle(true);
-          } else {
-            this.showToast(res?.message || 'Gagal menghapus barang dari Stok Gudang.', 'error');
+            this.loadWarehouse();
+            this.loadWorkspaceBundle(true);
           }
         },
 
-        searchMasterForWhIn() {
-          const kw = this.whInForm.item_name.toLowerCase().trim();
-          if (!kw) {
+        async searchMasterForWhIn() {
+          const q = (this.whInForm.item_name || '').trim();
+          this.whInForm.item_id = '';
+          if (q.length < 1) {
             this.whInSuggestions = [];
-            this.whInForm.item_id = '';
             return;
           }
-          const exact = (this.masterItemsList || []).find(
-            m => m.category === this.whInForm.category && m.item_name.toLowerCase() === kw
-          );
-          if (!exact) this.whInForm.item_id = '';
-          this.whInSuggestions = (this.masterItemsList || []).filter(m =>
-            m.category === this.whInForm.category &&
-            (m.item_name.toLowerCase().includes(kw) || m.item_id.toLowerCase().includes(kw))
-          ).slice(0, 8);
+          const res = await this.runGasSilent('apiSearchMasterItems', this.session.token, q, this.whInForm.category);
+          if (res && res.success) this.whInSuggestions = res.data || [];
         },
 
-        selectWhInSuggestion(m) {
-          this.whInForm.item_id = m.item_id;
-          this.whInForm.item_name = m.item_name;
-          this.whInForm.maker_type_spec = m.maker_type_spec || '';
-          this.whInForm.unit = m.unit || '';
-          if (m.cas_number) this.whInForm.cas_number = m.cas_number;
-          if (m.grade) this.whInForm.grade = m.grade;
-          if (m.ghs_symbol) this.whInForm.ghs_symbol = m.ghs_symbol;
-          if (m.photo_url) {
-            this.whInForm.photo_url = m.photo_url;
-            this.whInForm.photo_base64 = '';
-          }
+        selectWhInSuggestion(s) {
+          this.whInForm.item_id = s.item_id;
+          this.whInForm.item_name = s.item_name;
+          this.whInForm.maker_type_spec = s.maker_type_spec || '';
+          this.whInForm.unit = s.unit || '';
+          this.whInForm.cas_number = s.cas_number || '';
+          this.whInForm.grade = s.grade || '';
+          this.whInForm.ghs_symbol = s.ghs_symbol || '';
+          if (s.photo_url) this.whInForm.photo_url = s.photo_url;
           this.whInSuggestions = [];
         },
 
@@ -4434,36 +4591,38 @@
           this.recordInputHistory(this.whInForm.maker_type_spec, this.whInForm.unit);
           const res = await this.runGas('apiRecordWarehouseIn', this.session.token, this.whInForm);
           if (res && res.success) {
-            this.showToast('Barang masuk gudang berhasil dicatat (' + res.item_id + '). Formulir telah direset.');
+            this.showToast(res.message);
             this.resetWhInForm(true);
             this.loadWarehouse();
             this.loadWorkspaceBundle(true);
-          } else {
-            this.showToast(res?.message || 'Gagal mencatat barang masuk.', 'error');
           }
         },
 
         addWhOutItem(st) {
-          if (this.whOutForm.items.some(i => i.inv_id === st.inv_id)) {
-            this.showToast('Item sudah ada di daftar pengambilan.', 'error');
-            return;
+          if (st.qty_available <= 0) return;
+          const exists = this.whOutForm.items.find(x => x.inv_id === st.inv_id);
+          if (exists) {
+            exists.qty = Math.min(st.qty_available, exists.qty + 1);
+          } else {
+            this.whOutForm.items.push({
+              inv_id: st.inv_id,
+              item_id: st.item_id,
+              category: st.category,
+              item_name: st.item_name,
+              unit: st.unit,
+              batch_lot: st.batch_lot,
+              max_qty: st.qty_available,
+              qty: 1
+            });
           }
-          this.whOutForm.items.push({
-            inv_id: st.inv_id,
-            item_id: st.item_id,
-            category: st.category || '',
-            item_name: st.item_name,
-            unit: st.unit,
-            max_qty: Number(st.qty_available || 0),
-            qty: 1
-          });
         },
 
         initSignaturePad() {
           const canvas = document.getElementById('whSignatureCanvas');
-          if (!canvas) return;
+          if (!canvas || canvas.dataset.ready) return;
+          canvas.dataset.ready = '1';
           const ctx = canvas.getContext('2d');
-          ctx.lineWidth = 2.5;
+          ctx.lineWidth = 2.2;
           ctx.lineCap = 'round';
           ctx.strokeStyle = '#064E3B';
           let drawing = false;
@@ -4473,9 +4632,11 @@
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
             return { x: (clientX - rect.left) * (canvas.width / rect.width), y: (clientY - rect.top) * (canvas.height / rect.height) };
           };
-          canvas.onmousedown = canvas.ontouchstart = (e) => { e.preventDefault(); drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
-          canvas.onmousemove = canvas.ontouchmove = (e) => { if (!drawing) return; e.preventDefault(); const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
-          canvas.onmouseup = canvas.ontouchend = () => { drawing = false; };
+          const start = (e) => { drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); e.preventDefault(); };
+          const move = (e) => { if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); e.preventDefault(); };
+          const end = () => { drawing = false; };
+          canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move); window.addEventListener('mouseup', end);
+          canvas.addEventListener('touchstart', start, { passive: false }); canvas.addEventListener('touchmove', move, { passive: false }); window.addEventListener('touchend', end);
         },
 
         clearSignaturePad() {
@@ -4485,307 +4646,303 @@
 
         async submitWarehouseOut() {
           if (!this.whOutForm.taker_name || !this.whOutForm.course_name || !this.whOutForm.destination_lab_id || this.whOutForm.items.length === 0) {
-            this.showToast('Lengkapi nama pengambil, mata kuliah, lab tujuan, dan minimal 1 item.', 'error');
+            this.showToast('Lengkapi nama pengambil, mata kuliah, lab tujuan, dan minimal 1 barang.', 'error');
             return;
           }
           const canvas = document.getElementById('whSignatureCanvas');
-          const sigBase64 = canvas ? canvas.toDataURL('image/png') : '';
-          const payload = { ...this.whOutForm, signature_base64: sigBase64 };
-          const res = await this.runGas('apiRecordWarehouseOut', this.session.token, payload);
+          const signature_base64 = canvas ? canvas.toDataURL('image/png') : '';
+          const res = await this.runGas('apiRecordWarehouseOut', this.session.token, { ...this.whOutForm, signature_base64 });
           if (res && res.success) {
             this.showToast(res.message);
             this.whOutForm = { taker_name: '', course_name: '', destination_lab_id: '', items: [] };
             this.clearSignaturePad();
-            this.warehouseTab = 'stock';
             this.loadWarehouse();
             this.loadWorkspaceBundle(true);
-          } else {
-            this.showToast(res?.message || 'Gagal mencatat barang keluar.', 'error');
           }
         },
 
-        // ===================================================================
-        // KATALOG PICKER & LAYANAN TRANSAKSI
-        // ===================================================================
         async openCatalogPickerModal(category, labId, target) {
           if (!labId) {
             this.showToast('Pilih lokasi laboratorium terlebih dahulu.', 'error');
             return;
           }
+          this.catalogPickerModal = { open: true, category, target, search: '', items: [] };
 
-          let rawItems = [];
-          if (labId === 'GUDANG') {
-            if (!(this.warehouseData.stock || []).length) {
-              await this.loadWarehouse();
+          // Jika mengambil dari Gudang Pusat (Form Barang Keluar Gudang)
+          if (labId === 'GUDANG' && target === 'whOut') {
+            if (!this.warehouseData.stock || this.warehouseData.stock.length === 0) {
+              await this.loadWarehouse(false);
             }
-            const stockList = this.warehouseData.stock || [];
-            if (category === 'ALL') {
-              rawItems = stockList.filter(s => Number(s.qty_available || 0) > 0);
-            } else {
-              rawItems = stockList.filter(
-                s => s.category === category && Number(s.qty_available || 0) > 0
-              );
-            }
-          } else {
-            const res = await this.runGas('apiGetInventoryList', this.session.token, category, labId);
-            if (res && res.success) {
-              rawItems = (res.items || []).filter(i => Number(i.qty_available || 0) > 0);
-            }
+            const stocks = (this.warehouseData.stock || [])
+              .filter(st => {
+                if (Number(st.qty_available || 0) <= 0) return false;
+                if (category && category !== 'ALL' && st.category !== category) return false;
+                return true;
+              })
+              .map(st => ({
+                ...st,
+                pickQty: 1
+              }));
+            this.catalogPickerModal.items = stocks;
+            return;
           }
 
-          const items = rawItems.map(i => {
-            const resolvedInvId = i.eq_inv_id || i.mat_inv_id || i.chem_inv_id || i.inv_id || i.item_id || '';
-            return {
-              ...i,
-              inv_id: resolvedInvId,
-              item_id: i.item_id || resolvedInvId,
-              item_name: i.item_name || 'Tanpa Nama',
-              unit: i.unit || 'Unit',
-              qty_available: Number(i.qty_available || 0),
-              pickQty: 1
-            };
-          });
-
-          this.catalogPickerModal = {
-            open: true,
-            category: category,
-            target: target,
-            search: '',
-            items: items
-          };
+          const res = await this.runGas('apiGetInventoryList', this.session.token, category, labId);
+          if (res && res.success) {
+            this.catalogPickerModal.items = (res.data || []).filter(x => x.qty_available > 0).map(x => ({ ...x, pickQty: 1 }));
+          }
         },
 
         filteredPickerCatalog() {
-          const kw = this.catalogPickerModal.search.toLowerCase().trim();
-          return (this.catalogPickerModal.items || []).filter(c =>
-            !kw ||
-            String(c.item_name || '').toLowerCase().includes(kw) ||
-            String(c.item_id || '').toLowerCase().includes(kw) ||
-            String(c.category || '').toLowerCase().includes(kw) ||
-            String(c.maker_type_spec || '').toLowerCase().includes(kw)
+          const q = this.catalogPickerModal.search.toLowerCase().trim();
+          if (!q) return this.catalogPickerModal.items;
+          return this.catalogPickerModal.items.filter(x =>
+            (x.item_name || '').toLowerCase().includes(q) ||
+            (x.item_id || '').toLowerCase().includes(q) ||
+            (x.category || '').toLowerCase().includes(q) ||
+            (x.maker_type_spec || '').toLowerCase().includes(q)
           );
         },
 
-        confirmPickItem(item) {
-          const qty = Number(item.pickQty || 1);
-          const maxAvail = Number(item.qty_available || 0);
-          if (qty <= 0 || qty > maxAvail) {
-            this.showToast('Jumlah tidak valid atau melebihi stok tersedia.', 'error');
+        confirmPickItem(c) {
+          const qty = Number(c.pickQty || 1);
+          if (qty <= 0 || qty > c.qty_available) {
+            this.showToast('Jumlah melebihi stok tersedia (' + c.qty_available + ' ' + (c.unit || '') + ').', 'error');
             return;
           }
-          const t = this.catalogPickerModal.target;
-          if (t === 'whOut') {
-            if (this.whOutForm.items.some(i => i.inv_id === item.inv_id)) {
-              this.showToast('Item sudah ada di daftar pengambilan gudang.', 'error');
-              return;
+
+          const target = this.catalogPickerModal.target;
+
+          // Khusus form Barang Keluar Gudang (whOut)
+          if (target === 'whOut') {
+            const exists = this.whOutForm.items.find(x => x.inv_id === c.inv_id);
+            if (exists) {
+              const totalNew = Number(exists.qty || 0) + qty;
+              if (totalNew > Number(c.qty_available)) {
+                this.showToast('Total jumlah melebihi sisa stok gudang (' + c.qty_available + ' ' + c.unit + ').', 'error');
+                return;
+              }
+              exists.qty = totalNew;
+            } else {
+              this.whOutForm.items.push({
+                inv_id: c.inv_id,
+                item_id: c.item_id,
+                category: c.category,
+                item_name: c.item_name,
+                unit: c.unit,
+                batch_lot: c.batch_lot || '-',
+                max_qty: c.qty_available,
+                qty: qty
+              });
             }
-            this.whOutForm.items.push({
-              inv_id: item.inv_id,
-              item_id: item.item_id,
-              category: item.category || '',
-              item_name: item.item_name,
-              unit: item.unit || 'Unit',
-              max_qty: maxAvail,
-              qty: qty
-            });
-          } else if (t === 'loan') {
-            if (this.loanForm.items.some(i => i.inv_id === item.inv_id)) {
-              this.showToast('Alat ini sudah ada di daftar peminjaman.', 'error');
-              return;
-            }
-            this.loanForm.items.push({ inv_id: item.inv_id, item_id: item.item_id, item_name: item.item_name, qty: qty, unit: item.unit || 'Unit' });
-          } else if (t === 'usage') {
-            this.usageForm.items.push({ inv_id: item.inv_id, item_id: item.item_id, item_name: item.item_name, qty: qty, unit: item.unit });
-          } else if (t === 'booking_eq') {
-            this.bookingForm.equipment_items.push({ inv_id: item.inv_id, item_id: item.item_id, item_name: item.item_name, qty: qty });
-          } else if (t === 'booking_mat') {
-            this.bookingForm.material_items.push({ inv_id: item.inv_id, item_id: item.item_id, item_name: item.item_name, qty: qty });
-          } else if (t === 'booking_chem') {
-            this.bookingForm.chemical_items.push({ inv_id: item.inv_id, item_id: item.item_id, item_name: item.item_name, qty: qty });
+            this.showToast('Ditambahkan: ' + c.item_name + ' (' + qty + ' ' + c.unit + ')');
+            return;
           }
-          this.showToast(item.item_name + ' ditambahkan.');
+
+          const entry = {
+            inv_id: c.eq_inv_id || c.mat_inv_id || c.chem_inv_id,
+            item_id: c.item_id,
+            item_name: c.item_name,
+            unit: c.unit,
+            qty
+          };
+          if (target === 'loan') this.loanForm.items.push(entry);
+          else if (target === 'usage') this.usageForm.items.push(entry);
+          else if (target === 'booking_eq') this.bookingForm.equipment_items.push(entry);
+          else if (target === 'booking_mat') this.bookingForm.material_items.push(entry);
+          else if (target === 'booking_chem') this.bookingForm.chemical_items.push(entry);
+          this.showToast('Ditambahkan: ' + c.item_name);
         },
 
         async submitLoan() {
-          const res = await this.runGas('apiSubmitEquipmentLoan', this.session.token, this.loanForm);
+          const res = await this.runGas('apiCreateEquipmentLoan', this.session.token, this.loanForm);
           if (res && res.success) {
-            this.showToast('Permohonan peminjaman alat berhasil diajukan (' + res.loan_id + ').');
+            this.showToast(res.message);
             this.loanForm.items = [];
-            this.loadWorkspaceBundle(false);
-          } else this.showToast(res?.message || 'Gagal mengajukan peminjaman.', 'error');
+            this.loadDashboard();
+            this.loadWorkspaceBundle(true);
+          }
         },
 
         async submitUsage() {
-          const res = await this.runGas('apiSubmitMaterialUsage', this.session.token, this.usageForm);
+          const res = await this.runGas('apiCreateMaterialUsage', this.session.token, this.usageForm);
           if (res && res.success) {
-            this.showToast('Permohonan penggunaan bahan berhasil diajukan (' + res.usage_id + ').');
+            this.showToast(res.message);
             this.usageForm.items = [];
-            this.loadWorkspaceBundle(false);
-          } else this.showToast(res?.message || 'Gagal mengajukan penggunaan bahan.', 'error');
+            this.loadDashboard();
+            this.loadWorkspaceBundle(true);
+          }
         },
 
         async submitBooking() {
-          const res = await this.runGas('apiSubmitLabBooking', this.session.token, this.bookingForm);
+          const res = await this.runGas('apiCreateLabBooking', this.session.token, this.bookingForm);
           if (res && res.success) {
-            this.showToast('Pengajuan penggunaan ruangan berhasil dikirim (' + res.booking_id + ').');
+            this.showToast(res.message);
             this.bookingForm.equipment_items = [];
             this.bookingForm.material_items = [];
             this.bookingForm.chemical_items = [];
-            this.loadWorkspaceBundle(false);
-          } else this.showToast(res?.message || 'Gagal mengajukan ruangan.', 'error');
+            this.loadDashboard();
+            this.loadWorkspaceBundle(true);
+          } else {
+            this.showToast(res?.message || 'Gagal mengajukan jadwal', 'error');
+          }
         },
 
-        async processStep(entity, id, action) {
+        async processStep(type, id, action) {
           let notes = '';
           if (action === 'reject') {
-            notes = prompt('Masukkan alasan penolakan (wajib):');
+            notes = prompt('Masukkan alasan penolakan:') || '';
             if (!notes) return;
           }
-          const fnMap = {
-            booking: 'apiProcessLabBookingStep',
-            loan: 'apiProcessLoanStep',
-            usage: 'apiProcessUsageStep'
-          };
-          const res = await this.runGas(fnMap[entity], this.session.token, id, action, notes);
+          const fn = type === 'booking' ? 'apiProcessLabBooking' : (type === 'loan' ? 'apiProcessEquipmentLoan' : 'apiProcessMaterialUsage');
+          const res = await this.runGas(fn, this.session.token, id, action, notes);
           if (res && res.success) {
-            this.showToast('Status permohonan diperbarui menjadi: ' + res.status);
-            this.loadWorkspaceBundle(false);
-          } else this.showToast(res?.message || 'Gagal memproses permohonan.', 'error');
+            this.showToast(res.message);
+            this.loadDashboard();
+            this.loadWorkspaceBundle(true);
+          } else {
+            this.showToast(res?.message || 'Gagal memproses transaksi', 'error');
+          }
         },
 
         async userRequestReturn(loanId) {
-          const res = await this.runGas('apiRequestLoanReturn', this.session.token, loanId);
+          const res = await this.runGas('apiRequestEquipmentReturn', this.session.token, loanId);
           if (res && res.success) {
-            this.showToast('Pengajuan pengembalian alat telah dikirim ke Laboran.');
-            this.loadWorkspaceBundle(false);
+            this.showToast(res.message);
+            this.loadDashboard();
+            this.loadWorkspaceBundle(true);
           }
         },
 
         async openReturnAssessmentModal(loan) {
           const assessments = [];
           for (const it of (loan.items || [])) {
-            if (it.return_status === 'returned_good') continue;
-            const cond = prompt(`Penilaian kondisi untuk "${it.item_name}" (ketik: Baik / Rusak Ringan / Rusak Berat):`, 'Baik');
+            const sisa = Number(it.qty_requested) - Number(it.qty_returned || 0);
+            if (sisa <= 0) continue;
+            const cond = prompt(`Kondisi pengembalian "${it.item_name}" (${sisa} unit):\nKetik: Baik / Rusak Ringan / Rusak Berat`, 'Baik');
             if (!cond) return;
-            const qty = Number(prompt(`Jumlah dikembalikan untuk "${it.item_name}" (maks ${it.qty_requested}):`, it.qty_requested));
-            assessments.push({ loan_item_id: it.loan_item_id, qty_returned: qty, condition: cond, notes: '' });
+            const notes = cond !== 'Baik' ? (prompt('Catatan kerusakan:') || '') : '';
+            assessments.push({ loan_item_id: it.loan_item_id, qty_returned: sisa, condition_status: cond, damage_notes: notes });
           }
-          const res = await this.runGas('apiAssessLoanReturn', this.session.token, loan.loan_id, assessments);
+          const res = await this.runGas('apiAssessEquipmentReturn', this.session.token, loan.loan_id, assessments);
           if (res && res.success) {
-            this.showToast('Penilaian pengembalian alat berhasil disimpan.');
-            this.loadWorkspaceBundle(false);
+            this.showToast(res.message);
+            this.loadDashboard();
+            this.loadWorkspaceBundle(true);
           }
         },
 
-        // ===================================================================
-        // MASTER DATA BARANG (TAMBAH, EDIT, HAPUS, SORT)
-        // ===================================================================
-        async loadMasterData() {
-          const res = await this.runGas('apiGetMasterItems', this.session.token, 'ALL');
-          if (res && res.success) this.masterItemsList = res.items;
+        handleImageFile(event, target) {
+          const file = event.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            if (target === 'whIn') this.whInForm.photo_base64 = e.target.result;
+            else if (target === 'whEdit') this.whEditModal.data.photo_base64 = e.target.result;
+            else if (target === 'masterForm') this.masterFormModal.data.photo_base64 = e.target.result;
+            else if (target === 'invForm') this.invFormModal.data.photo_base64 = e.target.result;
+          };
+          reader.readAsDataURL(file);
+        },
+
+        async openCameraModal(target) {
+          this.cameraModal = { open: true, target, stream: null };
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+            this.cameraModal.stream = stream;
+            document.getElementById('silarasCameraVideo').srcObject = stream;
+          } catch (err) {
+            this.showToast('Kamera tidak tersedia atau izin ditolak.', 'error');
+            this.cameraModal.open = false;
+          }
+        },
+
+        captureCameraFrame() {
+          const video = document.getElementById('silarasCameraVideo');
+          const canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth || 640;
+          canvas.height = video.videoHeight || 480;
+          canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          if (this.cameraModal.target === 'whIn') this.whInForm.photo_base64 = dataUrl;
+          else if (this.cameraModal.target === 'whEdit') this.whEditModal.data.photo_base64 = dataUrl;
+          else if (this.cameraModal.target === 'masterForm') this.masterFormModal.data.photo_base64 = dataUrl;
+          else if (this.cameraModal.target === 'invForm') this.invFormModal.data.photo_base64 = dataUrl;
+          this.closeCameraModal();
+        },
+
+        closeCameraModal() {
+          if (this.cameraModal.stream) {
+            this.cameraModal.stream.getTracks().forEach(t => t.stop());
+          }
+          this.cameraModal.open = false;
+        },
+
+        async loadMasterItems(silent = false) {
+          const callFn = silent ? this.runGasSilent.bind(this) : this.runGas.bind(this);
+          const res = await callFn('apiGetMasterItems', this.session.token);
+          if (res && res.success) this.masterItemsList = res.data;
         },
 
         filteredMasterItems() {
-          const kw = this.masterSearch.toLowerCase().trim();
-          const filtered = (this.masterItemsList || []).filter(m => {
-            if (this.masterCategoryFilter && this.masterCategoryFilter !== 'ALL' && m.category !== this.masterCategoryFilter) {
-              return false;
-            }
-            if (!kw) return true;
+          const q = (this.masterSearch || '').toLowerCase().trim();
+          const list = (this.masterItemsList || []).filter(m => {
+            if (this.masterCategoryFilter !== 'ALL' && m.category !== this.masterCategoryFilter) return false;
+            if (!q) return true;
             return (
-              String(m.item_name || '').toLowerCase().includes(kw) ||
-              String(m.item_id || '').toLowerCase().includes(kw) ||
-              String(m.maker_type_spec || '').toLowerCase().includes(kw) ||
-              String(m.cas_number || '').toLowerCase().includes(kw)
+              (m.item_name || '').toLowerCase().includes(q) ||
+              (m.item_id || '').toLowerCase().includes(q) ||
+              (m.maker_type_spec || '').toLowerCase().includes(q) ||
+              (m.cas_number || '').toLowerCase().includes(q)
             );
           });
-          return this.sortByItemName(filtered, this.masterSortOrder);
+          return this.sortByItemName(list, this.masterSortOrder);
         },
 
         openMasterFormModal(m) {
-          if (m) {
-            this.masterFormModal = {
-              open: true,
-              is_edit: true,
-              data: {
-                item_id: m.item_id,
-                category: m.category || 'Alat',
-                item_name: m.item_name || '',
-                maker_type_spec: m.maker_type_spec || '',
-                unit: m.unit || 'Unit',
-                cas_number: m.cas_number || '',
-                grade: m.grade || '',
-                ghs_symbol: m.ghs_symbol || '',
-                is_public_catalog: Boolean(m.is_public_catalog),
-                photo_url: m.photo_url || '',
-                photo_base64: ''
-              }
-            };
-          } else {
-            this.masterFormModal = {
-              open: true,
-              is_edit: false,
-              data: {
-                category: 'Alat',
-                item_name: '',
-                maker_type_spec: '',
-                unit: 'Unit',
-                cas_number: '',
-                grade: '',
-                ghs_symbol: '',
-                is_public_catalog: true,
-                photo_url: '',
-                photo_base64: ''
-              }
-            };
-          }
+          this.masterFormModal = {
+            open: true,
+            is_edit: !!m,
+            data: m
+              ? { ...m, photo_base64: '' }
+              : { category: 'Alat', item_name: '', maker_type_spec: '', unit: '', cas_number: '', grade: '', ghs_symbol: '', is_public_catalog: false, photo_base64: '', photo_url: '' }
+          };
         },
 
         async submitMasterFormModal() {
           this.recordInputHistory(this.masterFormModal.data.maker_type_spec, this.masterFormModal.data.unit);
-          const fn = this.masterFormModal.is_edit ? 'apiUpdateMasterItem' : 'apiCreateMasterItem';
-          const res = await this.runGas(fn, this.session.token, this.masterFormModal.data);
+          const res = await this.runGas('apiSaveMasterItem', this.session.token, this.masterFormModal.data);
           if (res && res.success) {
+            this.showToast(res.message);
             this.masterFormModal.open = false;
-            this.showToast(
-              this.masterFormModal.is_edit
-                ? 'Master barang berhasil diperbarui (' + (res.item_id || this.masterFormModal.data.item_id) + ').'
-                : 'Master barang ditambahkan: ' + res.item_id
-            );
-            this.loadMasterData();
+            this.loadMasterItems();
             this.loadWorkspaceBundle(true);
-          } else {
-            this.showToast(res?.message || 'Gagal menyimpan master barang.', 'error');
           }
         },
 
         async deleteMasterItem(m) {
-          if (!m || !m.item_id) {
-            this.showToast('ID master barang tidak valid atau tidak ditemukan.', 'error');
-            return;
-          }
-          if (!confirm(`Hapus permanen "${m.item_name}" (${m.item_id}) dari Master Data Barang?`)) return;
+          if (!confirm(`Hapus Master Data "${m.item_name}" (${m.item_id})?`)) return;
           const res = await this.runGas('apiDeleteMasterItem', this.session.token, m.item_id);
           if (res && res.success) {
-            this.showToast('Master barang berhasil dihapus.');
-            await this.loadMasterData();
-            await this.loadWorkspaceBundle(true);
-          } else {
-            this.showToast(res?.message || 'Gagal menghapus master barang.', 'error');
+            this.showToast(res.message);
+            this.loadMasterItems();
+            this.loadWorkspaceBundle(true);
           }
         },
 
-        async loadAuditLogs() {
-          const res = await this.runGas('apiGetAuditLogs', this.session.token, {});
-          if (res && res.success) this.auditLogsList = res.logs;
+        async loadAuditLogs(silent = false) {
+          const callFn = silent ? this.runGasSilent.bind(this) : this.runGas.bind(this);
+          const res = await callFn('apiGetAuditLogs', this.session.token);
+          if (res && res.success) this.auditLogsList = res.data;
         },
 
-        async loadAdminSettings() {
-          const res = await this.runGas('apiGetUsersAndLabs', this.session.token);
+        async loadAdminSettings(silent = false) {
+          const callFn = silent ? this.runGasSilent.bind(this) : this.runGas.bind(this);
+          const res = await callFn('apiGetAdminSettingsData', this.session.token);
           if (res && res.success) {
-            this.adminData = res;
-            if (res.role_permissions) {
-              this.initPermissionMatrix(res.role_permissions);
+            this.adminData = res.data;
+            if (res.data.role_permissions) {
+              this.initPermissionMatrix(res.data.role_permissions);
             }
           }
         },
@@ -4794,38 +4951,21 @@
           this.userModal = {
             open: true,
             data: u
-              ? {
-                  user_id: u.user_id,
-                  full_name: u.full_name,
-                  email: u.email,
-                  roles: [...(u.roles || ['User'])],
-                  assigned_labs: [...(u.assigned_labs || [])],
-                  status: u.status,
-                  new_password: ''
-                }
-              : {
-                  full_name: '',
-                  email: '',
-                  roles: ['User'],
-                  assigned_labs: [],
-                  status: 'active',
-                  new_password: ''
-                }
+              ? { ...u, roles: [...(u.roles || [])], assigned_labs: [...(u.assigned_labs || [])], new_password: '' }
+              : { full_name: '', email: '', roles: ['User'], assigned_labs: [], status: 'active', new_password: '' }
           };
         },
 
         async submitUserModal() {
-          if (this.userModal.data.new_password && String(this.userModal.data.new_password).trim().length < 6) {
+          if (this.userModal.data.new_password && this.userModal.data.new_password.trim().length > 0 && this.userModal.data.new_password.trim().length < 6) {
             this.showToast('Kata sandi minimal 6 karakter.', 'error');
             return;
           }
-          const res = await this.runGas('apiSaveUserAndRoles', this.session.token, this.userModal.data);
+          const res = await this.runGas('apiSaveUserAdmin', this.session.token, this.userModal.data);
           if (res && res.success) {
+            this.showToast(res.message);
             this.userModal.open = false;
-            this.showToast('Pengaturan pengguna berhasil disimpan.');
             this.loadAdminSettings();
-          } else {
-            this.showToast(res?.message || 'Gagal menyimpan pengguna.', 'error');
           }
         },
 
@@ -4839,7 +4979,7 @@
               open: true,
               is_edit: true,
               data: {
-                lab_id: lb.lab_id,
+                lab_id: lb.lab_id || '',
                 lab_name: lb.lab_name || '',
                 lab_position: lb.lab_position || lb.lab_code || '',
                 description: lb.description || '',
@@ -4864,111 +5004,53 @@
         },
 
         async submitLabModal() {
-          if (!this.isSuperAdmin()) return;
-          const res = await this.runGas('apiSaveLaboratory', this.session.token, this.labModal.data);
+          if (!this.isSuperAdmin()) {
+            this.showToast('Akses ditolak: Khusus Super Admin.', 'error');
+            return;
+          }
+          const payload = {
+            lab_id: this.labModal.data.lab_id,
+            lab_name: (this.labModal.data.lab_name || '').trim(),
+            lab_position: (this.labModal.data.lab_position || '').trim(),
+            description: (this.labModal.data.description || '').trim(),
+            pic_name: (this.labModal.data.pic_name || '').trim(),
+            status: this.labModal.data.status || 'active'
+          };
+          if (!payload.lab_name || !payload.lab_position || !payload.description || !payload.pic_name) {
+            this.showToast('Seluruh kolom bertanda (*) wajib diisi.', 'error');
+            return;
+          }
+          const res = await this.runGas('apiSaveLaboratory', this.session.token, payload);
           if (res && res.success) {
+            this.showToast(res.message || 'Data laboratorium berhasil disimpan.');
             this.labModal.open = false;
-            this.showToast(this.labModal.is_edit ? 'Master lokasi laboratorium berhasil diperbarui.' : 'Laboratorium baru berhasil ditambahkan.');
-            this.loadAdminSettings();
-            this.loadPublicHome();
-            this.loadWorkspaceBundle(true);
-          } else {
-            this.showToast(res?.message || 'Gagal menyimpan data laboratorium.', 'error');
+            await this.loadAdminSettings();
+            await this.loadWorkspaceBundle(true);
+            await this.loadPublicHome();
           }
         },
 
         async deleteLab(labId) {
-          if (!this.isSuperAdmin()) return;
-          if (!confirm('Hapus laboratorium ini? Pastikan tidak ada data inventaris yang masih aktif.')) return;
+          if (!this.isSuperAdmin()) {
+            this.showToast('Akses ditolak: Khusus Super Admin.', 'error');
+            return;
+          }
+          if (!confirm('Hapus master lokasi laboratorium ini secara permanen?')) return;
           const res = await this.runGas('apiDeleteLaboratory', this.session.token, labId);
           if (res && res.success) {
-            this.showToast('Laboratorium berhasil dihapus.');
-            this.loadAdminSettings();
-            this.loadPublicHome();
-            this.loadWorkspaceBundle(true);
-          } else {
-            this.showToast(res?.message || 'Gagal menghapus laboratorium.', 'error');
+            this.showToast(res.message || 'Laboratorium berhasil dihapus.');
+            await this.loadAdminSettings();
+            await this.loadWorkspaceBundle(true);
+            await this.loadPublicHome();
           }
         },
 
         async exportExcel(reportType) {
-          const res = await this.runGas('apiExportReportExcel', this.session.token, reportType, this.session.active_lab_id);
-          if (res && res.success) {
-            const a = document.createElement('a');
-            a.href = 'data:' + res.mimeType + ';base64,' + res.base64;
-            a.download = res.fileName;
-            a.click();
-            this.showToast('Laporan Excel berhasil diunduh.');
+          const res = await this.runGas('apiExportReportXlsx', this.session.token, reportType, this.session.active_lab_id);
+          if (res && res.success && res.download_url) {
+            window.open(res.download_url, '_blank');
+            this.showToast('File Excel sedang diunduh...');
           }
-        },
-
-        // ===================================================================
-        // KOMPRESI GAMBAR & KAMERA (MENDUKUNG whIn, whEdit, masterForm, invForm)
-        // ===================================================================
-        handleImageFile(event, target) {
-          const inputEl = event.target;
-          const file = inputEl.files && inputEl.files[0];
-          if (!file) return;
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            this.compressDataUrl(e.target.result, (compressed) => {
-              if (target === 'whIn') this.whInForm.photo_base64 = compressed;
-              else if (target === 'whEdit') this.whEditModal.data.photo_base64 = compressed;
-              else if (target === 'masterForm') this.masterFormModal.data.photo_base64 = compressed;
-              else this.invFormModal.data.photo_base64 = compressed;
-              inputEl.value = '';
-            });
-          };
-          reader.readAsDataURL(file);
-        },
-
-        async openCameraModal(target) {
-          this.cameraModal.target = target;
-          this.cameraModal.open = true;
-          try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-            this.cameraModal.stream = stream;
-            document.getElementById('silarasCameraVideo').srcObject = stream;
-          } catch (e) {
-            this.showToast('Tidak dapat mengakses kamera perangkat.', 'error');
-            this.cameraModal.open = false;
-          }
-        },
-
-        captureCameraFrame() {
-          const video = document.getElementById('silarasCameraVideo');
-          const canvas = document.createElement('canvas');
-          canvas.width = video.videoWidth || 640;
-          canvas.height = video.videoHeight || 480;
-          canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-          if (this.cameraModal.target === 'whIn') this.whInForm.photo_base64 = dataUrl;
-          else if (this.cameraModal.target === 'whEdit') this.whEditModal.data.photo_base64 = dataUrl;
-          else if (this.cameraModal.target === 'masterForm') this.masterFormModal.data.photo_base64 = dataUrl;
-          else this.invFormModal.data.photo_base64 = dataUrl;
-          this.closeCameraModal();
-        },
-
-        closeCameraModal() {
-          if (this.cameraModal.stream) {
-            this.cameraModal.stream.getTracks().forEach(t => t.stop());
-            this.cameraModal.stream = null;
-          }
-          this.cameraModal.open = false;
-        },
-
-        compressDataUrl(dataUrl, callback) {
-          const img = new Image();
-          img.onload = () => {
-            const maxW = 800;
-            const scale = img.width > maxW ? (maxW / img.width) : 1;
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width * scale;
-            canvas.height = img.height * scale;
-            canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-            callback(canvas.toDataURL('image/jpeg', 0.78));
-          };
-          img.src = dataUrl;
         }
       };
     }
